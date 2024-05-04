@@ -1,8 +1,13 @@
 mod mappings;
 
-use mappings::ascii_to_morse;
+use mappings::{ascii_to_morse, unicode_to_morse};
 
 pub fn ascii_encode(s: &str) -> String {
     let parts: Vec<&str> = s.as_bytes().iter().map(|b| ascii_to_morse(*b)).collect();
+    parts.join(" ")
+}
+
+pub fn unicode_encode(s: &str) -> String {
+    let parts: Vec<&str> = s.chars().map(|b| unicode_to_morse(b)).collect();
     parts.join(" ")
 }
