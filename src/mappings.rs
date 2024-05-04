@@ -1,25 +1,24 @@
 pub fn ascii_to_morse(c: u8) -> &'static str {
     match c {
         // NOTE: look for `=> "",` for missing characters
-
         b' ' => "/",
 
-        b'!' => "..--.", // non standard: mapped to interrogation mark 
+        b'!' => "..--.",  // non standard: mapped to interrogation mark
         b'"' => ".-..-.", // Straight quotes (1.1.3)
         b'#' => "",
-        b'$' => "...-..-", // non standard
+        b'$' => "...-..-",           // non standard
         b'%' => "----- -..-. -----", // (3.3.1)
-        b'&' => ". ...", // non standard: mapped to "es"
+        b'&' => ". ...",             // non standard: mapped to "es"
 
         b'\'' => ".----.", // Apostrophe (1.1.3)
-        b'(' => "-.--.", // Left-hand bracket (parenthesis) (1.1.3)
-        b')' => "-.--.-", // Right-hand bracket (parenthesis) (1.1.3)
-        b'*' => "-..-", // Multiplication sign (same as letter X) (1.1.3)
-        b'+' => ".-.-.", // Cross or addition sign (1.1.3)
-        b',' => "--..--", // Comma (1.1.3)
-        b'-' => "-....-", // Hyphen (1.1.3)
-        b'.' => ".-.-.-", // Full stop (period) (1.1.3)
-        b'/' => "-..-.", // Fraction bar or division sign (1.1.3)
+        b'(' => "-.--.",   // Left-hand bracket (parenthesis) (1.1.3)
+        b')' => "-.--.-",  // Right-hand bracket (parenthesis) (1.1.3)
+        b'*' => "-..-",    // Multiplication sign (same as letter X) (1.1.3)
+        b'+' => ".-.-.",   // Cross or addition sign (1.1.3)
+        b',' => "--..--",  // Comma (1.1.3)
+        b'-' => "-....-",  // Hyphen (1.1.3)
+        b'.' => ".-.-.-",  // Full stop (period) (1.1.3)
+        b'/' => "-..-.",   // Fraction bar or division sign (1.1.3)
 
         // International Morse code, as per ITU-R M.1677-1
         //
@@ -126,32 +125,32 @@ pub fn unicode_to_morse(c: char) -> &'static str {
         // 1. Morse code signals
         // 1.1.1. Letters (Latins script)
         // Uppercase | Lowercase
-        'A' | 'a'       => ".-",
-        'B' | 'b'       => "-...",
-        'C' | 'c'       => "-.-.",
-        'D' | 'd'       => "-..",
-        'E' | 'e'       => ".",
-        'F' | 'f'       => "..-.",
-        'G' | 'g'       => "--.",
-        'H' | 'h'       => "....",
+        'A' | 'a' => ".-",
+        'B' | 'b' => "-...",
+        'C' | 'c' => "-.-.",
+        'D' | 'd' => "-..",
+        'E' | 'e' => ".",
+        'F' | 'f' => "..-.",
+        'G' | 'g' => "--.",
+        'H' | 'h' => "....",
         'I' | 'i' | 'ı' => "..", // dotless i (see https://en.wikipedia.org/wiki/Dotless_I)
-        'J' | 'j'       => ".---",
-        'K' | 'k'       => "-.-",
-        'L' | 'l'       => ".-..",
-        'M' | 'm'       => "--",
-        'N' | 'n'       => "-.",
-        'O' | 'o'       => "---",
-        'P' | 'p'       => ".--.",
-        'Q' | 'q'       => "--.-",
-        'R' | 'r'       => ".-.",
+        'J' | 'j' => ".---",
+        'K' | 'k' => "-.-",
+        'L' | 'l' => ".-..",
+        'M' | 'm' => "--",
+        'N' | 'n' => "-.",
+        'O' | 'o' => "---",
+        'P' | 'p' => ".--.",
+        'Q' | 'q' => "--.-",
+        'R' | 'r' => ".-.",
         'S' | 's' | 'ſ' => "...", // long s (see https://en.wikipedia.org/wiki/Long_s)
-        'T' | 't'       => "-",
-        'U' | 'u'       => "..-",
-        'V' | 'v'       => "...-",
-        'W' | 'w'       => ".--",
-        'X' | 'x'       => "-..-",
-        'Y' | 'y'       => "-.--",
-        'Z' | 'z'       => "--..",
+        'T' | 't' => "-",
+        'U' | 'u' => "..-",
+        'V' | 'v' => "...-",
+        'W' | 'w' => ".--",
+        'X' | 'x' => "-..-",
+        'Y' | 'y' => "-.--",
+        'Z' | 'z' => "--..",
 
         // 1.1.2. Figures (Hindu-Arab digits)
         '0' => "-----",
@@ -166,15 +165,15 @@ pub fn unicode_to_morse(c: char) -> &'static str {
         '9' => "----.",
 
         // 1.1.3. Punctuation marks and miscellaneous signs
-        '.' => ".-.-.-", // Full stop (period)
-        ',' => "--..--", // Comma
-        ':' => "---...", // Colon r division sign
-        '?' => "..--..", // Question mark
+        '.' => ".-.-.-",  // Full stop (period)
+        ',' => "--..--",  // Comma
+        ':' => "---...",  // Colon r division sign
+        '?' => "..--..",  // Question mark
         '\'' => ".----.", // Apostrophe
-        '-' => "-....-", // Hyphen
-        '/' => "-..-.", // Fraction bar or division sign
-        '(' => "-.--.", // Left-hand bracket (parenthesis)
-        ')' => "-.--.-", // Right-hand bracket (parenthesis)
+        '-' => "-....-",  // Hyphen
+        '/' => "-..-.",   // Fraction bar or division sign
+        '(' => "-.--.",   // Left-hand bracket (parenthesis)
+        ')' => "-.--.-",  // Right-hand bracket (parenthesis)
         // Inverted commas (before and after the words)
         // Straight quotes
         '"' => ".-..-.",
@@ -192,7 +191,7 @@ pub fn unicode_to_morse(c: char) -> &'static str {
         // NA  // Wait
         // NA  // End of work
         // NA  // Starting signal
-        '×' => "-..-", // Multiplication sign (same as letter X)
+        '×' => "-..-",   // Multiplication sign (same as letter X)
         '@' => ".--.-.", // Commercial at
 
         // 3. Transmission of signs for which there is no corresponding signal in the Morse code
@@ -273,7 +272,8 @@ pub fn unicode_to_morse(c: char) -> &'static str {
 
         // other characters without a reference
         // Uppercase | Lowercase
-        /* "SS" */      'ß' => "...--..",
+        /* "SS" */
+        'ß' => "...--..",
         'Á' | 'á' => ".--.-",
         'Œ' | 'œ' => "---.",
         'Ì' | 'ì' => ".---.",
@@ -315,7 +315,7 @@ pub fn unicode_to_morse(c: char) -> &'static str {
         'Ĳ' | 'ĳ' => ".. .---",
         // K
         'Ķ' | 'ķ' => "-.-",
-        /* NA */        'ĸ' => "-.-",
+        /* NA */ 'ĸ' => "-.-",
         // L
         'Ĺ' | 'ĺ' => ".-..",
         'Ļ' | 'ļ' => ".-..",
@@ -324,7 +324,7 @@ pub fn unicode_to_morse(c: char) -> &'static str {
         // N
         'Ņ' | 'ņ' => "-.",
         'Ň' | 'ň' => "-.",
-        /* "ʼN" */      'ŉ' => "-.",
+        /* "ʼN" */ 'ŉ' => "-.",
         'Ŋ' | 'ŋ' => "-.",
         // O
         'Ò' | 'ò' => "---",
@@ -398,39 +398,39 @@ pub fn unicode_to_morse(c: char) -> &'static str {
         // These are listed in the order of the Wikipedia page (alphabetical
         // order of the corresponding latin script character)
         // Uppercase | Lowercase
-        'А' | 'а' => ".-",    // a
+        'А' | 'а' => ".-",   // a
         'Б' | 'б' => "-...", // be
-        'В' | 'в' => ".--",   // ve
-        'Г' | 'г' => "--.",   // ghe
-        'Д' | 'д' => "-..",   // de
-        'Е' | 'е' => ".",     // ie
+        'В' | 'в' => ".--",  // ve
+        'Г' | 'г' => "--.",  // ghe
+        'Д' | 'д' => "-..",  // de
+        'Е' | 'е' => ".",    // ie
         'Ж' | 'ж' => "...-", // zhe
         'З' | 'з' => "--..", // ze
-        'И' | 'и' => "..",    // i
+        'И' | 'и' => "..",   // i
         'Й' | 'й' => ".---", // short i
-        'К' | 'к' => "-.-",   // ka
+        'К' | 'к' => "-.-",  // ka
         'Л' | 'л' => ".-..", // el
-        'М' | 'м' => "--",    // em
-        'Н' | 'н' => "-.",    // en
-        'О' | 'о' => "---",   // o
+        'М' | 'м' => "--",   // em
+        'Н' | 'н' => "-.",   // en
+        'О' | 'о' => "---",  // o
         'П' | 'п' => ".--.", // pe
-        'Р' | 'р' => ".-.",   // er
-        'С' | 'с' => "...",   // es
+        'Р' | 'р' => ".-.",  // er
+        'С' | 'с' => "...",  // es
         'Т' | 'т' => "-",
         'У' | 'у' => "..-",   // u
-        'Ф' | 'ф' => "..-.", // ef
-        'Х' | 'х' => "....", // ha
-        'Ц' | 'ц' => "-.-.", // tse
-        'Ч' | 'ч' => "---.", // che
-        'Ш' | 'ш' => "----", // sha
-        'Щ' | 'щ' => "--.-", // shcha
-        'Ъ' | 'ъ' => "-..-", // hard sign
-        'Ы' | 'ы' => "-.--", // yeru
-        'Ь' | 'ь' => "-..-", // soft sign
+        'Ф' | 'ф' => "..-.",  // ef
+        'Х' | 'х' => "....",  // ha
+        'Ц' | 'ц' => "-.-.",  // tse
+        'Ч' | 'ч' => "---.",  // che
+        'Ш' | 'ш' => "----",  // sha
+        'Щ' | 'щ' => "--.-",  // shcha
+        'Ъ' | 'ъ' => "-..-",  // hard sign
+        'Ы' | 'ы' => "-.--",  // yeru
+        'Ь' | 'ь' => "-..-",  // soft sign
         'Ѣ' | 'ѣ' => "..-..", // yat, in Wikipedia article and in Russian law document
         'Э' | 'э' => "..-..", // e, in Wikipedia article only
-        'Ю' | 'ю' => "..--", // yu
-        'Я' | 'я' => ".-.-", // ya
+        'Ю' | 'ю' => "..--",  // yu
+        'Я' | 'я' => ".-.-",  // ya
 
         // mapping of other Cyrillic characters to standard ones
         'Ѐ' | 'ѐ' => ".",    // ie with grave
@@ -441,16 +441,16 @@ pub fn unicode_to_morse(c: char) -> &'static str {
         'Ј' | 'ј' => ".---", // je
         'Ћ' | 'ћ' => "-.-.", // tshe
         'Ѝ' | 'ѝ' => "..",   // i with grave
-        'Ў' | 'ў' => "..-", // short u
+        'Ў' | 'ў' => "..-",  // short u
 
         // phonetic decomposition of other Cyrillic characters
-        'Ђ' | 'ђ' => "-.. .---", // dje
-        'Ѓ' | 'ѓ' => "--. .---", // gje
-        'Ѕ' | 'ѕ' => "-.. --..", // dze
+        'Ђ' | 'ђ' => "-.. .---",  // dje
+        'Ѓ' | 'ѓ' => "--. .---",  // gje
+        'Ѕ' | 'ѕ' => "-.. --..",  // dze
         'Љ' | 'љ' => ".-.. .---", // lje
         'Њ' | 'њ' => "-. .---",   // nje
-        'Ќ' | 'ќ' => "-.- .---", // kje
-        'Џ' | 'џ' => "-.. --..", // dzhe
+        'Ќ' | 'ќ' => "-.- .---",  // kje
+        'Џ' | 'џ' => "-.. --..",  // dzhe
 
         // Wabun code for Japanese, tnx JE1TRV
         // https://en.wikipedia.org/wiki/Wabun_code
@@ -458,42 +458,42 @@ pub fn unicode_to_morse(c: char) -> &'static str {
         // https://web.archive.org/web/20220129114408/https://elaws.e-gov.go.jp/data/325M50080000017_20200622_502M60000008061/pict/S25F30901000017-001.pdf (1945?)
         // 1. Kanas without any diacritics (dakuten or handakuten)
         // Katakana    Hiragana
-        'イ' | 'い' => ".-",     // i
-        'ロ' | 'ろ' => ".-.-",   // ro
-        'ハ' | 'は' => "-...",   // ha
-        'ニ' | 'に' => "-.-.",   // ni
-        'ホ' | 'ほ' => "-..",    // ho
-        'ヘ' | 'へ' => ".",      // he
+        'イ' | 'い' => ".-",    // i
+        'ロ' | 'ろ' => ".-.-",  // ro
+        'ハ' | 'は' => "-...",  // ha
+        'ニ' | 'に' => "-.-.",  // ni
+        'ホ' | 'ほ' => "-..",   // ho
+        'ヘ' | 'へ' => ".",     // he
         'ト' | 'と' => "..-..", // to
-        'チ' | 'ち' => "..-.",   // ti
-        'リ' | 'り' => "--.",    // ri
-        'ヌ' | 'ぬ' => "....",   // nu
+        'チ' | 'ち' => "..-.",  // ti
+        'リ' | 'り' => "--.",   // ri
+        'ヌ' | 'ぬ' => "....",  // nu
         'ル' | 'る' => "-.--.", // ru
-        'ヲ' | 'を' => ".---",   // wo
-        'ワ' | 'わ' => "-.-",    // wa
-        'カ' | 'か' => ".-..",   // ka
-        'ヨ' | 'よ' => "--",     // yo
-        'ョ' | 'ょ' => "--",     // yo
-        'タ' | 'た' => "-.",     // ta
-        'レ' | 'れ' => "---",    // re
-        'ソ' | 'そ' => "---.",   // so
-        'ツ' | 'つ' => ".--.",   // tu
-        'ッ' | 'っ' => ".--.",   // tu
-        'ネ' | 'ね' => "--.-",   // ne
-        'ナ' | 'な' => ".-.",    // na
-        'ラ' | 'ら' => "...",    // ra
-        'ム' | 'む' => "-",      // mu
-        'ウ' | 'う' => "..-",    // u
+        'ヲ' | 'を' => ".---",  // wo
+        'ワ' | 'わ' => "-.-",   // wa
+        'カ' | 'か' => ".-..",  // ka
+        'ヨ' | 'よ' => "--",    // yo
+        'ョ' | 'ょ' => "--",    // yo
+        'タ' | 'た' => "-.",    // ta
+        'レ' | 'れ' => "---",   // re
+        'ソ' | 'そ' => "---.",  // so
+        'ツ' | 'つ' => ".--.",  // tu
+        'ッ' | 'っ' => ".--.",  // tu
+        'ネ' | 'ね' => "--.-",  // ne
+        'ナ' | 'な' => ".-.",   // na
+        'ラ' | 'ら' => "...",   // ra
+        'ム' | 'む' => "-",     // mu
+        'ウ' | 'う' => "..-",   // u
         'ヰ' | 'ゐ' => ".-..-", // yi
-        'ノ' | 'の' => "..--",   // no
+        'ノ' | 'の' => "..--",  // no
         'オ' | 'お' => ".-...", // o
-        'ク' | 'く' => "...-",   // ku
-        'ヤ' | 'や' => ".--",    // ya
-        'ャ' | 'ゃ' => ".--",    // ya
-        'マ' | 'ま' => "-..-",   // ma
-        'ケ' | 'け' => "-.--",   // ke
-        'フ' | 'ふ' => "--..",   // fu
-        'コ' | 'こ' => "----",   // ko
+        'ク' | 'く' => "...-",  // ku
+        'ヤ' | 'や' => ".--",   // ya
+        'ャ' | 'ゃ' => ".--",   // ya
+        'マ' | 'ま' => "-..-",  // ma
+        'ケ' | 'け' => "-.--",  // ke
+        'フ' | 'ふ' => "--..",  // fu
+        'コ' | 'こ' => "----",  // ko
         'エ' | 'え' => "-.---", // e
         'テ' | 'て' => ".-.--", // te
         'ア' | 'あ' => "--.--", // a
@@ -513,37 +513,37 @@ pub fn unicode_to_morse(c: char) -> &'static str {
         // 2. Kanas with dakuten
         '゛' => "..", // Dakuten modifier
         // Katakanas        Hiraganas
-        'ガ' | 'が' => ".-.. ..",    // ga
-        'ギ' | 'ぎ' => "-.-.. ..",   // gi
-        'グ' | 'ぐ' => "...- ..",    // gu
-        'ゲ' | 'げ' => "-.-- ..",    // ge
-        'ゴ' | 'ご' => "---- ..",    // go
-        'ザ' | 'ざ' => "-.-.- ..",   // za
-        'ジ' | 'じ' => "--.-. ..",   // zi
-        'ズ' | 'ず' => "---.- ..",   // zu
-        'ゼ' | 'ぜ' => ".---. ..",   // ze
-        'ゾ' | 'ぞ' => "---. ..",    // zo
-        'ダ' | 'だ' => "-. ..",      // da
-        'ヂ' | 'ぢ' => "..-. ..",    // di
-        'ヅ' | 'づ' => ".--. ..",    // du
-        'デ' | 'で' => ".-.-- ..",   // de
-        'ド' | 'ど' => "..-.. ..",   // do
-        'バ' | 'ば' => "-... ..",    // ba
-        'ビ' | 'び' => "--..- ..",   // bi
-        'ブ' | 'ぶ' => "--.. ..",    // bu
-        'ベ' | 'べ' => ". ..",       // be
-        'ボ' | 'ぼ' => "-.. ..",     // bo
+        'ガ' | 'が' => ".-.. ..",  // ga
+        'ギ' | 'ぎ' => "-.-.. ..", // gi
+        'グ' | 'ぐ' => "...- ..",  // gu
+        'ゲ' | 'げ' => "-.-- ..",  // ge
+        'ゴ' | 'ご' => "---- ..",  // go
+        'ザ' | 'ざ' => "-.-.- ..", // za
+        'ジ' | 'じ' => "--.-. ..", // zi
+        'ズ' | 'ず' => "---.- ..", // zu
+        'ゼ' | 'ぜ' => ".---. ..", // ze
+        'ゾ' | 'ぞ' => "---. ..",  // zo
+        'ダ' | 'だ' => "-. ..",    // da
+        'ヂ' | 'ぢ' => "..-. ..",  // di
+        'ヅ' | 'づ' => ".--. ..",  // du
+        'デ' | 'で' => ".-.-- ..", // de
+        'ド' | 'ど' => "..-.. ..", // do
+        'バ' | 'ば' => "-... ..",  // ba
+        'ビ' | 'び' => "--..- ..", // bi
+        'ブ' | 'ぶ' => "--.. ..",  // bu
+        'ベ' | 'べ' => ". ..",     // be
+        'ボ' | 'ぼ' => "-.. ..",   // bo
         // 3. Kanas with handakuten
         '゜' => "..--.", // Handakuten modifier
         // Katakanas        Hiraganas
-        'パ' | 'ぱ' => "-... ..--.", // pa
-        'ピ' | 'ぴ' => "--..- ..--.",// pi
-        'プ' | 'ぷ' => "--.. ..--.", // pu
-        'ペ' | 'ぺ' => ". ..--.",    // pe
-        'ポ' | 'ぽ' => "-.. ..--.", // po
+        'パ' | 'ぱ' => "-... ..--.",  // pa
+        'ピ' | 'ぴ' => "--..- ..--.", // pi
+        'プ' | 'ぷ' => "--.. ..--.",  // pu
+        'ペ' | 'ぺ' => ". ..--.",     // pe
+        'ポ' | 'ぽ' => "-.. ..--.",   // po
         // 4. Other characters in the Wabun code
-        '－' => ".--.-",   // -
-        'ー' => ".--.-",   // -
+        '－' => ".--.-",  // -
+        'ー' => ".--.-",  // -
         '（' => "-.--.-", // (
         '）' => ".-..-.", // )
         '、' => ".-.-.-", // .
@@ -569,7 +569,7 @@ pub fn unicode_to_morse(c: char) -> &'static str {
         'ㅏ' => ".",       // a
         'ㅐ' => "--.-",    // ae
         'ㅑ' => "..",      // ya
-        'ㅒ' => ".. ..-", // yae
+        'ㅒ' => ".. ..-",  // yae
         'ㅓ' => "-",       // eo
         'ㅔ' => "-.--",    // e
         'ㅕ' => "...",     // yeo
@@ -584,42 +584,42 @@ pub fn unicode_to_morse(c: char) -> &'static str {
         // Hebrew
         // The ARRL handbook for the radio amateur, 19-3 (1985)
         // https://archive.org/details/arrlhandbookforr0000unse_w7j4/page/n415/mode/2up
-        'א' => ".-",    // alef
+        'א' => ".-",   // alef
         'ב' => "-...", // bet
         //'בּ' => "-...", // dotted bet
-        'ג' => "--.",   // gimel
+        'ג' => "--.", // gimel
         //'גּ' => "--.",   // dotted gimel
-        'ד' => "-..",   // dalet
+        'ד' => "-..", // dalet
         //'דּ' => "-..",   // dotted dalet
-        'ה' => "---",   // he
-        'ו' => ".",     // vav
+        'ה' => "---",  // he
+        'ו' => ".",    // vav
         'ז' => "--..", // zayin
         'ח' => "....", // chet
-        'ט' => "..-",   // tet
-        'י' => "..",    // yod
-        'ך' => "-.-",   // final kaf
+        'ט' => "..-",  // tet
+        'י' => "..",   // yod
+        'ך' => "-.-",  // final kaf
         //'ךּ' => "-.-",   // dotted final kaf
-        'כ' => "-.-",   // kaf
+        'כ' => "-.-", // kaf
         //'כּ' => "-.-",   // dotted kaf
         'ל' => ".-..", // lamed
-        'ם' => "--",    // final mem
-        'מ' => "--",    // mem
-        'ן' => "-.",    // final nun
-        'נ' => "-.",    // nun
+        'ם' => "--",   // final mem
+        'מ' => "--",   // mem
+        'ן' => "-.",   // final nun
+        'נ' => "-.",   // nun
         'ס' => "-.-.", // samekh
         'ע' => ".---", // ayin
         'ף' => ".--.", // final pe
         //'ףּ' => ".--.", // final pe
         'פ' => ".--.", // pe
         //'פּ' => ".--.", // dotted pe
-        'ץ' => ".--",   // final tsadi
-        'צ' => ".--",   // tsadi
+        'ץ' => ".--",  // final tsadi
+        'צ' => ".--",  // tsadi
         'ק' => "--.-", // qof
-        'ר' => ".-.",   // resh
-        'ש' => "...",   // dotless shin
+        'ר' => ".-.",  // resh
+        'ש' => "...",  // dotless shin
         //'שׁ' => "...",   // right-dotted shin
         //'שׂ' => "...",   // left-dotted shin
-        'ת' => "-",     // dotless tav
+        'ת' => "-", // dotless tav
         //'תּ' => "-",     // dotted tav
 
         // Arabic
@@ -628,39 +628,39 @@ pub fn unicode_to_morse(c: char) -> &'static str {
         // Unicode points were copied from “Isolated form”, and names from “Letter name” in
         // https://en.wikipedia.org/wiki/Arabic_alphabet#Table_of_basic_letters
         // TODO: add contextual forms
-        'ا' => ".-",     // ʾalif
-        'ب' => "-...",   // bāʾ/bah
-        'ت' => "-",      // tāʾ/tah
-        'ث' => "-.-.",   // thāʾ/thah
-        'ج' => ".---",   // jīm
-        'ح' => "....",   // ḥāʾ/ḥah
-        'خ' => "---",    // khāʾ/khah
-        'د' => "-..",    // dāl/dāʾ/dah
-        'ذ' => "--..",   // dhāl/dhāʾ/dhah
-        'ر' => ".-.",    // rāʾ/rah
-        'ز' => "---.",   // zāy/zayn/zāʾ/zah
-        'س' => "...",    // sīn
-        'ش' => "----",   // shīn
-        'ص' => "-..-",   // ṣād
-        'ض' => "...-",   // ḍād/ḍāʾ/ḍah
-        'ط' => "..-",    // ṭāʾ/ṭah
-        'ظ' => "-.--",   // ẓāʾ/ẓah
-        'ع' => ".-.-",   // ʿayn
-        'غ' => "--.",    // ghayn
-        'ف' => "..-.",   // fāʾ/fah
-        'ق' => "--.-",   // qāf
-        'ڪ' => "-.-",    // kāf/kāʾ/kah
-        'ك' => "-.-",    // kāf/kāʾ/kah
-        'ل' => ".-..",   // lām
-        'م' => "--",     // mīm
-        'ن' => "-.",     // nūn
+        'ا' => ".-",    // ʾalif
+        'ب' => "-...",  // bāʾ/bah
+        'ت' => "-",     // tāʾ/tah
+        'ث' => "-.-.",  // thāʾ/thah
+        'ج' => ".---",  // jīm
+        'ح' => "....",  // ḥāʾ/ḥah
+        'خ' => "---",   // khāʾ/khah
+        'د' => "-..",   // dāl/dāʾ/dah
+        'ذ' => "--..",  // dhāl/dhāʾ/dhah
+        'ر' => ".-.",   // rāʾ/rah
+        'ز' => "---.",  // zāy/zayn/zāʾ/zah
+        'س' => "...",   // sīn
+        'ش' => "----",  // shīn
+        'ص' => "-..-",  // ṣād
+        'ض' => "...-",  // ḍād/ḍāʾ/ḍah
+        'ط' => "..-",   // ṭāʾ/ṭah
+        'ظ' => "-.--",  // ẓāʾ/ẓah
+        'ع' => ".-.-",  // ʿayn
+        'غ' => "--.",   // ghayn
+        'ف' => "..-.",  // fāʾ/fah
+        'ق' => "--.-",  // qāf
+        'ڪ' => "-.-",   // kāf/kāʾ/kah
+        'ك' => "-.-",   // kāf/kāʾ/kah
+        'ل' => ".-..",  // lām
+        'م' => "--",    // mīm
+        'ن' => "-.",    // nūn
         'ه' => "..-..", // hāʾ/hah
-        'و' => ".--",    // wāw
-        'ے' => "..",     // yāʾ/yah
-        'ي' => "..",     // yāʾ/yah
+        'و' => ".--",   // wāw
+        'ے' => "..",    // yāʾ/yah
+        'ي' => "..",    // yāʾ/yah
         //'لا' => ".-...-", // lām-alif (ligature)
         // other characters without a reference
-        'ء' => ".",      // hamzah
+        'ء' => ".", // hamzah
 
         _ => "",
     }
