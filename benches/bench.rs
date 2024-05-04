@@ -1,11 +1,11 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
-use rand::{distributions::Alphanumeric, Rng};
+use rand::{distributions::Standard, Rng};
 
 use ripmors::{ascii_encode, unicode_encode};
 
 fn ascii_benchmark(c: &mut Criterion) {
     let ascii: String = rand::thread_rng()
-        .sample_iter(&Alphanumeric)
+        .sample_iter::<u8, _>(Standard)
         .take(1048576)
         .map(char::from)
         .collect();
