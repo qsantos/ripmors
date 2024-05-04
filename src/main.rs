@@ -1,3 +1,5 @@
+use ripmors::ascii_encode;
+
 fn main() {
-    println!("Hello, world!");
+    println!("{}", ascii_encode("Hello, world!"));
 }
