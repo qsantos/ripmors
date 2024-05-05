@@ -2,9 +2,8 @@ mod mappings;
 
 use mappings::{ascii_to_morse, unicode_to_morse};
 
-pub fn ascii_encode(s: &str) -> String {
+pub fn ascii_encode(s: &[u8]) -> String {
     let parts: Vec<&str> = s
-        .as_bytes()
         .iter()
         .map(|b| ascii_to_morse(*b))
         .filter(|&x| x != "")

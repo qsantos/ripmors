@@ -4,10 +4,9 @@ use rand::{distributions::Standard, Rng};
 use ripmors::{ascii_encode, unicode_encode};
 
 fn ascii_benchmark(c: &mut Criterion) {
-    let ascii: String = rand::thread_rng()
+    let ascii: Vec<u8> = rand::thread_rng()
         .sample_iter::<u8, _>(Standard)
         .take(1048576)
-        .map(char::from)
         .collect();
     let mut group = c.benchmark_group("ASCII");
     group.throughput(Throughput::Bytes(ascii.len() as u64));
