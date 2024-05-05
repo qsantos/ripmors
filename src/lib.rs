@@ -14,8 +14,11 @@ pub fn ascii_encode(s: &[u8]) -> String {
 pub fn ascii_encode_vec_u8(s: &[u8], buf: &mut Vec<u8>) {
     buf.extend(ascii_to_morse(s[0]).as_bytes());
     for c in &s[1..] {
-        buf.push(b' ');
-        buf.extend(ascii_to_morse(*c).as_bytes());
+        let morse = ascii_to_morse(*c);
+        if morse != "" {
+            buf.push(b' ');
+            buf.extend(morse.as_bytes());
+        }
     }
 }
 
