@@ -1,3 +1,5 @@
+// International Morse code, as per ITU-R M.1677-1
+
 pub fn ascii_to_morse(c: u8) -> &'static str {
     match c {
         // NOTE: look for `=> "",` for missing characters
@@ -7,7 +9,7 @@ pub fn ascii_to_morse(c: u8) -> &'static str {
         b'"' => ".-..-.", // Straight quotes (1.1.3)
         b'#' => "",
         b'$' => "...-..-",           // non standard
-        b'%' => "----- -..-. -----", // (3.3.1)
+        b'%' => "----- -..-. -----", // Mapped to "0/0" (3.3.1)
         b'&' => ". ...",             // non standard: mapped to "es"
 
         b'\'' => ".----.", // Apostrophe (1.1.3)
@@ -20,8 +22,6 @@ pub fn ascii_to_morse(c: u8) -> &'static str {
         b'.' => ".-.-.-",  // Full stop (period) (1.1.3)
         b'/' => "-..-.",   // Fraction bar or division sign (1.1.3)
 
-        // International Morse code, as per ITU-R M.1677-1
-        //
         // 1.1.2. Figures (Hindu-Arab digits)
         b'0' => "-----",
         b'1' => ".----",
@@ -42,7 +42,6 @@ pub fn ascii_to_morse(c: u8) -> &'static str {
         b'?' => "..--..", // Question mark (1.1.3)
         b'@' => ".--.-.", // Commercial at (1.1.3)
 
-        // 1. Morse code signals
         // 1.1.1. Letters (Latins cript)
         // Uppercase
         b'A' => ".-",
@@ -79,6 +78,7 @@ pub fn ascii_to_morse(c: u8) -> &'static str {
         b'_' => "",
         b'`' => ".-----.", // non standard
 
+        // 1.1.1. Letters (Latins cript)
         // Lowercase
         b'a' => ".-",
         b'b' => "-...",
@@ -117,124 +117,18 @@ pub fn ascii_to_morse(c: u8) -> &'static str {
 }
 
 pub fn unicode_to_morse(c: char) -> &'static str {
+    if c.is_ascii() {
+        return ascii_to_morse(c as u8);
+    }
     match c {
-        ' ' => " ", // word space
+        // Dot-less i (see https://en.wikipedia.org/wiki/Dotless_I)
+        'ı' => ascii_to_morse(b'i'),
 
-        // International Morse code, as per ITU-R M.1677-1
-
-        // 1. Morse code signals
-        // 1.1.1. Letters (Latins script)
-        // Uppercase | Lowercase
-        'A' | 'a' => ".-",
-        'B' | 'b' => "-...",
-        'C' | 'c' => "-.-.",
-        'D' | 'd' => "-..",
-        'E' | 'e' => ".",
-        'F' | 'f' => "..-.",
-        'G' | 'g' => "--.",
-        'H' | 'h' => "....",
-        'I' | 'i' | 'ı' => "..", // dotless i (see https://en.wikipedia.org/wiki/Dotless_I)
-        'J' | 'j' => ".---",
-        'K' | 'k' => "-.-",
-        'L' | 'l' => ".-..",
-        'M' | 'm' => "--",
-        'N' | 'n' => "-.",
-        'O' | 'o' => "---",
-        'P' | 'p' => ".--.",
-        'Q' | 'q' => "--.-",
-        'R' | 'r' => ".-.",
-        'S' | 's' | 'ſ' => "...", // long s (see https://en.wikipedia.org/wiki/Long_s)
-        'T' | 't' => "-",
-        'U' | 'u' => "..-",
-        'V' | 'v' => "...-",
-        'W' | 'w' => ".--",
-        'X' | 'x' => "-..-",
-        'Y' | 'y' => "-.--",
-        'Z' | 'z' => "--..",
-
-        // 1.1.2. Figures (Hindu-Arab digits)
-        '0' => "-----",
-        '1' => ".----",
-        '2' => "..---",
-        '3' => "...--",
-        '4' => "....-",
-        '5' => ".....",
-        '6' => "-....",
-        '7' => "--...",
-        '8' => "---..",
-        '9' => "----.",
-
-        // 1.1.3. Punctuation marks and miscellaneous signs
-        '.' => ".-.-.-",  // Full stop (period)
-        ',' => "--..--",  // Comma
-        ':' => "---...",  // Colon r division sign
-        '?' => "..--..",  // Question mark
-        '\'' => ".----.", // Apostrophe
-        '-' => "-....-",  // Hyphen
-        '/' => "-..-.",   // Fraction bar or division sign
-        '(' => "-.--.",   // Left-hand bracket (parenthesis)
-        ')' => "-.--.-",  // Right-hand bracket (parenthesis)
-        // Inverted commas (before and after the words)
-        // Straight quotes
-        '"' => ".-..-.",
-        // English quotes
-        '“' => ".-..-.",
-        '”' => ".-..-.",
-        // French quotes
-        '«' => ".-..-.",
-        '»' => ".-..-.",
-        '=' => "-...-", // Double hyphen
-        // NA  // Understood
-        // NA  // Error
-        '+' => ".-.-.", // Cross or addition sign
-        // NA  // Invitation to transmit
-        // NA  // Wait
-        // NA  // End of work
-        // NA  // Starting signal
-        '×' => "-..-",   // Multiplication sign (same as letter X)
-        '@' => ".--.-.", // Commercial at
-
-        // 3. Transmission of signs for which there is no corresponding signal in the Morse code
-        // 3.1. Signs that have no corresponding signal in the Morse code,
-        //      but that are acceptable in the writing of telegrams, shall
-        //      be sent as follows:
-        // 3.2. Multiplication sign
-        // 3.2.1. For the multiplication sign, the signal corresponding to
-        //        the letter X shall be transmitted.
-        // NOTE: already listed in 1.1.3
-        // 3.3. Percentage or per thousand sign
-        // 3.3.1. To indicate the signal % or ‰, the figure 0, the fraction
-        //        bar and the figures 0 or 00 shall be transmitted
-        //        successively (i.e. 0/0, 0/00).
-        '%' => "----- -..-. -----",
-        '‰' => "----- -..-. ----- -----",
-        // 3.3.2 A whole number, a fractional number, or a fraction,
-        //       followed by a % or ‰ sign, shall be transmitted by joining
-        //       up the whole number, the fraction number, or the fraction
-        //       to the % or ‰ by a single hyphen.
-        // TODO: This is not implemented
-        // 3.4 Inverted commas (quotation marks)
-        // 3.4.1 The special signal for inverted commas shall be transmitted
-        //       before and after the word or words. However, where code
-        //       converters are used, the apostrophe may be transmitted
-        //       twice before and twice after the word or words to signal
-        //       inverted commas (quotation marks).
-        // NOTE: NA
-        // 3.5 Minute and second signs
-        // 3.5.1 To transmit the minute ( ′ ) or second ( ″ ) signs, when
-        //       such signs follow figures – for example 1′15″ – the
-        //       apostrophe signal (. − − − −.) must be used once or twice
-        //       as appropriate. The signal (.− . . −.) reserved for
-        //       inverted commas may not be used for the second sign.
-        '′' => ".----.",
-        '″' => ".----. .----.",
-
-        // Non-standard punctuation marks
-        '!' => "..--.", // mapped to interrogation mark
-        '$' => "...-..-",
-        '`' => ".-----.",
-        ';' => "-.-.-.",
-        '&' => ". ...", // "es"
+        '“' | '”' | '«' | '»' => ascii_to_morse(b'"'), // English & French quotes (1.1.3)
+        '×' => ascii_to_morse(b'x'),                   // Multiplication sign (1.1.3)
+        '‰' => "----- -..-. ----- -----",              // Mapped to "0/00" (3.3.1)
+        '′' => ascii_to_morse(b'\''),                  // Minute (3.5.1), mapped to "'"
+        '″' => ".----. .----.",                        // Second (3.5.1), mapped to "''"
 
         // non-Latin extensions (from https://en.wikipedia.org/wiki/Morse_code#Letters,_numbers,_punctuation,_prosigns_for_Morse_code_and_non-Latin_variants)
         // Uppercase | Lowercase
