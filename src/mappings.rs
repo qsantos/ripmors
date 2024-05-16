@@ -75,7 +75,7 @@ pub fn ascii_to_morse(c: u8) -> &'static str {
         b'\\' => "",
         b']' => "",
         b'^' => "",
-        b'_' => "",
+        b'_' => "..--.-",  // non standard
         b'`' => ".-----.", // non standard
 
         // 1.1.1. Letters (Latins cript)
