@@ -5,7 +5,7 @@ pub fn ascii_to_morse(c: u8) -> &'static str {
         // NOTE: look for `=> "",` for missing characters
         b' ' => "/",
 
-        b'!' => "..--.",  // non standard: mapped to interrogation mark
+        b'!' => "..--.",  // non standard
         b'"' => ".-..-.", // Straight quotes (1.1.3)
         b'#' => "",
         b'$' => "...-..-",           // non standard
