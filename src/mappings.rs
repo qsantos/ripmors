@@ -36,9 +36,9 @@ pub fn ascii_to_morse(c: u8) -> &'static str {
 
         b':' => "---...", // Colon r division sign (1.1.3)
         b';' => "-.-.-.", // non standard
-        b'<' => "",
-        b'=' => "-...-", // Double hyphen (1.1.3)
-        b'>' => "",
+        b'<' => "-.--.",  // non standard: mapped to (
+        b'=' => "-...-",  // Double hyphen (1.1.3)
+        b'>' => "-.--.-", // non standard: mapped to )
         b'?' => "..--..", // Question mark (1.1.3)
         b'@' => ".--.-.", // Commercial at (1.1.3)
 
