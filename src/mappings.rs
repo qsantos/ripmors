@@ -71,9 +71,9 @@ pub fn ascii_to_morse(c: u8) -> &'static str {
         b'Y' => "-.--",
         b'Z' => "--..",
 
-        b'[' => "",
+        b'[' => "-.--.", // non standard: mapped to (
         b'\\' => "",
-        b']' => "",
+        b']' => "-.--.-", // non standard: mapped to )
         b'^' => "",
         b'_' => "..--.-",  // non standard
         b'`' => ".-----.", // non standard
@@ -107,9 +107,9 @@ pub fn ascii_to_morse(c: u8) -> &'static str {
         b'y' => "-.--",
         b'z' => "--..",
 
-        b'{' => "",
+        b'{' => "-.--.", // non standard: mapped to (
         b'|' => "",
-        b'}' => "",
+        b'}' => "-.--.-", // non standard: mapped to )
         b'~' => "",
 
         _ => "", // 33 control characters
