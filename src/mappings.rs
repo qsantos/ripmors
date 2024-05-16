@@ -42,7 +42,7 @@ pub fn ascii_to_morse(c: u8) -> &'static str {
         b'?' => "..--..", // Question mark (1.1.3)
         b'@' => ".--.-.", // Commercial at (1.1.3)
 
-        // 1.1.1. Letters (Latins cript)
+        // 1.1.1. Letters (Latins script)
         // Uppercase
         b'A' => ".-",
         b'B' => "-...",
