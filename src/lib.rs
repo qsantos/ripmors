@@ -30,3 +30,30 @@ pub fn unicode_encode(s: &str) -> String {
         .collect();
     parts.join(" ")
 }
+
+#[test]
+fn test_ascii_encode() {
+    assert_eq!(ascii_encode(b"PARIS"), ".--. .- .-. .. ...");
+    assert_eq!(
+        ascii_encode(b"Hello, World!"),
+        ".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--."
+    );
+}
+
+#[test]
+fn test_unicode_encode() {
+    assert_eq!(
+        unicode_encode("télégraphie"),
+        "- ..-.. .-.. ..-.. --. .-. .- .--. .... .. ."
+    );
+    assert_eq!(unicode_encode("でんしん"), ".-.-- .. .-.-. --.-. .-.-.");
+    assert_eq!(unicode_encode("تلغراف"), "- .-.. --. .-. .- ..-.");
+    assert_eq!(
+        unicode_encode("телеграфия"),
+        "- . .-.. . --. .-. .- ..-. .. .-.-"
+    );
+    assert_eq!(
+        unicode_encode("τηλεγραφία"),
+        "- .... .-.. . --. .-. .- ..-. .-"
+    );
+}
