@@ -1,6 +1,6 @@
 mod mappings;
 
-use mappings::{ascii_to_morse, unicode_to_morse};
+use mappings::{ascii_to_morse, morse_to_ascii, unicode_to_morse};
 
 pub fn ascii_encode(s: &[u8]) -> String {
     let parts: Vec<&str> = s
@@ -29,6 +29,15 @@ pub fn unicode_encode(s: &str) -> String {
         .filter(|&x| x != "")
         .collect();
     parts.join(" ")
+}
+
+pub fn ascii_decode(s: &str) -> String {
+    let parts: Vec<&str> = s
+        .split(" ")
+        .map(morse_to_ascii)
+        .filter(|&x| x != "")
+        .collect();
+    parts.join("")
 }
 
 #[test]
