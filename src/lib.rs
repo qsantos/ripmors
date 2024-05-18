@@ -66,3 +66,12 @@ fn test_unicode_encode() {
         "- .... .-.. . --. .-. .- ..-. .-"
     );
 }
+
+#[test]
+fn test_ascii_decode() {
+    assert_eq!(ascii_decode(".--. .- .-. .. ..."), "PARIS");
+    assert_eq!(
+        ascii_decode(".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--."),
+        "HELLO, WORLD!",
+    );
+}
