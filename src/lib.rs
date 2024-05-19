@@ -2,19 +2,19 @@ mod mappings;
 
 use mappings::{ascii_to_morse, morse_to_ascii, unicode_to_morse};
 
-pub fn ascii_encode(s: &[u8]) -> String {
+pub fn ascii_encode(s: &str) -> String {
     let parts: Vec<&str> = s
-        .iter()
-        .map(|b| ascii_to_morse(*b))
+        .chars()
+        .map(ascii_to_morse)
         .filter(|&x| x != "")
         .collect();
     parts.join(" ")
 }
 
 pub fn ascii_encode_vec_u8(s: &[u8], buf: &mut Vec<u8>) {
-    buf.extend(ascii_to_morse(s[0]).as_bytes());
+    buf.extend(ascii_to_morse(s[0] as char).as_bytes());
     for c in &s[1..] {
-        let morse = ascii_to_morse(*c);
+        let morse = ascii_to_morse(*c as char);
         if morse != "" {
             buf.push(b' ');
             buf.extend(morse.as_bytes());
@@ -42,9 +42,9 @@ pub fn ascii_decode(s: &str) -> String {
 
 #[test]
 fn test_ascii_encode() {
-    assert_eq!(ascii_encode(b"PARIS"), ".--. .- .-. .. ...");
+    assert_eq!(ascii_encode("PARIS"), ".--. .- .-. .. ...");
     assert_eq!(
-        ascii_encode(b"Hello, World!"),
+        ascii_encode("Hello, World!"),
         ".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--."
     );
 }

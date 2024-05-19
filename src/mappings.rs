@@ -1,116 +1,116 @@
 // International Morse code, as per ITU-R M.1677-1
 
-pub fn ascii_to_morse(c: u8) -> &'static str {
+pub fn ascii_to_morse(c: char) -> &'static str {
     match c {
         // NOTE: look for `=> "",` for missing characters
-        b' ' => "/",
+        ' ' => "/",
 
-        b'!' => "..--.",  // non standard
-        b'"' => ".-..-.", // Straight quotes (1.1.3)
-        b'#' => "",
-        b'$' => "...-..-",           // non standard
-        b'%' => "----- -..-. -----", // Mapped to "0/0" (3.3.1)
-        b'&' => ". ...",             // non standard: mapped to "es"
+        '!' => "..--.",  // non standard
+        '"' => ".-..-.", // Straight quotes (1.1.3)
+        '#' => "",
+        '$' => "...-..-",           // non standard
+        '%' => "----- -..-. -----", // Mapped to "0/0" (3.3.1)
+        '&' => ". ...",             // non standard: mapped to "es"
 
-        b'\'' => ".----.", // Apostrophe (1.1.3)
-        b'(' => "-.--.",   // Left-hand bracket (parenthesis) (1.1.3)
-        b')' => "-.--.-",  // Right-hand bracket (parenthesis) (1.1.3)
-        b'*' => "-..-",    // Multiplication sign (same as letter X) (1.1.3)
-        b'+' => ".-.-.",   // Cross or addition sign (1.1.3)
-        b',' => "--..--",  // Comma (1.1.3)
-        b'-' => "-....-",  // Hyphen (1.1.3)
-        b'.' => ".-.-.-",  // Full stop (period) (1.1.3)
-        b'/' => "-..-.",   // Fraction bar or division sign (1.1.3)
+        '\'' => ".----.", // Apostrophe (1.1.3)
+        '(' => "-.--.",   // Left-hand bracket (parenthesis) (1.1.3)
+        ')' => "-.--.-",  // Right-hand bracket (parenthesis) (1.1.3)
+        '*' => "-..-",    // Multiplication sign (same as letter X) (1.1.3)
+        '+' => ".-.-.",   // Cross or addition sign (1.1.3)
+        ',' => "--..--",  // Comma (1.1.3)
+        '-' => "-....-",  // Hyphen (1.1.3)
+        '.' => ".-.-.-",  // Full stop (period) (1.1.3)
+        '/' => "-..-.",   // Fraction bar or division sign (1.1.3)
 
         // 1.1.2. Figures (Hindu-Arab digits)
-        b'0' => "-----",
-        b'1' => ".----",
-        b'2' => "..---",
-        b'3' => "...--",
-        b'4' => "....-",
-        b'5' => ".....",
-        b'6' => "-....",
-        b'7' => "--...",
-        b'8' => "---..",
-        b'9' => "----.",
+        '0' => "-----",
+        '1' => ".----",
+        '2' => "..---",
+        '3' => "...--",
+        '4' => "....-",
+        '5' => ".....",
+        '6' => "-....",
+        '7' => "--...",
+        '8' => "---..",
+        '9' => "----.",
 
-        b':' => "---...", // Colon r division sign (1.1.3)
-        b';' => "-.-.-.", // non standard
-        b'<' => "-.--.",  // non standard: mapped to (
-        b'=' => "-...-",  // Double hyphen (1.1.3)
-        b'>' => "-.--.-", // non standard: mapped to )
-        b'?' => "..--..", // Question mark (1.1.3)
-        b'@' => ".--.-.", // Commercial at (1.1.3)
+        ':' => "---...", // Colon r division sign (1.1.3)
+        ';' => "-.-.-.", // non standard
+        '<' => "-.--.",  // non standard: mapped to (
+        '=' => "-...-",  // Double hyphen (1.1.3)
+        '>' => "-.--.-", // non standard: mapped to )
+        '?' => "..--..", // Question mark (1.1.3)
+        '@' => ".--.-.", // Commercial at (1.1.3)
 
         // 1.1.1. Letters (Latins script)
         // Uppercase
-        b'A' => ".-",
-        b'B' => "-...",
-        b'C' => "-.-.",
-        b'D' => "-..",
-        b'E' => ".",
-        b'F' => "..-.",
-        b'G' => "--.",
-        b'H' => "....",
-        b'I' => "..",
-        b'J' => ".---",
-        b'K' => "-.-",
-        b'L' => ".-..",
-        b'M' => "--",
-        b'N' => "-.",
-        b'O' => "---",
-        b'P' => ".--.",
-        b'Q' => "--.-",
-        b'R' => ".-.",
-        b'S' => "...",
-        b'T' => "-",
-        b'U' => "..-",
-        b'V' => "...-",
-        b'W' => ".--",
-        b'X' => "-..-",
-        b'Y' => "-.--",
-        b'Z' => "--..",
+        'A' => ".-",
+        'B' => "-...",
+        'C' => "-.-.",
+        'D' => "-..",
+        'E' => ".",
+        'F' => "..-.",
+        'G' => "--.",
+        'H' => "....",
+        'I' => "..",
+        'J' => ".---",
+        'K' => "-.-",
+        'L' => ".-..",
+        'M' => "--",
+        'N' => "-.",
+        'O' => "---",
+        'P' => ".--.",
+        'Q' => "--.-",
+        'R' => ".-.",
+        'S' => "...",
+        'T' => "-",
+        'U' => "..-",
+        'V' => "...-",
+        'W' => ".--",
+        'X' => "-..-",
+        'Y' => "-.--",
+        'Z' => "--..",
 
-        b'[' => "-.--.",  // non standard: mapped to (
-        b'\\' => "-..-.", // non standard: mapped to /
-        b']' => "-.--.-", // non standard: mapped to )
-        b'^' => "",
-        b'_' => "..--.-",  // non standard
-        b'`' => ".-----.", // non standard
+        '[' => "-.--.",  // non standard: mapped to (
+        '\\' => "-..-.", // non standard: mapped to /
+        ']' => "-.--.-", // non standard: mapped to )
+        '^' => "",
+        '_' => "..--.-",  // non standard
+        '`' => ".-----.", // non standard
 
         // 1.1.1. Letters (Latins cript)
         // Lowercase
-        b'a' => ".-",
-        b'b' => "-...",
-        b'c' => "-.-.",
-        b'd' => "-..",
-        b'e' => ".",
-        b'f' => "..-.",
-        b'g' => "--.",
-        b'h' => "....",
-        b'i' => "..",
-        b'j' => ".---",
-        b'k' => "-.-",
-        b'l' => ".-..",
-        b'm' => "--",
-        b'n' => "-.",
-        b'o' => "---",
-        b'p' => ".--.",
-        b'q' => "--.-",
-        b'r' => ".-.",
-        b's' => "...",
-        b't' => "-",
-        b'u' => "..-",
-        b'v' => "...-",
-        b'w' => ".--",
-        b'x' => "-..-",
-        b'y' => "-.--",
-        b'z' => "--..",
+        'a' => ".-",
+        'b' => "-...",
+        'c' => "-.-.",
+        'd' => "-..",
+        'e' => ".",
+        'f' => "..-.",
+        'g' => "--.",
+        'h' => "....",
+        'i' => "..",
+        'j' => ".---",
+        'k' => "-.-",
+        'l' => ".-..",
+        'm' => "--",
+        'n' => "-.",
+        'o' => "---",
+        'p' => ".--.",
+        'q' => "--.-",
+        'r' => ".-.",
+        's' => "...",
+        't' => "-",
+        'u' => "..-",
+        'v' => "...-",
+        'w' => ".--",
+        'x' => "-..-",
+        'y' => "-.--",
+        'z' => "--..",
 
-        b'{' => "-.--.",  // non standard: mapped to (
-        b'|' => "-..-.",  // non standard: mapped to /
-        b'}' => "-.--.-", // non standard: mapped to )
-        b'~' => "",
+        '{' => "-.--.",  // non standard: mapped to (
+        '|' => "-..-.",  // non standard: mapped to /
+        '}' => "-.--.-", // non standard: mapped to )
+        '~' => "",
 
         _ => "", // 33 control characters
     }
@@ -118,16 +118,16 @@ pub fn ascii_to_morse(c: u8) -> &'static str {
 
 pub fn unicode_to_morse(c: char) -> &'static str {
     if c.is_ascii() {
-        return ascii_to_morse(c as u8);
+        return ascii_to_morse(c);
     }
     match c {
         // Dot-less i (see https://en.wikipedia.org/wiki/Dotless_I)
-        'ı' => ascii_to_morse(b'i'),
+        'ı' => ascii_to_morse('i'),
 
-        '“' | '”' | '«' | '»' => ascii_to_morse(b'"'), // English & French quotes (1.1.3)
-        '×' => ascii_to_morse(b'x'),                   // Multiplication sign (1.1.3)
+        '“' | '”' | '«' | '»' => ascii_to_morse('"'), // English & French quotes (1.1.3)
+        '×' => ascii_to_morse('x'),                   // Multiplication sign (1.1.3)
         '‰' => "----- -..-. ----- -----",              // Mapped to "0/00" (3.3.1)
-        '′' => ascii_to_morse(b'\''),                  // Minute (3.5.1), mapped to "'"
+        '′' => ascii_to_morse('\''),                  // Minute (3.5.1), mapped to "'"
         '″' => ".----. .----.",                        // Second (3.5.1), mapped to "''"
 
         // non-Latin extensions (from https://en.wikipedia.org/wiki/Morse_code#Letters,_numbers,_punctuation,_prosigns_for_Morse_code_and_non-Latin_variants)
