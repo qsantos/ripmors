@@ -8,7 +8,7 @@ pub fn ascii_encode_to_writer<W: Write>(writer: &mut W, s: &[u8]) -> Result<(), 
     writer.write(ascii_to_morse(s[0] as char).as_bytes())?;
     for c in &s[1..] {
         let morse = ascii_to_morse(*c as char);
-        if morse != "" {
+        if !morse.is_empty() {
             writer.write_all(b" ")?;
             writer.write_all(morse.as_bytes())?;
         }
@@ -25,17 +25,17 @@ pub fn ascii_encode_to_string(s: &str) -> String {
 pub fn unicode_encode(s: &str) -> String {
     let parts: Vec<&str> = s
         .chars()
-        .map(|b| unicode_to_morse(b))
-        .filter(|&x| x != "")
+        .map(unicode_to_morse)
+        .filter(|&x| !x.is_empty())
         .collect();
     parts.join(" ")
 }
 
 pub fn ascii_decode(s: &str) -> String {
     let parts: Vec<&str> = s
-        .split(" ")
+        .split(' ')
         .map(morse_to_ascii)
-        .filter(|&x| x != "")
+        .filter(|&x| !x.is_empty())
         .collect();
     parts.join("")
 }
