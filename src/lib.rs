@@ -1,13 +1,8 @@
 mod mappings;
 
-use std::io::Write;
+use std::io::{BufWriter, Write};
 
 use mappings::{ascii_to_morse, morse_to_ascii, unicode_to_morse};
-
-pub fn ascii_encode(s: &str) -> String {
-    let parts: Vec<&str> = s.chars().map(ascii_to_morse).filter(|&x| x != "").collect();
-    parts.join(" ")
-}
 
 pub fn ascii_encode_to_writer<W: Write>(writer: &mut W, s: &[u8]) -> Result<(), std::io::Error> {
     writer.write(ascii_to_morse(s[0] as char).as_bytes())?;
@@ -19,6 +14,12 @@ pub fn ascii_encode_to_writer<W: Write>(writer: &mut W, s: &[u8]) -> Result<(), 
         }
     }
     Ok(())
+}
+
+pub fn ascii_encode_to_string(s: &str) -> String {
+    let mut writer = BufWriter::new(Vec::new());
+    ascii_encode_to_writer(&mut writer, s.as_bytes()).unwrap();
+    String::from_utf8(writer.into_inner().unwrap()).unwrap()
 }
 
 pub fn unicode_encode(s: &str) -> String {
@@ -41,9 +42,9 @@ pub fn ascii_decode(s: &str) -> String {
 
 #[test]
 fn test_ascii_encode() {
-    assert_eq!(ascii_encode("PARIS"), ".--. .- .-. .. ...");
+    assert_eq!(ascii_encode_to_string("PARIS"), ".--. .- .-. .. ...");
     assert_eq!(
-        ascii_encode("Hello, World!"),
+        ascii_encode_to_string("Hello, World!"),
         ".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--."
     );
 }

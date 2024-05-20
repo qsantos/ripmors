@@ -1,7 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 use rand::{distributions::Standard, Rng};
 
-use ripmors::{ascii_encode, unicode_encode};
+use ripmors::{ascii_encode_to_string, unicode_encode};
 
 fn ascii_benchmark(c: &mut Criterion) {
     let ascii: String = rand::thread_rng()
@@ -11,7 +11,7 @@ fn ascii_benchmark(c: &mut Criterion) {
         .collect();
     let mut group = c.benchmark_group("ASCII");
     group.throughput(Throughput::Bytes(ascii.len() as u64));
-    group.bench_function("encode", |b| b.iter(|| ascii_encode(black_box(&ascii))));
+    group.bench_function("encode", |b| b.iter(|| ascii_encode_to_string(black_box(&ascii))));
     group.finish();
 }
 
