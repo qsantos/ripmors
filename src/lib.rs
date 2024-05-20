@@ -1,5 +1,7 @@
 mod mappings;
 
+use std::io::Write;
+
 use mappings::{ascii_to_morse, morse_to_ascii, unicode_to_morse};
 
 pub fn ascii_encode(s: &str) -> String {
@@ -16,6 +18,18 @@ pub fn ascii_encode_vec_u8(s: &[u8], buf: &mut Vec<u8>) {
             buf.extend(morse.as_bytes());
         }
     }
+}
+
+pub fn ascii_encode_to_writer<W: Write>(writer: &mut W, s: &[u8]) -> Result<(), std::io::Error> {
+    writer.write(ascii_to_morse(s[0] as char).as_bytes())?;
+    for c in &s[1..] {
+        let morse = ascii_to_morse(*c as char);
+        if morse != "" {
+            writer.write_all(b" ")?;
+            writer.write_all(morse.as_bytes())?;
+        }
+    }
+    Ok(())
 }
 
 pub fn unicode_encode(s: &str) -> String {
