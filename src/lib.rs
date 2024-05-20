@@ -3,11 +3,7 @@ mod mappings;
 use mappings::{ascii_to_morse, morse_to_ascii, unicode_to_morse};
 
 pub fn ascii_encode(s: &str) -> String {
-    let parts: Vec<&str> = s
-        .chars()
-        .map(ascii_to_morse)
-        .filter(|&x| x != "")
-        .collect();
+    let parts: Vec<&str> = s.chars().map(ascii_to_morse).filter(|&x| x != "").collect();
     parts.join(" ")
 }
 
