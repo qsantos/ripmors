@@ -9,7 +9,6 @@ pub fn ascii_encode_to_writer<W: Write>(writer: &mut W, s: &[u8]) -> Result<(), 
         let morse = ascii_to_morse(*c as char);
         if !morse.is_empty() {
             writer.write_all(morse.as_bytes())?;
-            writer.write_all(b" ")?;
         }
     }
     Ok(())
@@ -18,7 +17,11 @@ pub fn ascii_encode_to_writer<W: Write>(writer: &mut W, s: &[u8]) -> Result<(), 
 pub fn ascii_encode_to_string(s: &str) -> String {
     let mut writer = BufWriter::new(Vec::new());
     ascii_encode_to_writer(&mut writer, s.as_bytes()).unwrap();
-    String::from_utf8(writer.into_inner().unwrap()).unwrap()
+    let mut vec = writer.into_inner().unwrap();
+    if vec.last() == Some(&b' ') {
+        vec.pop();
+    }
+    String::from_utf8(vec).unwrap()
 }
 
 pub fn unicode_encode_to_writer<W: Write>(writer: &mut W, s: &str) -> Result<(), std::io::Error> {
@@ -26,7 +29,6 @@ pub fn unicode_encode_to_writer<W: Write>(writer: &mut W, s: &str) -> Result<(),
         let morse = unicode_to_morse(c);
         if !morse.is_empty() {
             writer.write_all(morse.as_bytes())?;
-            writer.write_all(b" ")?;
         }
     }
     Ok(())
@@ -35,7 +37,11 @@ pub fn unicode_encode_to_writer<W: Write>(writer: &mut W, s: &str) -> Result<(),
 pub fn unicode_encode_to_string(s: &str) -> String {
     let mut writer = BufWriter::new(Vec::new());
     unicode_encode_to_writer(&mut writer, s).unwrap();
-    String::from_utf8(writer.into_inner().unwrap()).unwrap()
+    let mut vec = writer.into_inner().unwrap();
+    if vec.last() == Some(&b' ') {
+        vec.pop();
+    }
+    String::from_utf8(vec).unwrap()
 }
 
 pub fn ascii_decode(s: &str) -> String {
