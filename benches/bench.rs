@@ -11,7 +11,9 @@ fn ascii_benchmark(c: &mut Criterion) {
         .collect();
     let mut group = c.benchmark_group("ASCII");
     group.throughput(Throughput::Bytes(ascii.len() as u64));
-    group.bench_function("encode", |b| b.iter(|| ascii_encode_to_string(black_box(&ascii))));
+    group.bench_function("encode", |b| {
+        b.iter(|| ascii_encode_to_string(black_box(&ascii)))
+    });
     group.finish();
 }
 
