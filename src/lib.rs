@@ -5,12 +5,11 @@ use std::io::{BufWriter, Write};
 use mappings::{ascii_to_morse, morse_to_ascii, unicode_to_morse};
 
 pub fn ascii_encode_to_writer<W: Write>(writer: &mut W, s: &[u8]) -> Result<(), std::io::Error> {
-    writer.write_all(ascii_to_morse(s[0] as char).as_bytes())?;
-    for c in &s[1..] {
+    for c in s {
         let morse = ascii_to_morse(*c as char);
         if !morse.is_empty() {
-            writer.write_all(b" ")?;
             writer.write_all(morse.as_bytes())?;
+            writer.write_all(b" ")?;
         }
     }
     Ok(())
@@ -23,15 +22,11 @@ pub fn ascii_encode_to_string(s: &str) -> String {
 }
 
 pub fn unicode_encode_to_writer<W: Write>(writer: &mut W, s: &str) -> Result<(), std::io::Error> {
-    let mut chars = s.chars();
-    if let Some(c) = chars.next() {
-        writer.write_all(unicode_to_morse(c).as_bytes())?;
-    }
-    for c in chars {
+    for c in s.chars() {
         let morse = unicode_to_morse(c);
         if !morse.is_empty() {
-            writer.write_all(b" ")?;
             writer.write_all(morse.as_bytes())?;
+            writer.write_all(b" ")?;
         }
     }
     Ok(())
