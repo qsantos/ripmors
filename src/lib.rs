@@ -22,6 +22,21 @@ pub fn ascii_encode_to_string(s: &str) -> String {
     String::from_utf8(writer.into_inner().unwrap()).unwrap()
 }
 
+pub fn unicode_encode_to_writer<W: Write>(writer: &mut W, s: &str) -> Result<(), std::io::Error> {
+    let mut chars = s.chars();
+    if let Some(c) = chars.next() {
+        writer.write_all(unicode_to_morse(c).as_bytes())?;
+    }
+    for c in chars {
+        let morse = unicode_to_morse(c);
+        if !morse.is_empty() {
+            writer.write_all(b" ")?;
+            writer.write_all(morse.as_bytes())?;
+        }
+    }
+    Ok(())
+}
+
 pub fn unicode_encode(s: &str) -> String {
     let parts: Vec<&str> = s
         .chars()
