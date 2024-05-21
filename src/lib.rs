@@ -38,12 +38,9 @@ pub fn unicode_encode_to_writer<W: Write>(writer: &mut W, s: &str) -> Result<(),
 }
 
 pub fn unicode_encode_to_string(s: &str) -> String {
-    let parts: Vec<&str> = s
-        .chars()
-        .map(unicode_to_morse)
-        .filter(|&x| !x.is_empty())
-        .collect();
-    parts.join(" ")
+    let mut writer = BufWriter::new(Vec::new());
+    unicode_encode_to_writer(&mut writer, s).unwrap();
+    String::from_utf8(writer.into_inner().unwrap()).unwrap()
 }
 
 pub fn ascii_decode(s: &str) -> String {
