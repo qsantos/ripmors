@@ -126,9 +126,9 @@ pub fn unicode_to_morse(c: char) -> &'static str {
 
         '“' | '”' | '«' | '»' => ascii_to_morse('"'), // English & French quotes (1.1.3)
         '×' => ascii_to_morse('x'),                   // Multiplication sign (1.1.3)
-        '‰' => "----- -..-. ----- ----- ",             // Mapped to "0/00" (3.3.1)
+        '‰' => "----- -..-. ----- ----- ",            // Mapped to "0/00" (3.3.1)
         '′' => ascii_to_morse('\''),                  // Minute (3.5.1), mapped to "'"
-        '″' => ".----. .----. ",                       // Second (3.5.1), mapped to "''"
+        '″' => ".----. .----. ",                      // Second (3.5.1), mapped to "''"
 
         // non-Latin extensions (from https://en.wikipedia.org/wiki/Morse_code#Letters,_numbers,_punctuation,_prosigns_for_Morse_code_and_non-Latin_variants)
         // Uppercase | Lowercase
@@ -556,7 +556,7 @@ pub fn unicode_to_morse(c: char) -> &'static str {
         // other characters without a reference
         'ء' => ". ", // hamzah
 
-        _ => "",
+        _ => "?",
     }
 }
 
