@@ -37,7 +37,7 @@ pub fn unicode_encode_to_writer<W: Write>(writer: &mut W, s: &str) -> Result<(),
     Ok(())
 }
 
-pub fn unicode_encode(s: &str) -> String {
+pub fn unicode_encode_to_string(s: &str) -> String {
     let parts: Vec<&str> = s
         .chars()
         .map(unicode_to_morse)
@@ -67,17 +67,20 @@ fn test_ascii_encode() {
 #[test]
 fn test_unicode_encode() {
     assert_eq!(
-        unicode_encode("télégraphie"),
+        unicode_encode_to_string("télégraphie"),
         "- ..-.. .-.. ..-.. --. .-. .- .--. .... .. ."
     );
-    assert_eq!(unicode_encode("でんしん"), ".-.-- .. .-.-. --.-. .-.-.");
-    assert_eq!(unicode_encode("تلغراف"), "- .-.. --. .-. .- ..-.");
     assert_eq!(
-        unicode_encode("телеграфия"),
+        unicode_encode_to_string("でんしん"),
+        ".-.-- .. .-.-. --.-. .-.-."
+    );
+    assert_eq!(unicode_encode_to_string("تلغراف"), "- .-.. --. .-. .- ..-.");
+    assert_eq!(
+        unicode_encode_to_string("телеграфия"),
         "- . .-.. . --. .-. .- ..-. .. .-.-"
     );
     assert_eq!(
-        unicode_encode("τηλεγραφία"),
+        unicode_encode_to_string("τηλεγραφία"),
         "- .... .-.. . --. .-. .- ..-. .-"
     );
 }
