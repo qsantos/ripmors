@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Usage: copy this file to .git/hooks/
+
+# Exit at first error
+set -Eeu
+
+# To handle partially committed files, we must copy the staged changes to a
+# separate location
+# See also https://stackoverflow.com/a/36793330
+TEMPDIR=$(mktemp -d)
+trap 'rm -rf "$TEMPDIR"' EXIT SIGHUP SIGINT SIGQUIT SIGTERM
+git checkout-index --prefix="$TEMPDIR/" -af
+
+# keep using the same target/ directory, not a new one in the temporary
+# directory this avoids re-parsing everything from scratch every time we run
+# the script
+GIT_ROOT=$(git rev-parse --show-toplevel)
+
+# lint Rust
+if ! git diff --cached --name-only --diff-filter=AM --quiet -- src Cargo.toml Cargo.lock; then
+    pushd $TEMPDIR >/dev/null
+    export CARGO_TARGET_DIR="${GIT_ROOT}/target"
+    echo "Running cargo fmt"
+    cargo fmt --check
+    echo "Running cargo clippy"
+    cargo clippy --all -- --deny warnings
+    popd >/dev/null
+fi
