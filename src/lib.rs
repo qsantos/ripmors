@@ -79,7 +79,7 @@ fn test_unicode_encode() {
     );
     assert_eq!(
         unicode_encode_to_string("τηλεγραφία"),
-        "- .... .-.. . --. .-. .- ..-. .-"
+        "- .... .-.. . --. .-. .- ..-. .. .-"
     );
 }
 
