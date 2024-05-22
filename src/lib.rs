@@ -2,7 +2,7 @@ mod mappings;
 
 use std::io::{BufWriter, Write};
 
-use mappings::{ascii_to_morse, morse_to_ascii, unicode_to_morse};
+pub use mappings::*;
 
 pub fn ascii_encode_to_writer<W: Write>(writer: &mut W, s: &[u8]) -> Result<(), std::io::Error> {
     for c in s {
