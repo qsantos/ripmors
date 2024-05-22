@@ -45,12 +45,10 @@ pub fn unicode_encode_to_string(s: &str) -> String {
 }
 
 pub fn ascii_decode(s: &str) -> String {
-    let parts: Vec<&str> = s
-        .split(' ')
+    s.split(' ')
         .map(morse_to_ascii)
-        .filter(|&x| !x.is_empty())
-        .collect();
-    parts.join("")
+        .filter(|&x| x != '\0')
+        .collect()
 }
 
 #[test]
