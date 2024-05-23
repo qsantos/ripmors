@@ -44,12 +44,24 @@ pub fn unicode_encode_to_string(s: &str) -> String {
     String::from_utf8(vec).unwrap()
 }
 
-pub fn ascii_decode(s: &str) -> String {
-    s.split(' ')
-        .map(morse_to_ascii)
-        .filter(|&x| x != '\0')
-        .collect()
+macro_rules! make_decode {
+    ($name:ident, $char_decode:ident) => {
+        pub fn $name(s: &str) -> String {
+            s.split(' ')
+                .map($char_decode)
+                .filter(|&x| x != '\0')
+                .collect()
+        }
+    };
 }
+
+make_decode!(ascii_decode, morse_to_ascii);
+make_decode!(greek_decode, morse_to_greek);
+make_decode!(russian_decode, morse_to_russian);
+make_decode!(japanese_decode, morse_to_japanese);
+make_decode!(korean_decode, morse_to_korean);
+make_decode!(hebrew_decode, morse_to_hebrew);
+make_decode!(arabic_decode, morse_to_arabic);
 
 #[test]
 fn test_ascii_encode() {
