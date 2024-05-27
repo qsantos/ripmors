@@ -116,7 +116,7 @@ pub fn ascii_to_morse(c: char) -> &'static str {
     }
 }
 
-pub fn unicode_to_morse(c: char) -> &'static str {
+pub fn standard_to_morse(c: char) -> &'static str {
     if c.is_ascii() {
         return ascii_to_morse(c);
     }

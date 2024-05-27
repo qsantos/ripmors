@@ -24,9 +24,9 @@ pub fn ascii_encode_to_string(s: &str) -> String {
     String::from_utf8(vec).unwrap()
 }
 
-pub fn unicode_encode_to_writer<W: Write>(writer: &mut W, s: &str) -> Result<(), std::io::Error> {
+pub fn standard_encode_to_writer<W: Write>(writer: &mut W, s: &str) -> Result<(), std::io::Error> {
     for c in s.chars() {
-        let morse = unicode_to_morse(c);
+        let morse = standard_to_morse(c);
         if !morse.is_empty() {
             writer.write_all(morse.as_bytes())?;
         }
@@ -34,9 +34,9 @@ pub fn unicode_encode_to_writer<W: Write>(writer: &mut W, s: &str) -> Result<(),
     Ok(())
 }
 
-pub fn unicode_encode_to_string(s: &str) -> String {
+pub fn standard_encode_to_string(s: &str) -> String {
     let mut writer = BufWriter::new(Vec::new());
-    unicode_encode_to_writer(&mut writer, s).unwrap();
+    standard_encode_to_writer(&mut writer, s).unwrap();
     let mut vec = writer.into_inner().unwrap();
     if vec.last() == Some(&b' ') {
         vec.pop();
@@ -73,22 +73,25 @@ fn test_ascii_encode() {
 }
 
 #[test]
-fn test_unicode_encode() {
+fn test_standard_encode() {
     assert_eq!(
-        unicode_encode_to_string("télégraphie"),
+        standard_encode_to_string("télégraphie"),
         "- ..-.. .-.. ..-.. --. .-. .- .--. .... .. ."
     );
     assert_eq!(
-        unicode_encode_to_string("でんしん"),
+        standard_encode_to_string("でんしん"),
         ".-.-- .. .-.-. --.-. .-.-."
     );
-    assert_eq!(unicode_encode_to_string("تلغراف"), "- .-.. --. .-. .- ..-.");
     assert_eq!(
-        unicode_encode_to_string("телеграфия"),
+        standard_encode_to_string("تلغراف"),
+        "- .-.. --. .-. .- ..-."
+    );
+    assert_eq!(
+        standard_encode_to_string("телеграфия"),
         "- . .-.. . --. .-. .- ..-. .. .-.-"
     );
     assert_eq!(
-        unicode_encode_to_string("τηλεγραφία"),
+        standard_encode_to_string("τηλεγραφία"),
         "- .... .-.. . --. .-. .- ..-. .. .-"
     );
 }
