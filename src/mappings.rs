@@ -560,7 +560,7 @@ pub fn unicode_to_morse(c: char) -> &'static str {
     }
 }
 
-pub fn morse_to_ascii(s: &str) -> char {
+pub fn morse_to_standard(s: &str) -> char {
     match s {
         // Space
         "/" => ' ',

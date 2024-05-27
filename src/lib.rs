@@ -55,7 +55,7 @@ macro_rules! make_decode {
     };
 }
 
-make_decode!(ascii_decode, morse_to_ascii);
+make_decode!(standard_decode, morse_to_standard);
 make_decode!(greek_decode, morse_to_greek);
 make_decode!(russian_decode, morse_to_russian);
 make_decode!(japanese_decode, morse_to_japanese);
@@ -94,10 +94,10 @@ fn test_unicode_encode() {
 }
 
 #[test]
-fn test_ascii_decode() {
-    assert_eq!(ascii_decode(".--. .- .-. .. ..."), "PARIS");
+fn test_standard_decode() {
+    assert_eq!(standard_decode(".--. .- .-. .. ..."), "PARIS");
     assert_eq!(
-        ascii_decode(".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--."),
+        standard_decode(".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--."),
         "HELLO, WORLD!",
     );
 }
