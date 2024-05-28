@@ -1,6 +1,6 @@
-use std::io::{BufWriter, Read};
+use std::io::{BufWriter, Read, Write};
 
-use ripmors::ascii_encode_to_writer;
+use ripmors::{ascii_encode_to_writer, standard_decode};
 
 use clap::{Parser, ValueEnum};
 
@@ -49,7 +49,9 @@ fn main() {
                     unsafe { std::str::from_utf8_unchecked(&input_buf[..bytes_decoded]) }
                 }
             };
-            print!("{s}");
+
+            buf_writer.write_all(standard_decode(s).as_bytes()).unwrap();
+
             let bytes_decoded = s.bytes().len();
             input_buf.copy_within(bytes_decoded..bytes_read, 0);
             bytes_read -= bytes_decoded;
