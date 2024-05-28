@@ -1,6 +1,6 @@
 use std::io::{BufWriter, Read, Write};
 
-use ripmors::{ascii_encode_to_writer, standard_decode};
+use ripmors::*;
 
 use clap::{Parser, ValueEnum};
 
@@ -35,7 +35,15 @@ fn main() {
     let mut input_buf = [0u8; 1 << 15];
 
     if let Some(variant) = args.decode {
-        dbg!(variant);
+        let decode = match variant {
+            MorseVariant::Standard => standard_decode,
+            MorseVariant::Greek => greek_decode,
+            MorseVariant::Russian => russian_decode,
+            MorseVariant::Japanese => japanese_decode,
+            MorseVariant::Korean => korean_decode,
+            MorseVariant::Hebrew => hebrew_decode,
+            MorseVariant::Arabic => arabic_decode,
+        };
         let mut bytes_read = 0;
         loop {
             bytes_read += stdin.read(&mut input_buf[bytes_read..]).unwrap();
@@ -50,7 +58,7 @@ fn main() {
                 }
             };
 
-            buf_writer.write_all(standard_decode(s).as_bytes()).unwrap();
+            buf_writer.write_all(decode(s).as_bytes()).unwrap();
 
             let bytes_decoded = s.bytes().len();
             input_buf.copy_within(bytes_decoded..bytes_read, 0);
