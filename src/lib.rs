@@ -108,3 +108,11 @@ fn test_standard_decode() {
         "HELLO, WORLD!",
     );
 }
+
+#[test]
+fn test_standard_encode_decode() {
+    let f = |s| standard_decode(&standard_encode_to_string(s));
+    assert_eq!(f("paris"), "PARIS");
+    assert_eq!(f("Hello, World!"), "HELLO, WORLD!");
+    assert_eq!(f("one line\nand  another\tline"), "");
+}
