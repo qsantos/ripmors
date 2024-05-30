@@ -94,6 +94,10 @@ fn test_standard_encode() {
         standard_encode_to_string("τηλεγραφία"),
         "- .... .-.. . --. .-. .- ..-. .. .-"
     );
+    assert_eq!(
+        standard_encode_to_string("one line\nand  another\tline"),
+        "--- -. . / .-.. .. -. . \n.- -. -.. / / .- -. --- - .... . .-. \t.-.. .. -. ."
+    );
 }
 
 #[test]
