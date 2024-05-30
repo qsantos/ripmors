@@ -47,10 +47,30 @@ pub fn standard_encode_to_string(s: &str) -> String {
 macro_rules! make_decode {
     ($name:ident, $char_decode:ident) => {
         pub fn $name(s: &str) -> String {
-            s.split(' ')
-                .map($char_decode)
-                .filter(|&x| x != '\0')
-                .collect()
+            let mut vec = Vec::new();
+            let mut chunk_start = 0;
+            for (i, c) in s.char_indices() {
+                match c {
+                    '\t' | '\n' | '\r' => {
+                        let decoded = $char_decode(&s[chunk_start..i]);
+                        if decoded != '\0' {
+                            vec.push(decoded);
+                        }
+                        chunk_start = i + 1;
+                        vec.push(c);
+                    }
+                    ' ' => {
+                        let decoded = $char_decode(&s[chunk_start..i]);
+                        if decoded != '\0' {
+                            vec.push(decoded);
+                        }
+                        chunk_start = i + 1;
+                    }
+                    _ => (),
+                }
+            }
+            vec.push($char_decode(&s[chunk_start..]));
+            vec.into_iter().collect()
         }
     };
 }
@@ -114,5 +134,8 @@ fn test_standard_encode_decode() {
     let f = |s| standard_decode(&standard_encode_to_string(s));
     assert_eq!(f("paris"), "PARIS");
     assert_eq!(f("Hello, World!"), "HELLO, WORLD!");
-    assert_eq!(f("one line\nand  another\tline"), "");
+    assert_eq!(
+        f("one line\nand  another\tline"),
+        "ONE LINE\nAND  ANOTHER\tLINE"
+    );
 }
