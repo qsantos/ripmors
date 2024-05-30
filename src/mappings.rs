@@ -45,7 +45,7 @@ pub fn ascii_to_morse(c: char) -> &'static str {
         '?' => "..--.. ", // Question mark (1.1.3)
         '@' => ".--.-. ", // Commercial at (1.1.3)
 
-        // 1.1.1. Letters (Latins script)
+        // 1.1.1. Letters (Latin script)
         // Uppercase
         'A' => ".- ",
         'B' => "-... ",
@@ -81,7 +81,7 @@ pub fn ascii_to_morse(c: char) -> &'static str {
         '_' => "..--.- ",  // non standard
         '`' => ".-----. ", // non standard
 
-        // 1.1.1. Letters (Latins cript)
+        // 1.1.1. Letters (Latin script)
         // Lowercase
         'a' => ".- ",
         'b' => "-... ",
