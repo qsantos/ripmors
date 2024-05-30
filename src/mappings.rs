@@ -3,6 +3,9 @@
 pub fn ascii_to_morse(c: char) -> &'static str {
     match c {
         // NOTE: look for `=> " ",` for missing characters
+        '\t' => "\t",
+        '\n' => "\n",
+        '\r' => "\r",
         ' ' => "/ ",
 
         '!' => "..--. ",  // non standard
