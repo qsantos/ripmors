@@ -32,7 +32,7 @@ fn main() {
 
     let mut buf_writer = BufWriter::new(stdout);
 
-    let mut input_buf = [0u8; 1 << 15];
+    let mut input_buf = vec![0u8; 1 << 15];
 
     if let Some(variant) = args.decode {
         let decode = match variant {
