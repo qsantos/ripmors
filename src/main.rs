@@ -1,4 +1,4 @@
-use std::io::{BufWriter, Read, Write};
+use std::io::{BufWriter, Read};
 
 use ripmors::*;
 
@@ -58,9 +58,7 @@ fn main() {
                 }
             };
 
-            buf_writer
-                .write_all(morse_decode(s, char_decode).as_bytes())
-                .unwrap();
+            morse_decode_to_writer(&mut buf_writer, s, char_decode).unwrap();
 
             let bytes_decoded = s.bytes().len();
             input_buf.copy_within(bytes_decoded..bytes_read, 0);

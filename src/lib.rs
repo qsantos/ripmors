@@ -44,7 +44,7 @@ pub fn standard_encode_to_string(s: &str) -> String {
     String::from_utf8(vec).unwrap()
 }
 
-pub fn morse_decode<F: Fn(&str) -> char>(s: &str, char_decode: F) -> String {
+pub fn morse_decode_to_string<F: Fn(&str) -> char>(s: &str, char_decode: F) -> String {
     let mut vec = Vec::new();
     let mut chunk_start = 0;
     for (i, c) in s.char_indices() {
@@ -69,6 +69,15 @@ pub fn morse_decode<F: Fn(&str) -> char>(s: &str, char_decode: F) -> String {
     }
     vec.push(char_decode(&s[chunk_start..]));
     vec.into_iter().collect()
+}
+
+pub fn morse_decode_to_writer<W: Write, F: Fn(&str) -> char>(
+    writer: &mut W,
+    s: &str,
+    char_decode: F,
+) -> Result<(), std::io::Error> {
+    let decoded = morse_decode_to_string(s, char_decode);
+    writer.write_all(decoded.as_bytes())
 }
 
 #[test]
@@ -110,7 +119,7 @@ fn test_standard_encode() {
 
 #[test]
 fn test_standard_decode() {
-    let f = |s| morse_decode(s, morse_to_standard);
+    let f = |s| morse_decode_to_string(s, morse_to_standard);
     assert_eq!(f(".--. .- .-. .. ..."), "PARIS");
     assert_eq!(
         f(".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--."),
@@ -120,7 +129,7 @@ fn test_standard_decode() {
 
 #[test]
 fn test_standard_encode_decode() {
-    let f = |s| morse_decode(&standard_encode_to_string(s), morse_to_standard);
+    let f = |s| morse_decode_to_string(&standard_encode_to_string(s), morse_to_standard);
     assert_eq!(f("paris"), "PARIS");
     assert_eq!(f("Hello, World!"), "HELLO, WORLD!");
     assert_eq!(
