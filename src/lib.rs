@@ -76,7 +76,7 @@ pub fn morse_decode_to_writer<W: Write, F: Fn(&str) -> char>(
     s: &str,
     char_decode: &F,
 ) -> Result<(), std::io::Error> {
-    let decoded = morse_decode_to_string(s, &char_decode);
+    let decoded = morse_decode_to_string(s, char_decode);
     writer.write_all(decoded.as_bytes())
 }
 
