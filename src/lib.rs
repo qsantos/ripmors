@@ -44,6 +44,7 @@ pub fn standard_encode_to_string(s: &str) -> String {
     String::from_utf8(vec).unwrap()
 }
 
+// TODO: unify with morse_decode_buffer
 pub fn morse_decode_to_string<F: Fn(&str) -> char>(s: &str, char_decode: &F) -> String {
     let mut vec = Vec::new();
     let mut chunk_start = 0;
@@ -71,13 +72,39 @@ pub fn morse_decode_to_string<F: Fn(&str) -> char>(s: &str, char_decode: &F) -> 
     vec.into_iter().collect()
 }
 
+pub fn morse_decode_buffer<F: Fn(&str) -> char>(s: &str, char_decode: &F) -> (String, usize) {
+    let mut vec = Vec::new();
+    let mut chunk_start = 0;
+    for (i, c) in s.char_indices() {
+        match c {
+            '\t' | '\n' | '\r' => {
+                let decoded = char_decode(&s[chunk_start..i]);
+                if decoded != '\0' {
+                    vec.push(decoded);
+                }
+                chunk_start = i + 1;
+                vec.push(c);
+            }
+            ' ' => {
+                let decoded = char_decode(&s[chunk_start..i]);
+                if decoded != '\0' {
+                    vec.push(decoded);
+                }
+                chunk_start = i + 1;
+            }
+            _ => (),
+        }
+    }
+    (vec.into_iter().collect(), chunk_start)
+}
+
 pub fn morse_decode_to_writer<W: Write, F: Fn(&str) -> char>(
     writer: &mut W,
     s: &str,
     char_decode: &F,
-) -> Result<(), std::io::Error> {
-    let decoded = morse_decode_to_string(s, char_decode);
-    writer.write_all(decoded.as_bytes())
+) -> Result<usize, std::io::Error> {
+    let (decoded, bytes_used) = morse_decode_buffer(s, char_decode);
+    writer.write_all(decoded.as_bytes()).map(|_| bytes_used)
 }
 
 #[test]
@@ -169,10 +196,10 @@ pub fn decode_stream<R: Read, W: Write, F: Fn(&str) -> char>(
             }
         };
 
-        morse_decode_to_writer(o, s, char_decode).unwrap();
+        // TODO: decode last character at end of input
+        let bytes_used = morse_decode_to_writer(o, s, char_decode).unwrap();
 
-        let bytes_decoded = s.bytes().len();
-        input_buf.copy_within(bytes_decoded..bytes_read, 0);
-        bytes_read -= bytes_decoded;
+        input_buf.copy_within(bytes_used..bytes_read, 0);
+        bytes_read -= bytes_used;
     }
 }
