@@ -58,7 +58,7 @@ fn main() {
                 }
             };
 
-            morse_decode_to_writer(&mut buf_writer, s, char_decode).unwrap();
+            morse_decode_to_writer(&mut buf_writer, s, &char_decode).unwrap();
 
             let bytes_decoded = s.bytes().len();
             input_buf.copy_within(bytes_decoded..bytes_read, 0);
