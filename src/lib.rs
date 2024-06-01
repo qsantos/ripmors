@@ -44,44 +44,32 @@ pub fn standard_encode_to_string(s: &str) -> String {
     String::from_utf8(vec).unwrap()
 }
 
-macro_rules! make_decode {
-    ($name:ident, $char_decode:ident) => {
-        pub fn $name(s: &str) -> String {
-            let mut vec = Vec::new();
-            let mut chunk_start = 0;
-            for (i, c) in s.char_indices() {
-                match c {
-                    '\t' | '\n' | '\r' => {
-                        let decoded = $char_decode(&s[chunk_start..i]);
-                        if decoded != '\0' {
-                            vec.push(decoded);
-                        }
-                        chunk_start = i + 1;
-                        vec.push(c);
-                    }
-                    ' ' => {
-                        let decoded = $char_decode(&s[chunk_start..i]);
-                        if decoded != '\0' {
-                            vec.push(decoded);
-                        }
-                        chunk_start = i + 1;
-                    }
-                    _ => (),
+pub fn morse_decode<F: Fn(&str) -> char>(s: &str, char_decode: F) -> String {
+    let mut vec = Vec::new();
+    let mut chunk_start = 0;
+    for (i, c) in s.char_indices() {
+        match c {
+            '\t' | '\n' | '\r' => {
+                let decoded = char_decode(&s[chunk_start..i]);
+                if decoded != '\0' {
+                    vec.push(decoded);
                 }
+                chunk_start = i + 1;
+                vec.push(c);
             }
-            vec.push($char_decode(&s[chunk_start..]));
-            vec.into_iter().collect()
+            ' ' => {
+                let decoded = char_decode(&s[chunk_start..i]);
+                if decoded != '\0' {
+                    vec.push(decoded);
+                }
+                chunk_start = i + 1;
+            }
+            _ => (),
         }
-    };
+    }
+    vec.push(char_decode(&s[chunk_start..]));
+    vec.into_iter().collect()
 }
-
-make_decode!(standard_decode, morse_to_standard);
-make_decode!(greek_decode, morse_to_greek);
-make_decode!(russian_decode, morse_to_russian);
-make_decode!(japanese_decode, morse_to_japanese);
-make_decode!(korean_decode, morse_to_korean);
-make_decode!(hebrew_decode, morse_to_hebrew);
-make_decode!(arabic_decode, morse_to_arabic);
 
 #[test]
 fn test_ascii_encode() {

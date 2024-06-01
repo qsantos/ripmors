@@ -35,14 +35,14 @@ fn main() {
     let mut input_buf = vec![0u8; 1 << 15];
 
     if let Some(variant) = args.decode {
-        let decode = match variant {
-            MorseVariant::Standard => standard_decode,
-            MorseVariant::Greek => greek_decode,
-            MorseVariant::Russian => russian_decode,
-            MorseVariant::Japanese => japanese_decode,
-            MorseVariant::Korean => korean_decode,
-            MorseVariant::Hebrew => hebrew_decode,
-            MorseVariant::Arabic => arabic_decode,
+        let char_decode = match variant {
+            MorseVariant::Standard => morse_to_standard,
+            MorseVariant::Greek => morse_to_greek,
+            MorseVariant::Russian => morse_to_russian,
+            MorseVariant::Japanese => morse_to_japanese,
+            MorseVariant::Korean => morse_to_korean,
+            MorseVariant::Hebrew => morse_to_hebrew,
+            MorseVariant::Arabic => morse_to_arabic,
         };
         let mut bytes_read = 0;
         loop {
@@ -58,7 +58,9 @@ fn main() {
                 }
             };
 
-            buf_writer.write_all(decode(s).as_bytes()).unwrap();
+            buf_writer
+                .write_all(morse_decode(s, char_decode).as_bytes())
+                .unwrap();
 
             let bytes_decoded = s.bytes().len();
             input_buf.copy_within(bytes_decoded..bytes_read, 0);
