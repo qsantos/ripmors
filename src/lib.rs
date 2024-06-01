@@ -110,16 +110,17 @@ fn test_standard_encode() {
 
 #[test]
 fn test_standard_decode() {
-    assert_eq!(standard_decode(".--. .- .-. .. ..."), "PARIS");
+    let f = |s| morse_decode(s, morse_to_standard);
+    assert_eq!(f(".--. .- .-. .. ..."), "PARIS");
     assert_eq!(
-        standard_decode(".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--."),
+        f(".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--."),
         "HELLO, WORLD!",
     );
 }
 
 #[test]
 fn test_standard_encode_decode() {
-    let f = |s| standard_decode(&standard_encode_to_string(s));
+    let f = |s| morse_decode(&standard_encode_to_string(s), morse_to_standard);
     assert_eq!(f("paris"), "PARIS");
     assert_eq!(f("Hello, World!"), "HELLO, WORLD!");
     assert_eq!(
