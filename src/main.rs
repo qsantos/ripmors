@@ -1,4 +1,4 @@
-use std::io::{BufWriter, Read, Write};
+use std::io::{Read, Write};
 
 use ripmors::*;
 
@@ -63,9 +63,7 @@ fn main() {
     let args = Args::parse();
 
     let mut stdin = std::io::stdin();
-    let stdout = std::io::stdout();
-
-    let mut buf_writer = BufWriter::new(stdout);
+    let mut stdout = std::io::stdout();
 
     if let Some(variant) = args.decode {
         let char_decode = match variant {
@@ -77,8 +75,8 @@ fn main() {
             MorseVariant::Hebrew => morse_to_hebrew,
             MorseVariant::Arabic => morse_to_arabic,
         };
-        decode_stream(&mut stdin, &mut buf_writer, &char_decode);
+        decode_stream(&mut stdin, &mut stdout, &char_decode);
     } else {
-        encode_stream(&mut stdin, &mut buf_writer);
+        encode_stream(&mut stdin, &mut stdout);
     }
 }
