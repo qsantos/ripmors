@@ -4,11 +4,24 @@ use std::io::{BufWriter, Read, Write};
 
 pub use mappings::*;
 
-pub fn ascii_encode_to_writer<W: Write>(writer: &mut W, s: &[u8]) -> Result<(), std::io::Error> {
+pub fn ascii_encode_to_writer<W: Write>(
+    writer: &mut W,
+    s: &[u8],
+    need_separator: &mut bool,
+) -> Result<(), std::io::Error> {
     for c in s {
-        let morse = ascii_to_morse(*c as char);
-        if !morse.is_empty() {
-            writer.write_all(morse.as_bytes())?;
+        if *c == b'\t' || *c == b'\n' || *c == b'\r' {
+            writer.write_all(&[*c])?;
+            *need_separator = false;
+        } else {
+            let morse = ascii_to_morse(*c as char);
+            if !morse.is_empty() {
+                if *need_separator {
+                    writer.write_all(b" ")?;
+                }
+                writer.write_all(morse.as_bytes())?;
+                *need_separator = true;
+            }
         }
     }
     Ok(())
@@ -16,7 +29,7 @@ pub fn ascii_encode_to_writer<W: Write>(writer: &mut W, s: &[u8]) -> Result<(), 
 
 pub fn ascii_encode_to_string(s: &str) -> String {
     let mut writer = BufWriter::new(Vec::new());
-    ascii_encode_to_writer(&mut writer, s.as_bytes()).unwrap();
+    ascii_encode_to_writer(&mut writer, s.as_bytes(), &mut false).unwrap();
     let mut vec = writer.into_inner().unwrap();
     if vec.last() == Some(&b' ') {
         vec.pop();
@@ -24,11 +37,25 @@ pub fn ascii_encode_to_string(s: &str) -> String {
     String::from_utf8(vec).unwrap()
 }
 
-pub fn standard_encode_to_writer<W: Write>(writer: &mut W, s: &str) -> Result<(), std::io::Error> {
+pub fn standard_encode_to_writer<W: Write>(
+    writer: &mut W,
+    s: &str,
+    need_separator: &mut bool,
+) -> Result<(), std::io::Error> {
     for c in s.chars() {
-        let morse = standard_to_morse(c);
-        if !morse.is_empty() {
-            writer.write_all(morse.as_bytes())?;
+        if c == '\t' || c == '\n' || c == '\r' {
+            writer.write_all(&[c as u8])?;
+            *need_separator = false;
+        } else {
+            let morse = standard_to_morse(c);
+            if !morse.is_empty() {
+                if *need_separator {
+                    writer.write_all(b" ")?;
+                    *need_separator = false;
+                }
+                writer.write_all(morse.as_bytes())?;
+                *need_separator = true;
+            }
         }
     }
     Ok(())
@@ -36,7 +63,7 @@ pub fn standard_encode_to_writer<W: Write>(writer: &mut W, s: &str) -> Result<()
 
 pub fn standard_encode_to_string(s: &str) -> String {
     let mut writer = BufWriter::new(Vec::new());
-    standard_encode_to_writer(&mut writer, s).unwrap();
+    standard_encode_to_writer(&mut writer, s, &mut false).unwrap();
     let mut vec = writer.into_inner().unwrap();
     if vec.last() == Some(&b' ') {
         vec.pop();
@@ -132,7 +159,7 @@ fn test_standard_encode() {
     );
     assert_eq!(
         standard_encode_to_string("one line\nand  another\tline"),
-        "--- -. . / .-.. .. -. . \n.- -. -.. / / .- -. --- - .... . .-. \t.-.. .. -. ."
+        "--- -. . / .-.. .. -. .\n.- -. -.. / / .- -. --- - .... . .-.\t.-.. .. -. ."
     );
 }
 
@@ -159,12 +186,13 @@ fn test_standard_encode_decode() {
 
 pub fn encode_stream<R: Read, W: Write>(i: &mut R, o: &mut W) {
     let mut input_buf = vec![0u8; 1 << 15];
+    let mut need_separator = false;
     loop {
         let n = i.read(&mut input_buf).unwrap();
         if n == 0 {
             break;
         }
-        ascii_encode_to_writer(o, &input_buf[..n]).unwrap();
+        ascii_encode_to_writer(o, &input_buf[..n], &mut need_separator).unwrap();
     }
 }
 
