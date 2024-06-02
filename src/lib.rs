@@ -117,6 +117,32 @@ pub fn morse_decode_buffer<F: Fn(&[u8]) -> char>(s: &[u8], char_decode: &F) -> (
     (vec.into_iter().collect(), chunk_start)
 }
 
+pub fn morse_decode_buffer_end<F: Fn(&[u8]) -> char>(s: &[u8], char_decode: &F) -> String {
+    let mut vec = Vec::new();
+    let mut chunk_start = 0;
+    for (i, c) in s.iter().enumerate() {
+        if *c == b'\t' || *c == b'\n' || *c == b'\r' {
+            let decoded = char_decode(&s[chunk_start..i]);
+            if decoded != '\0' {
+                vec.push(decoded);
+            }
+            chunk_start = i + 1;
+            vec.push(*c as char);
+        } else if *c == b' ' {
+            let decoded = char_decode(&s[chunk_start..i]);
+            if decoded != '\0' {
+                vec.push(decoded);
+            }
+            chunk_start = i + 1;
+        }
+    }
+    let decoded = char_decode(&s[chunk_start..]);
+    if decoded != '\0' {
+        vec.push(decoded);
+    }
+    vec.into_iter().collect()
+}
+
 pub fn morse_decode_to_writer<W: Write, F: Fn(&[u8]) -> char>(
     writer: &mut W,
     s: &[u8],
@@ -124,6 +150,15 @@ pub fn morse_decode_to_writer<W: Write, F: Fn(&[u8]) -> char>(
 ) -> Result<usize, std::io::Error> {
     let (decoded, bytes_used) = morse_decode_buffer(s, char_decode);
     writer.write_all(decoded.as_bytes()).map(|_| bytes_used)
+}
+
+pub fn morse_decode_to_writer_end<W: Write, F: Fn(&[u8]) -> char>(
+    writer: &mut W,
+    s: &[u8],
+    char_decode: &F,
+) -> Result<(), std::io::Error> {
+    let decoded = morse_decode_buffer_end(s, char_decode);
+    writer.write_all(decoded.as_bytes())
 }
 
 #[test]
@@ -211,11 +246,14 @@ pub fn decode_stream<R: Read, W: Write, F: Fn(&[u8]) -> char>(
         }
         bytes_available += bytes_read;
 
-        // TODO: decode last character at end of input
         let bytes_used =
             morse_decode_to_writer(o, &input_buf[..bytes_available], char_decode).unwrap();
 
         input_buf.copy_within(bytes_used..bytes_available, 0);
         bytes_available -= bytes_used;
+    }
+
+    if bytes_available != 0 {
+        morse_decode_to_writer_end(o, &input_buf[..bytes_available], char_decode).unwrap();
     }
 }
