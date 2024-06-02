@@ -103,16 +103,17 @@ pub fn morse_decode_to_writer<W: Write, F: Fn(&[u8]) -> char>(
     let mut buf = ['\0'; 1 << 15];
     let mut cur = 0;
     let mut chunk_start = 0;
-    for (i, c) in s.iter().enumerate() {
-        if *c == b'\t' || *c == b'\n' || *c == b'\r' || *c == b' ' {
+    for i in 0..s.len() {
+        let c = s[i];
+        if c == b'\t' || c == b'\n' || c == b'\r' || c == b' ' {
             let decoded = char_decode(&s[chunk_start..i]);
             if decoded != '\0' {
                 buf[cur] = decoded;
                 cur += 1;
             }
             chunk_start = i + 1;
-            if *c != b' ' {
-                buf[cur] = *c as char;
+            if c != b' ' {
+                buf[cur] = c as char;
                 cur += 1;
             }
         }
