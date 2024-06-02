@@ -182,13 +182,14 @@ pub fn decode_stream<R: Read, W: Write, F: Fn(&str) -> char>(
     char_decode: &F,
 ) {
     let mut input_buf = vec![0u8; 1 << 15];
-    let mut bytes_read = 0;
+    let mut bytes_available = 0;
     loop {
-        bytes_read += i.read(&mut input_buf[bytes_read..]).unwrap();
+        let bytes_read = i.read(&mut input_buf[bytes_available..]).unwrap();
         if bytes_read == 0 {
             break;
         }
-        let s = match std::str::from_utf8(&input_buf[..bytes_read]) {
+        bytes_available += bytes_read;
+        let s = match std::str::from_utf8(&input_buf[..bytes_available]) {
             Ok(s) => s,
             Err(e) => {
                 let bytes_decoded = e.valid_up_to();
@@ -199,7 +200,7 @@ pub fn decode_stream<R: Read, W: Write, F: Fn(&str) -> char>(
         // TODO: decode last character at end of input
         let bytes_used = morse_decode_to_writer(o, s, char_decode).unwrap();
 
-        input_buf.copy_within(bytes_used..bytes_read, 0);
-        bytes_read -= bytes_used;
+        input_buf.copy_within(bytes_used..bytes_available, 0);
+        bytes_available -= bytes_used;
     }
 }
