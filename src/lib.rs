@@ -30,10 +30,7 @@ pub fn ascii_encode_to_writer<W: Write>(
 pub fn ascii_encode_to_string(s: &str) -> String {
     let mut writer = BufWriter::new(Vec::new());
     ascii_encode_to_writer(&mut writer, s.as_bytes(), &mut false).unwrap();
-    let mut vec = writer.into_inner().unwrap();
-    if vec.last() == Some(&b' ') {
-        vec.pop();
-    }
+    let vec = writer.into_inner().unwrap();
     String::from_utf8(vec).unwrap()
 }
 
@@ -64,10 +61,7 @@ pub fn standard_encode_to_writer<W: Write>(
 pub fn standard_encode_to_string(s: &str) -> String {
     let mut writer = BufWriter::new(Vec::new());
     standard_encode_to_writer(&mut writer, s, &mut false).unwrap();
-    let mut vec = writer.into_inner().unwrap();
-    if vec.last() == Some(&b' ') {
-        vec.pop();
-    }
+    let vec = writer.into_inner().unwrap();
     String::from_utf8(vec).unwrap()
 }
 
