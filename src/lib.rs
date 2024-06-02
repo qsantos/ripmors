@@ -49,23 +49,19 @@ pub fn morse_decode_to_string<F: Fn(&str) -> char>(s: &str, char_decode: &F) -> 
     let mut vec = Vec::new();
     let mut chunk_start = 0;
     for (i, c) in s.char_indices() {
-        match c {
-            '\t' | '\n' | '\r' => {
-                let decoded = char_decode(&s[chunk_start..i]);
-                if decoded != '\0' {
-                    vec.push(decoded);
-                }
-                chunk_start = i + 1;
-                vec.push(c);
+        if c == '\t' || c == '\n' || c == '\r' {
+            let decoded = char_decode(&s[chunk_start..i]);
+            if decoded != '\0' {
+                vec.push(decoded);
             }
-            ' ' => {
-                let decoded = char_decode(&s[chunk_start..i]);
-                if decoded != '\0' {
-                    vec.push(decoded);
-                }
-                chunk_start = i + 1;
+            chunk_start = i + 1;
+            vec.push(c);
+        } else if c == ' ' {
+            let decoded = char_decode(&s[chunk_start..i]);
+            if decoded != '\0' {
+                vec.push(decoded);
             }
-            _ => (),
+            chunk_start = i + 1;
         }
     }
     vec.push(char_decode(&s[chunk_start..]));
@@ -76,23 +72,19 @@ pub fn morse_decode_buffer<F: Fn(&str) -> char>(s: &str, char_decode: &F) -> (St
     let mut vec = Vec::new();
     let mut chunk_start = 0;
     for (i, c) in s.char_indices() {
-        match c {
-            '\t' | '\n' | '\r' => {
-                let decoded = char_decode(&s[chunk_start..i]);
-                if decoded != '\0' {
-                    vec.push(decoded);
-                }
-                chunk_start = i + 1;
-                vec.push(c);
+        if c == '\t' || c == '\n' || c == '\r' {
+            let decoded = char_decode(&s[chunk_start..i]);
+            if decoded != '\0' {
+                vec.push(decoded);
             }
-            ' ' => {
-                let decoded = char_decode(&s[chunk_start..i]);
-                if decoded != '\0' {
-                    vec.push(decoded);
-                }
-                chunk_start = i + 1;
+            chunk_start = i + 1;
+            vec.push(c);
+        } else if c == ' ' {
+            let decoded = char_decode(&s[chunk_start..i]);
+            if decoded != '\0' {
+                vec.push(decoded);
             }
-            _ => (),
+            chunk_start = i + 1;
         }
     }
     (vec.into_iter().collect(), chunk_start)
