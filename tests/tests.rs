@@ -5,8 +5,8 @@ use ripmors::{decode_stream, encode_stream, morse_to_standard};
 fn compare_output_to_oracle(writer: BufWriter<Vec<u8>>, expected_filename: &str) {
     let output = String::from_utf8(writer.into_inner().unwrap()).unwrap();
     let expected = std::fs::read_to_string(expected_filename).unwrap();
-    let mut output_lines = output.lines();
-    let mut expected_lines = expected.lines();
+    let mut output_lines = output.split("\n");
+    let mut expected_lines = expected.split("\n");
     loop {
         match (expected_lines.next(), output_lines.next()) {
             (Some(l1), Some(l2)) => {
@@ -16,7 +16,7 @@ fn compare_output_to_oracle(writer: BufWriter<Vec<u8>>, expected_filename: &str)
                 panic!("Output stops before expected line: {:?}", l1);
             }
             (None, Some(l2)) => {
-                panic!("Output has extra lines starting with: {}", l2);
+                panic!("Output has extra lines starting with: {:?}", l2);
             }
             (None, None) => break,
         }
