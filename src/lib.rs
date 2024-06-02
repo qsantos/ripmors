@@ -65,30 +65,6 @@ pub fn standard_encode_to_string(s: &str) -> String {
     String::from_utf8(vec).unwrap()
 }
 
-// TODO: unify with morse_decode_buffer
-pub fn morse_decode_to_string<F: Fn(&[u8]) -> char>(s: &[u8], char_decode: &F) -> String {
-    let mut vec = Vec::new();
-    let mut chunk_start = 0;
-    for (i, c) in s.iter().enumerate() {
-        if *c == b'\t' || *c == b'\n' || *c == b'\r' {
-            let decoded = char_decode(&s[chunk_start..i]);
-            if decoded != '\0' {
-                vec.push(decoded);
-            }
-            chunk_start = i + 1;
-            vec.push(*c as char);
-        } else if *c == b' ' {
-            let decoded = char_decode(&s[chunk_start..i]);
-            if decoded != '\0' {
-                vec.push(decoded);
-            }
-            chunk_start = i + 1;
-        }
-    }
-    vec.push(char_decode(&s[chunk_start..]));
-    vec.into_iter().collect()
-}
-
 pub fn morse_decode_buffer<F: Fn(&[u8]) -> char>(s: &[u8], char_decode: &F) -> (String, usize) {
     let mut vec = Vec::new();
     let mut chunk_start = 0;
@@ -153,6 +129,13 @@ pub fn morse_decode_to_writer_end<W: Write, F: Fn(&[u8]) -> char>(
 ) -> Result<(), std::io::Error> {
     let decoded = morse_decode_buffer_end(s, char_decode);
     writer.write_all(decoded.as_bytes())
+}
+
+pub fn morse_decode_to_string<F: Fn(&[u8]) -> char>(s: &[u8], char_decode: &F) -> String {
+    let mut writer = BufWriter::new(Vec::new());
+    morse_decode_to_writer_end(&mut writer, s, char_decode).unwrap();
+    let vec = writer.into_inner().unwrap();
+    String::from_utf8(vec).unwrap()
 }
 
 #[test]
