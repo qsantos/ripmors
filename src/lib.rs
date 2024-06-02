@@ -72,18 +72,18 @@ pub fn standard_encode_to_string(s: &str) -> String {
 }
 
 // TODO: unify with morse_decode_buffer
-pub fn morse_decode_to_string<F: Fn(&str) -> char>(s: &str, char_decode: &F) -> String {
+pub fn morse_decode_to_string<F: Fn(&[u8]) -> char>(s: &[u8], char_decode: &F) -> String {
     let mut vec = Vec::new();
     let mut chunk_start = 0;
-    for (i, c) in s.char_indices() {
-        if c == '\t' || c == '\n' || c == '\r' {
+    for (i, c) in s.iter().enumerate() {
+        if *c == b'\t' || *c == b'\n' || *c == b'\r' {
             let decoded = char_decode(&s[chunk_start..i]);
             if decoded != '\0' {
                 vec.push(decoded);
             }
             chunk_start = i + 1;
-            vec.push(c);
-        } else if c == ' ' {
+            vec.push(*c as char);
+        } else if *c == b' ' {
             let decoded = char_decode(&s[chunk_start..i]);
             if decoded != '\0' {
                 vec.push(decoded);
@@ -95,18 +95,18 @@ pub fn morse_decode_to_string<F: Fn(&str) -> char>(s: &str, char_decode: &F) -> 
     vec.into_iter().collect()
 }
 
-pub fn morse_decode_buffer<F: Fn(&str) -> char>(s: &str, char_decode: &F) -> (String, usize) {
+pub fn morse_decode_buffer<F: Fn(&[u8]) -> char>(s: &[u8], char_decode: &F) -> (String, usize) {
     let mut vec = Vec::new();
     let mut chunk_start = 0;
-    for (i, c) in s.char_indices() {
-        if c == '\t' || c == '\n' || c == '\r' {
+    for (i, c) in s.iter().enumerate() {
+        if *c == b'\t' || *c == b'\n' || *c == b'\r' {
             let decoded = char_decode(&s[chunk_start..i]);
             if decoded != '\0' {
                 vec.push(decoded);
             }
             chunk_start = i + 1;
-            vec.push(c);
-        } else if c == ' ' {
+            vec.push(*c as char);
+        } else if *c == b' ' {
             let decoded = char_decode(&s[chunk_start..i]);
             if decoded != '\0' {
                 vec.push(decoded);
@@ -117,9 +117,9 @@ pub fn morse_decode_buffer<F: Fn(&str) -> char>(s: &str, char_decode: &F) -> (St
     (vec.into_iter().collect(), chunk_start)
 }
 
-pub fn morse_decode_to_writer<W: Write, F: Fn(&str) -> char>(
+pub fn morse_decode_to_writer<W: Write, F: Fn(&[u8]) -> char>(
     writer: &mut W,
-    s: &str,
+    s: &[u8],
     char_decode: &F,
 ) -> Result<usize, std::io::Error> {
     let (decoded, bytes_used) = morse_decode_buffer(s, char_decode);
@@ -166,16 +166,17 @@ fn test_standard_encode() {
 #[test]
 fn test_standard_decode() {
     let f = |s| morse_decode_to_string(s, &morse_to_standard);
-    assert_eq!(f(".--. .- .-. .. ..."), "PARIS");
+    assert_eq!(f(b".--. .- .-. .. ..."), "PARIS");
     assert_eq!(
-        f(".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--."),
+        f(b".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--."),
         "HELLO, WORLD!",
     );
 }
 
 #[test]
 fn test_standard_encode_decode() {
-    let f = |s| morse_decode_to_string(&standard_encode_to_string(s), &morse_to_standard);
+    let f =
+        |s| morse_decode_to_string(&standard_encode_to_string(s).as_bytes(), &morse_to_standard);
     assert_eq!(f("paris"), "PARIS");
     assert_eq!(f("Hello, World!"), "HELLO, WORLD!");
     assert_eq!(
@@ -196,7 +197,7 @@ pub fn encode_stream<R: Read, W: Write>(i: &mut R, o: &mut W) {
     }
 }
 
-pub fn decode_stream<R: Read, W: Write, F: Fn(&str) -> char>(
+pub fn decode_stream<R: Read, W: Write, F: Fn(&[u8]) -> char>(
     i: &mut R,
     o: &mut W,
     char_decode: &F,
@@ -209,16 +210,10 @@ pub fn decode_stream<R: Read, W: Write, F: Fn(&str) -> char>(
             break;
         }
         bytes_available += bytes_read;
-        let s = match std::str::from_utf8(&input_buf[..bytes_available]) {
-            Ok(s) => s,
-            Err(e) => {
-                let bytes_decoded = e.valid_up_to();
-                unsafe { std::str::from_utf8_unchecked(&input_buf[..bytes_decoded]) }
-            }
-        };
 
         // TODO: decode last character at end of input
-        let bytes_used = morse_decode_to_writer(o, s, char_decode).unwrap();
+        let bytes_used =
+            morse_decode_to_writer(o, &input_buf[..bytes_available], char_decode).unwrap();
 
         input_buf.copy_within(bytes_used..bytes_available, 0);
         bytes_available -= bytes_used;
