@@ -9,20 +9,35 @@ pub fn ascii_encode_to_writer<W: Write>(
     s: &[u8],
     need_separator: &mut bool,
 ) -> Result<(), std::io::Error> {
+    let mut buf = [0u8; 1 << 15];
+    let mut cur = 0;
     for c in s {
         if *c == b'\t' || *c == b'\n' || *c == b'\r' {
-            writer.write_all(&[*c])?;
+            buf[cur] = *c;
+            cur += 1;
             *need_separator = false;
         } else {
             let morse = ascii_to_morse(*c as char);
             if !morse.is_empty() {
                 if *need_separator {
-                    writer.write_all(b" ")?;
+                    buf[cur] = b' ';
+                    cur += 1;
                 }
-                writer.write_all(morse.as_bytes())?;
+                let bytes = morse.as_bytes();
+                buf[cur..cur + bytes.len()].copy_from_slice(bytes);
+                cur += bytes.len();
                 *need_separator = true;
             }
         }
+        // flush buffer
+        if cur >= buf.len() - 10 {
+            writer.write_all(&buf[..cur])?;
+            cur = 0;
+        }
+    }
+    // flush buffer
+    if cur != 0 {
+        writer.write_all(&buf[..cur])?;
     }
     Ok(())
 }
@@ -39,21 +54,36 @@ pub fn standard_encode_to_writer<W: Write>(
     s: &str,
     need_separator: &mut bool,
 ) -> Result<(), std::io::Error> {
+    let mut buf = [0u8; 1 << 15];
+    let mut cur = 0;
     for c in s.chars() {
         if c == '\t' || c == '\n' || c == '\r' {
-            writer.write_all(&[c as u8])?;
+            buf[cur] = c as u8;
+            cur += 1;
             *need_separator = false;
         } else {
             let morse = standard_to_morse(c);
             if !morse.is_empty() {
                 if *need_separator {
-                    writer.write_all(b" ")?;
+                    buf[cur] = b' ';
+                    cur += 1;
                     *need_separator = false;
                 }
-                writer.write_all(morse.as_bytes())?;
+                let bytes = morse.as_bytes();
+                buf[cur..cur + bytes.len()].copy_from_slice(bytes);
+                cur += bytes.len();
                 *need_separator = true;
             }
         }
+        // flush buffer
+        if cur >= buf.len() - 10 {
+            writer.write_all(&buf[..cur])?;
+            cur = 0;
+        }
+    }
+    // flush buffer
+    if cur != 0 {
+        writer.write_all(&buf[..cur])?;
     }
     Ok(())
 }
