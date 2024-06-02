@@ -73,19 +73,15 @@ pub fn morse_decode_to_writer<W: Write, F: Fn(&[u8]) -> char>(
     let mut vec = Vec::new();
     let mut chunk_start = 0;
     for (i, c) in s.iter().enumerate() {
-        if *c == b'\t' || *c == b'\n' || *c == b'\r' {
+        if *c == b'\t' || *c == b'\n' || *c == b'\r' || *c == b' ' {
             let decoded = char_decode(&s[chunk_start..i]);
             if decoded != '\0' {
                 vec.push(decoded);
             }
             chunk_start = i + 1;
-            vec.push(*c as char);
-        } else if *c == b' ' {
-            let decoded = char_decode(&s[chunk_start..i]);
-            if decoded != '\0' {
-                vec.push(decoded);
+            if *c != b' ' {
+                vec.push(*c as char);
             }
-            chunk_start = i + 1;
         }
     }
     let decoded: String = vec.into_iter().collect();
