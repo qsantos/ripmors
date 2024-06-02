@@ -65,7 +65,11 @@ pub fn standard_encode_to_string(s: &str) -> String {
     String::from_utf8(vec).unwrap()
 }
 
-pub fn morse_decode_buffer<F: Fn(&[u8]) -> char>(s: &[u8], char_decode: &F) -> (String, usize) {
+pub fn morse_decode_to_writer<W: Write, F: Fn(&[u8]) -> char>(
+    writer: &mut W,
+    s: &[u8],
+    char_decode: &F,
+) -> Result<usize, std::io::Error> {
     let mut vec = Vec::new();
     let mut chunk_start = 0;
     for (i, c) in s.iter().enumerate() {
@@ -84,10 +88,15 @@ pub fn morse_decode_buffer<F: Fn(&[u8]) -> char>(s: &[u8], char_decode: &F) -> (
             chunk_start = i + 1;
         }
     }
-    (vec.into_iter().collect(), chunk_start)
+    let decoded: String = vec.into_iter().collect();
+    writer.write_all(decoded.as_bytes()).map(|_| chunk_start)
 }
 
-pub fn morse_decode_buffer_end<F: Fn(&[u8]) -> char>(s: &[u8], char_decode: &F) -> String {
+pub fn morse_decode_to_writer_end<W: Write, F: Fn(&[u8]) -> char>(
+    writer: &mut W,
+    s: &[u8],
+    char_decode: &F,
+) -> Result<(), std::io::Error> {
     let mut vec = Vec::new();
     let mut chunk_start = 0;
     for (i, c) in s.iter().enumerate() {
@@ -110,24 +119,7 @@ pub fn morse_decode_buffer_end<F: Fn(&[u8]) -> char>(s: &[u8], char_decode: &F) 
     if decoded != '\0' {
         vec.push(decoded);
     }
-    vec.into_iter().collect()
-}
-
-pub fn morse_decode_to_writer<W: Write, F: Fn(&[u8]) -> char>(
-    writer: &mut W,
-    s: &[u8],
-    char_decode: &F,
-) -> Result<usize, std::io::Error> {
-    let (decoded, bytes_used) = morse_decode_buffer(s, char_decode);
-    writer.write_all(decoded.as_bytes()).map(|_| bytes_used)
-}
-
-pub fn morse_decode_to_writer_end<W: Write, F: Fn(&[u8]) -> char>(
-    writer: &mut W,
-    s: &[u8],
-    char_decode: &F,
-) -> Result<(), std::io::Error> {
-    let decoded = morse_decode_buffer_end(s, char_decode);
+    let decoded: String = vec.into_iter().collect();
     writer.write_all(decoded.as_bytes())
 }
 
