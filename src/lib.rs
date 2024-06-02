@@ -97,30 +97,12 @@ pub fn morse_decode_to_writer_end<W: Write, F: Fn(&[u8]) -> char>(
     s: &[u8],
     char_decode: &F,
 ) -> Result<(), std::io::Error> {
-    let mut vec = Vec::new();
-    let mut chunk_start = 0;
-    for (i, c) in s.iter().enumerate() {
-        if *c == b'\t' || *c == b'\n' || *c == b'\r' {
-            let decoded = char_decode(&s[chunk_start..i]);
-            if decoded != '\0' {
-                vec.push(decoded);
-            }
-            chunk_start = i + 1;
-            vec.push(*c as char);
-        } else if *c == b' ' {
-            let decoded = char_decode(&s[chunk_start..i]);
-            if decoded != '\0' {
-                vec.push(decoded);
-            }
-            chunk_start = i + 1;
-        }
-    }
+    let chunk_start = morse_decode_to_writer(writer, s, char_decode)?;
     let decoded = char_decode(&s[chunk_start..]);
     if decoded != '\0' {
-        vec.push(decoded);
+        writer.write_all(decoded.to_string().as_bytes())?;
     }
-    let decoded: String = vec.into_iter().collect();
-    writer.write_all(decoded.as_bytes())
+    Ok(())
 }
 
 pub fn morse_decode_to_string<F: Fn(&[u8]) -> char>(s: &[u8], char_decode: &F) -> String {
