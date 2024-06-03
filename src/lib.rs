@@ -30,7 +30,7 @@ pub fn ascii_encode_to_writer<W: Write>(
             }
         }
         // flush buffer
-        if cur >= buf.len() - 10 {
+        if cur >= buf.len() - 25 {
             writer.write_all(&buf[..cur])?;
             cur = 0;
         }
@@ -76,7 +76,7 @@ pub fn standard_encode_to_writer<W: Write>(
             }
         }
         // flush buffer
-        if cur >= buf.len() - 10 {
+        if cur >= buf.len() - 25 {
             writer.write_all(&buf[..cur])?;
             cur = 0;
         }
