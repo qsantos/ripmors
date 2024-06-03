@@ -216,7 +216,7 @@ pub fn encode_stream_standard<R: Read, W: Write>(i: &mut R, o: &mut W) {
     let mut bytes_available = 0;
     let mut need_separator = false;
     loop {
-        let n = i.read(&mut input_buf).unwrap();
+        let n = i.read(&mut input_buf[bytes_available..]).unwrap();
         if n == 0 {
             break;
         }
