@@ -1,7 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 use rand::{distributions::Standard, Rng};
 
-use ripmors::{ascii_encode_to_string, unicode_encode_to_string};
+use ripmors::{ascii_encode_to_string, standard_encode_to_string};
 
 fn ascii_benchmark(c: &mut Criterion) {
     let ascii: String = rand::thread_rng()
@@ -17,15 +17,15 @@ fn ascii_benchmark(c: &mut Criterion) {
     group.finish();
 }
 
-fn unicode_benchmark(c: &mut Criterion) {
-    let unicode = std::fs::read_to_string("benches/unicode_test_page.txt").unwrap();
+fn standard_benchmark(c: &mut Criterion) {
+    let data = std::fs::read_to_string("benches/unicode_test_page.txt").unwrap();
     let mut group = c.benchmark_group("Unicode");
-    group.throughput(Throughput::Bytes(unicode.len() as u64));
+    group.throughput(Throughput::Bytes(data.len() as u64));
     group.bench_function("encode", |b| {
-        b.iter(|| unicode_encode_to_string(black_box(&unicode)))
+        b.iter(|| standard_encode_to_string(black_box(&data)))
     });
     group.finish();
 }
 
-criterion_group!(benches, ascii_benchmark, unicode_benchmark);
+criterion_group!(benches, ascii_benchmark, standard_benchmark);
 criterion_main!(benches);
