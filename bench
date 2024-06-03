@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -Eeuo pipefail
 cargo build --release
 echo "Encoding standard"
 (for x in 0..10000; do cat 1-original.txt; done) | pv | taskset -c 0 ./target/release/ripmors -e standard >/dev/null
