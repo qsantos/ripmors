@@ -7,7 +7,6 @@ edition = "2021"
 
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["html_reports"] }
-rand = "0.8.5"
 
 [[bench]]
 name = "bench"
@@ -19,3 +18,4 @@ debug = true
 
 [dependencies]
 clap = { version = "4.5.4", features = ["derive"] }
+rand = "0.8.5"

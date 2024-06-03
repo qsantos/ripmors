@@ -159,6 +159,15 @@ fn test_ascii_encode() {
         ascii_encode_to_string("Hello, World!"),
         ".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--."
     );
+
+    // with random data
+    use rand::{distributions::Standard, Rng};
+    let data: String = rand::thread_rng()
+        .sample_iter::<u8, _>(Standard)
+        .take(1048576)
+        .map(|c| c as char)
+        .collect();
+    ascii_encode_to_string(&data);
 }
 
 #[test]
@@ -187,6 +196,15 @@ fn test_standard_encode() {
         standard_encode_to_string("one line\nand  another\tline"),
         "--- -. . / .-.. .. -. .\n.- -. -.. / / .- -. --- - .... . .-.\t.-.. .. -. ."
     );
+
+    // with random data
+    use rand::{distributions::Standard, Rng};
+    let data: String = rand::thread_rng()
+        .sample_iter::<u8, _>(Standard)
+        .take(1048576)
+        .map(|c| c as char)
+        .collect();
+    standard_encode_to_string(&data);
 }
 
 #[test]
