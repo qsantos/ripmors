@@ -4,6 +4,14 @@ use clap::{Parser, ValueEnum};
 
 #[derive(ValueEnum, Debug, Default, Clone, Copy, Eq, Parser, PartialEq)]
 #[clap(rename_all = "kebab_case")]
+enum EncodeVariant {
+    #[default]
+    Standard,
+    Ascii,
+}
+
+#[derive(ValueEnum, Debug, Default, Clone, Copy, Eq, Parser, PartialEq)]
+#[clap(rename_all = "kebab_case")]
 enum DecodeVariant {
     #[default]
     Standard,
@@ -20,6 +28,8 @@ enum DecodeVariant {
 struct Args {
     #[arg(short, long, num_args = 0..=1, default_missing_value = "standard")]
     decode: Option<DecodeVariant>,
+    #[arg(short, long, num_args = 0..=1, default_missing_value = "standard")]
+    encode: Option<EncodeVariant>,
 }
 
 fn main() {
@@ -39,7 +49,9 @@ fn main() {
             DecodeVariant::Arabic => morse_to_arabic,
         };
         decode_stream(&mut stdin, &mut stdout, &char_decode);
+    } else if args.encode == Some(EncodeVariant::Ascii) {
+        encode_stream_ascii(&mut stdin, &mut stdout);
     } else {
-        encode_stream(&mut stdin, &mut stdout);
+        encode_stream_standard(&mut stdin, &mut stdout);
     }
 }

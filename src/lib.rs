@@ -211,7 +211,31 @@ fn test_standard_encode_decode() {
     );
 }
 
-pub fn encode_stream<R: Read, W: Write>(i: &mut R, o: &mut W) {
+pub fn encode_stream_standard<R: Read, W: Write>(i: &mut R, o: &mut W) {
+    let mut input_buf = vec![0u8; 1 << 15];
+    let mut bytes_available = 0;
+    let mut need_separator = false;
+    loop {
+        let n = i.read(&mut input_buf).unwrap();
+        if n == 0 {
+            break;
+        }
+        bytes_available += n;
+        let s = match std::str::from_utf8(&input_buf[..bytes_available]) {
+            Ok(s) => s,
+            Err(e) => {
+                let bytes_decoded = e.valid_up_to();
+                unsafe { std::str::from_utf8_unchecked(&input_buf[..bytes_decoded]) }
+            }
+        };
+        standard_encode_to_writer(o, s, &mut need_separator).unwrap();
+        let bytes_decoded = s.as_bytes().len();
+        input_buf.copy_within(bytes_decoded..bytes_available, 0);
+        bytes_available -= bytes_decoded;
+    }
+}
+
+pub fn encode_stream_ascii<R: Read, W: Write>(i: &mut R, o: &mut W) {
     let mut input_buf = vec![0u8; 1 << 15];
     let mut need_separator = false;
     loop {
