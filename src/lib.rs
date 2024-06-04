@@ -17,7 +17,7 @@ pub fn ascii_encode_to_writer<W: Write>(
             cur += 1;
             *need_separator = false;
         } else {
-            let morse = ascii_to_morse(*c as char);
+            let morse = ASCII_TO_MORSE[*c as usize];
             if !morse.is_empty() {
                 if *need_separator {
                     buf[cur] = b' ';
