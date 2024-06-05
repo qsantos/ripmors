@@ -17,18 +17,20 @@ macro_rules! ascii_to_morse {
             $(
                 assert!($letter >= 0);
                 assert!($letter <= 255);
-                let elements = match $elements.len() {
-                    1 => concat!($elements, "\0\0\0\0\0\0\0").as_bytes(),
-                    2 => concat!($elements, "\0\0\0\0\0\0").as_bytes(),
-                    3 => concat!($elements, "\0\0\0\0\0").as_bytes(),
-                    4 => concat!($elements, "\0\0\0\0").as_bytes(),
-                    5 => concat!($elements, "\0\0\0").as_bytes(),
-                    6 => concat!($elements, "\0\0").as_bytes(),
-                    7 => concat!($elements, "\0").as_bytes(),
-                    _ => $elements.as_bytes(),
+                let (elements, len) = match $elements.len() {
+                    1 => (concat!($elements, " \0\0\0\0\0\0").as_bytes(), 2),
+                    2 => (concat!($elements, " \0\0\0\0\0").as_bytes(), 3),
+                    3 => (concat!($elements, " \0\0\0\0").as_bytes(), 4),
+                    4 => (concat!($elements, " \0\0\0").as_bytes(), 5),
+                    5 => (concat!($elements, " \0\0").as_bytes(), 6),
+                    6 => (concat!($elements, " \0").as_bytes(), 7),
+                    _ => (concat!($elements, " ").as_bytes(), $elements.len() + 1),
                 };
-                x[$letter as usize] = (elements, $elements.len());
+                x[$letter as usize] = (elements, len);
             )+
+            x[b'\t' as usize] = (b"\t\0\0\0\0\0\0\0", 1);
+            x[b'\n' as usize] = (b"\n\0\0\0\0\0\0\0", 1);
+            x[b'\r' as usize] = (b"\r\0\0\0\0\0\0\0", 1);
             x
         };
     };
