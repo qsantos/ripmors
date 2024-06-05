@@ -12,6 +12,25 @@ macro_rules! ascii_to_morse {
             )+
             x
         };
+        pub const ASCII_TO_MORSE2: [(&'static [u8], usize); 256] = {
+            let mut x: [(&'static [u8], usize); 256] = [(&[0u8; 8], 0); 256];
+            $(
+                assert!($letter >= 0);
+                assert!($letter <= 255);
+                let elements = match $elements.len() {
+                    1 => concat!($elements, "\0\0\0\0\0\0\0").as_bytes(),
+                    2 => concat!($elements, "\0\0\0\0\0\0").as_bytes(),
+                    3 => concat!($elements, "\0\0\0\0\0").as_bytes(),
+                    4 => concat!($elements, "\0\0\0\0").as_bytes(),
+                    5 => concat!($elements, "\0\0\0").as_bytes(),
+                    6 => concat!($elements, "\0\0").as_bytes(),
+                    7 => concat!($elements, "\0").as_bytes(),
+                    _ => $elements.as_bytes(),
+                };
+                x[$letter as usize] = (elements, $elements.len());
+            )+
+            x
+        };
     };
 }
 

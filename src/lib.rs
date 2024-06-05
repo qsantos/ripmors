@@ -17,15 +17,19 @@ pub fn ascii_encode_to_writer<W: Write>(
             cur += 1;
             *need_separator = false;
         } else {
-            let morse = ASCII_TO_MORSE[*c as usize];
-            if !morse.is_empty() {
+            let (bytes, len) = ASCII_TO_MORSE2[*c as usize];
+            if len != 0 {
                 if *need_separator {
                     buf[cur] = b' ';
                     cur += 1;
                 }
-                let bytes = morse.as_bytes();
-                buf[cur..cur + bytes.len()].copy_from_slice(bytes);
-                cur += bytes.len();
+                if len <= 8 {
+                    unsafe { buf.get_unchecked_mut(cur..cur + 8) }.copy_from_slice(bytes);
+                    cur += len;
+                } else {
+                    buf[cur..cur + len].copy_from_slice(bytes);
+                    cur += len;
+                }
                 *need_separator = true;
             }
         }
