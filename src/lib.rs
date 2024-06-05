@@ -69,33 +69,45 @@ pub fn standard_encode_to_writer<W: Write>(
 ) -> Result<(), std::io::Error> {
     let mut buf = [0u8; 1 << 15];
     let mut cur = 0;
+    if *need_separator {
+        buf[cur] = b' ';
+        cur += 1;
+    }
     for c in s.chars() {
-        if c == '\t' || c == '\n' || c == '\r' {
-            buf[cur] = c as u8;
-            cur += 1;
-            *need_separator = false;
-        } else {
-            let morse = standard_to_morse(c);
-            if !morse.is_empty() {
-                if *need_separator {
-                    buf[cur] = b' ';
-                    cur += 1;
-                    *need_separator = false;
-                }
-                let bytes = morse.as_bytes();
-                buf[cur..cur + bytes.len()].copy_from_slice(bytes);
-                cur += bytes.len();
-                *need_separator = true;
+        let (bytes, len) = standard_to_morse(c);
+        if len == 0 {
+        } else if len <= 8 {
+            if (c == '\t' || c == '\n' || c == '\r') && cur > 0 && buf[cur - 1] == b' ' {
+                cur -= 1;
             }
+            let buf8 = unsafe { buf.get_unchecked_mut(cur..cur + 8) };
+            let bytes8 = unsafe { &*(bytes.as_ptr() as *const [u8; 8]) };
+            buf8.copy_from_slice(bytes8);
+        } else {
+            buf[cur..cur + len].copy_from_slice(bytes);
         }
+        cur += len;
         // flush buffer
         if cur >= buf.len() - 25 {
-            writer.write_all(&buf[..cur])?;
-            cur = 0;
+            if buf[cur - 1] == b' ' {
+                cur -= 1;
+                writer.write_all(&buf[..cur])?;
+                buf[0] = b' ';
+                cur = 1;
+            } else {
+                writer.write_all(&buf[..cur])?;
+                cur = 0;
+            }
         }
     }
     // flush buffer
     if cur != 0 {
+        if buf[cur - 1] == b' ' {
+            cur -= 1;
+            *need_separator = true;
+        } else {
+            *need_separator = false;
+        }
         writer.write_all(&buf[..cur])?;
     }
     Ok(())

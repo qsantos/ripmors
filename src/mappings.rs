@@ -150,23 +150,43 @@ ascii_to_morse! {
     //'~' => "",
 }
 
-pub fn ascii_to_morse(c: char) -> &'static str {
-    ASCII_TO_MORSE[c as usize]
+#[macro_export]
+macro_rules! standard_to_morse {
+    ($c:expr, $($letter:pat => $elements:literal),+ $(,)? ) => {
+        match $c {
+            $(
+                $letter => {
+                    let (elements, len) = match $elements.len() {
+                        1 => (concat!($elements, " \0\0\0\0\0\0").as_bytes(), 2),
+                        2 => (concat!($elements, " \0\0\0\0\0").as_bytes(), 3),
+                        3 => (concat!($elements, " \0\0\0\0").as_bytes(), 4),
+                        4 => (concat!($elements, " \0\0\0").as_bytes(), 5),
+                        5 => (concat!($elements, " \0\0").as_bytes(), 6),
+                        6 => (concat!($elements, " \0").as_bytes(), 7),
+                        _ => (concat!($elements, " ").as_bytes(), $elements.len() + 1),
+                    };
+                    (elements, len)
+                }
+            )+
+            _ => (b"\0\0\0\0\0\0\0\0", 0)
+        }
+    };
 }
 
-pub fn standard_to_morse(c: char) -> &'static str {
+pub fn standard_to_morse(c: char) -> (&'static [u8], usize) {
     if c.is_ascii() {
-        return ascii_to_morse(c);
+        return ASCII_TO_MORSE2[c as usize];
     }
-    match c {
+    standard_to_morse! {
+        c,
         // Dot-less i (see https://en.wikipedia.org/wiki/Dotless_I)
-        'ı' => ascii_to_morse('i'),
+        'ı' => "..",
 
-        '“' | '”' | '«' | '»' => ascii_to_morse('"'), // English & French quotes (1.1.3)
-        '×' => ascii_to_morse('x'),                   // Multiplication sign (1.1.3)
-        '‰' => "----- -..-. ----- -----",             // Mapped to "0/00" (3.3.1)
-        '′' => ascii_to_morse('\''),                  // Minute (3.5.1), mapped to "'"
-        '″' => ".----. .----.",                       // Second (3.5.1), mapped to "''"
+        '“' | '”' | '«' | '»' => ".-..-.", // English & French quotes (1.1.3)
+        '×' => "-..",                      // Multiplication sign (1.1.3)
+        '‰' => "----- -..-. ----- -----",  // Mapped to "0/00" (3.3.1)
+        '′' => ".----.",                   // Minute (3.5.1), mapped to "'"
+        '″' => ".----. .----.",            // Second (3.5.1), mapped to "''"
 
         // non-Latin extensions (from https://en.wikipedia.org/wiki/Morse_code#Letters,_numbers,_punctuation,_prosigns_for_Morse_code_and_non-Latin_variants)
         // Uppercase | Lowercase
@@ -593,8 +613,6 @@ pub fn standard_to_morse(c: char) -> &'static str {
         //'لا' => ".-...-", // lām-alif (ligature)
         // other characters without a reference
         'ء' => ".", // hamzah
-
-        _ => "?",
     }
 }
 
