@@ -1,6 +1,5 @@
 // International Morse code, as per ITU-R M.1677-1
 
-#[macro_export]
 macro_rules! ascii_to_morse {
     ($($letter:expr => $elements:literal),+ $(,)? ) => {
         pub const ASCII_TO_MORSE: [(&'static [u8], usize); 256] = {
@@ -141,7 +140,6 @@ ascii_to_morse! {
     //'~' => "",
 }
 
-#[macro_export]
 macro_rules! standard_to_morse {
     ($c:expr, $($letter:pat => $elements:literal),+ $(,)? ) => {
         match $c {
