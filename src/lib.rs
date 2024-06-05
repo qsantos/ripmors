@@ -22,7 +22,11 @@ pub fn ascii_encode_to_writer<W: Write>(
             if (*c == b'\t' || *c == b'\n' || *c == b'\r') && cur > 0 && buf[cur - 1] == b' ' {
                 cur -= 1;
             }
-            unsafe { buf.get_unchecked_mut(cur..cur + 8) }.copy_from_slice(bytes);
+            unsafe {
+                let buf8 = buf.get_unchecked_mut(cur..cur + 8);
+                let bytes8 = &*(bytes.as_ptr() as *const [u8; 8]);
+                buf8.copy_from_slice(bytes8);
+            };
         } else {
             buf[cur..cur + len].copy_from_slice(bytes);
         }
