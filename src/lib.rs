@@ -163,6 +163,10 @@ fn test_ascii_encode() {
         ascii_encode_to_string("Hello, World!"),
         ".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--."
     );
+    assert_eq!(
+        ascii_encode_to_string("one line\nand  another\tline"),
+        "--- -. . / .-.. .. -. .\n.- -. -.. / / .- -. --- - .... . .-.\t.-.. .. -. ."
+    );
 
     // with random data
     use rand::{distributions::Standard, Rng};
