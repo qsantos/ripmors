@@ -2,8 +2,8 @@
 set -Eeuo pipefail
 cargo build --release
 echo "Encoding standard"
-(for x in $(seq 0 100); do cat 1-original.txt; done) | pv | taskset -c 0 ./target/release/ripmors -e standard >/dev/null
+(for x in $(seq 0 1000); do cat 1-original.txt; done) | pv | taskset -c 0 ./target/release/ripmors -e standard >/dev/null
 echo "Encoding ASCII"
-(for x in $(seq 0 100); do cat 1-original.txt; done) | pv | taskset -c 0 ./target/release/ripmors -e ascii >/dev/null
+(for x in $(seq 0 1000); do cat 1-original.txt; done) | pv | taskset -c 0 ./target/release/ripmors -e ascii >/dev/null
 echo "Decoding"
-(for x in $(seq 0 100); do cat 2-encoded.txt; done) | taskset -c 0 ./target/release/ripmors -d | pv >/dev/null
+(for x in $(seq 0 1000); do cat 2-encoded.txt; done) | taskset -c 0 ./target/release/ripmors -d | pv >/dev/null
