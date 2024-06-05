@@ -16,7 +16,7 @@ pub fn ascii_encode_to_writer<W: Write>(
         cur += 1;
     }
     for c in s {
-        let (bytes, len) = ASCII_TO_MORSE2[*c as usize];
+        let (bytes, len) = ASCII_TO_MORSE[*c as usize];
         if len == 0 {
         } else if len <= 8 {
             if (*c == b'\t' || *c == b'\n' || *c == b'\r') && cur > 0 && buf[cur - 1] == b' ' {

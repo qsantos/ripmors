@@ -3,16 +3,7 @@
 #[macro_export]
 macro_rules! ascii_to_morse {
     ($($letter:expr => $elements:literal),+ $(,)? ) => {
-        pub const ASCII_TO_MORSE: [&'static str; 256] = {
-            let mut x: [&'static str; 256] = [""; 256];
-            $(
-                assert!($letter >= 0);
-                assert!($letter <= 255);
-                x[$letter as usize] = $elements;
-            )+
-            x
-        };
-        pub const ASCII_TO_MORSE2: [(&'static [u8], usize); 256] = {
+        pub const ASCII_TO_MORSE: [(&'static [u8], usize); 256] = {
             let mut x: [(&'static [u8], usize); 256] = [(&[0u8; 8], 0); 256];
             $(
                 assert!($letter >= 0);
@@ -175,7 +166,7 @@ macro_rules! standard_to_morse {
 
 pub fn standard_to_morse(c: char) -> (&'static [u8], usize) {
     if c.is_ascii() {
-        return ASCII_TO_MORSE2[c as usize];
+        return ASCII_TO_MORSE[c as usize];
     }
     standard_to_morse! {
         c,
