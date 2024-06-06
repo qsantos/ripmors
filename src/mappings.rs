@@ -1,5 +1,8 @@
 // International Morse code, as per ITU-R M.1677-1
 
+#[repr(align(64))]
+struct AlignedBytes([u8; 8]);
+
 macro_rules! ascii_to_morse {
     ($($letter:expr => $elements:literal),+ $(,)? ) => {
         pub const ASCII_TO_MORSE: [(&'static [u8], usize); 256] = {
@@ -23,6 +26,32 @@ macro_rules! ascii_to_morse {
             x[b'\r' as usize] = (b"\r\0\0\0\0\0\0\0", 1);
             x
         };
+        pub const ASCII_TO_MORSE2: [(u64, usize); 256] = {
+            let mut x: [(u64, usize); 256] = [(0, 0); 256];
+            $(
+                assert!($letter >= 0);
+                assert!($letter <= 255);
+                let (elements, len) = match $elements.len() {
+                    1 => (concat!($elements, " \0\0\0\0\0\0"), 2),
+                    2 => (concat!($elements, " \0\0\0\0\0"), 3),
+                    3 => (concat!($elements, " \0\0\0\0"), 4),
+                    4 => (concat!($elements, " \0\0\0"), 5),
+                    5 => (concat!($elements, " \0\0"), 6),
+                    6 => (concat!($elements, " \0"), 7),
+                    7 => (concat!($elements, " "), 8),
+                    _ => ("\0\0\0\0\0\0\0\0", 18)
+                };
+                let eight_bytes = unsafe { &*(elements.as_ptr() as *const [u8; 8]) };
+                let aligned_bytes = AlignedBytes(*eight_bytes);
+                let one_qword = unsafe { *(aligned_bytes.0.as_ptr() as *const u64) };
+                x[$letter as usize] = (one_qword, len);
+            )+
+            // TODO: this assumes little endian
+            x[b'\t' as usize] = (b'\t' as u64, 1);
+            x[b'\n' as usize] = (b'\n' as u64, 1);
+            x[b'\r' as usize] = (b'\r' as u64, 1);
+            x
+        };
     };
 }
 
@@ -36,6 +65,7 @@ ascii_to_morse! {
     b'!' => "..--.",  // non standard
     b'"' => ".-..-.", // Straight quotes (1.1.3)
     b'$' => "...-..-",           // non standard
+    // NOTE: % is actually handled in code
     b'%' => "----- -..-. -----", // Mapped to "0/0" (3.3.1)
     b'&' => ". ...",             // non standard: mapped to "es"
 

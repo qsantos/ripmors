@@ -17,17 +17,20 @@ pub fn ascii_encode_to_writer<W: Write>(
     }
     for chunk in s.chunks(1 << 10) {
         for c in chunk {
-            let (bytes, len) = ASCII_TO_MORSE[*c as usize];
+            let (bytes, len) = ASCII_TO_MORSE2[*c as usize];
             if len == 0 {
             } else if len <= 8 {
                 if (*c == b'\t' || *c == b'\n' || *c == b'\r') && cur > 0 && buf[cur - 1] == b' ' {
                     cur -= 1;
                 }
-                let buf8 = unsafe { buf.get_unchecked_mut(cur..cur + 8) };
-                let bytes8 = unsafe { &*(bytes.as_ptr() as *const [u8; 8]) };
-                buf8.copy_from_slice(bytes8);
+                unsafe {
+                    let dst = buf.as_ptr().add(cur) as *mut u64;
+                    dst.write_unaligned(bytes);
+                }
             } else {
-                buf[cur..cur + len].copy_from_slice(bytes);
+                // handle only ASCII character encoded as more than 7 elements + space
+                assert_eq!(*c, b'%');
+                buf[cur..cur + 18].copy_from_slice(b"----- -..-. ----- ");
             }
             cur += len;
         }
