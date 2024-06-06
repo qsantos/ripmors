@@ -138,7 +138,7 @@ pub fn morse_decode_to_writer<W: Write, F: Fn(&[u8]) -> char>(
     let mut chunk_start = 0;
     for i in 0..s.len() {
         let c = s[i];
-        if c == b'\t' || c == b'\n' || c == b'\r' || c == b' ' {
+        if c <= b' ' {
             let decoded = char_decode(&s[chunk_start..i]);
             if decoded != '\0' {
                 buf[cur] = decoded;
