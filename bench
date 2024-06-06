@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 cargo build --release
+echo "Self test"
+(for x in $(seq 0 1000); do cat 4-unicode.txt; done) | pv >/dev/null
 echo "Encoding standard (ASCII)"
 (for x in $(seq 0 1000); do cat 1-original.txt; done) | pv | taskset -c 0 ./target/release/ripmors -e standard >/dev/null
 echo "Encoding standard (Unicode)"
