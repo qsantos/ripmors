@@ -15,22 +15,24 @@ pub fn ascii_encode_to_writer<W: Write>(
         buf[cur] = b' ';
         cur += 1;
     }
-    for c in s {
-        let (bytes, len) = ASCII_TO_MORSE[*c as usize];
-        if len == 0 {
-        } else if len <= 8 {
-            if (*c == b'\t' || *c == b'\n' || *c == b'\r') && cur > 0 && buf[cur - 1] == b' ' {
-                cur -= 1;
+    for chunk in s.chunks(1 << 10) {
+        for c in chunk {
+            let (bytes, len) = ASCII_TO_MORSE[*c as usize];
+            if len == 0 {
+            } else if len <= 8 {
+                if (*c == b'\t' || *c == b'\n' || *c == b'\r') && cur > 0 && buf[cur - 1] == b' ' {
+                    cur -= 1;
+                }
+                let buf8 = unsafe { buf.get_unchecked_mut(cur..cur + 8) };
+                let bytes8 = unsafe { &*(bytes.as_ptr() as *const [u8; 8]) };
+                buf8.copy_from_slice(bytes8);
+            } else {
+                buf[cur..cur + len].copy_from_slice(bytes);
             }
-            let buf8 = unsafe { buf.get_unchecked_mut(cur..cur + 8) };
-            let bytes8 = unsafe { &*(bytes.as_ptr() as *const [u8; 8]) };
-            buf8.copy_from_slice(bytes8);
-        } else {
-            buf[cur..cur + len].copy_from_slice(bytes);
+            cur += len;
         }
-        cur += len;
         // flush buffer
-        if cur >= buf.len() - 25 {
+        if cur >= buf.len() - (1 << 10) * 18 {
             if buf[cur - 1] == b' ' {
                 cur -= 1;
                 writer.write_all(&buf[..cur])?;
