@@ -1,13 +1,22 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 cargo build --release
+repeat() {
+    local count=$1
+    local file=$2
+    local args8=($file $file $file $file $file $file $file $file $file $file)
+    local args64=("${args8[@]}" "${args8[@]}" "${args8[@]}" "${args8[@]}" "${args8[@]}" "${args8[@]}" "${args8[@]}" "${args8[@]}")
+    for (( i = 0; i <= $count; i++ )); do
+        cat "${args64[@]}"
+    done
+}
 echo "Self test"
-(for x in $(seq 0 1000); do cat 4-unicode.txt; done) | pv >/dev/null
+repeat 500 4-unicode.txt | pv >/dev/null
 echo "Encoding standard (ASCII)"
-(for x in $(seq 0 1000); do cat 1-original.txt; done) | pv | taskset -c 0 ./target/release/ripmors -e standard >/dev/null
+repeat 5 1-original.txt | pv | taskset -c 0 ./target/release/ripmors -e standard >/dev/null
 echo "Encoding standard (Unicode)"
-(for x in $(seq 0 10000); do cat 4-unicode.txt; done) | pv | taskset -c 0 ./target/release/ripmors -e standard >/dev/null
+repeat 30 4-unicode.txt | pv | taskset -c 0 ./target/release/ripmors -e standard >/dev/null
 echo "Encoding ASCII"
-(for x in $(seq 0 1000); do cat 1-original.txt; done) | pv | taskset -c 0 ./target/release/ripmors -e ascii >/dev/null
+repeat 5 1-original.txt | pv | taskset -c 0 ./target/release/ripmors -e ascii >/dev/null
 echo "Decoding"
-(for x in $(seq 0 1000); do cat 2-encoded.txt; done) | pv | taskset -c 0 ./target/release/ripmors -d >/dev/null
+repeat 1 2-encoded.txt | pv | taskset -c 0 ./target/release/ripmors -d >/dev/null
