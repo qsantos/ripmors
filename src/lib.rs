@@ -67,6 +67,9 @@ pub fn standard_encode_to_writer<W: Write>(
     s: &str,
     need_separator: &mut bool,
 ) -> Result<(), std::io::Error> {
+    if s.is_ascii() {
+        return ascii_encode_to_writer(writer, s.as_bytes(), need_separator);
+    }
     let mut buf = [0u8; 1 << 15];
     let mut cur = 0;
     if *need_separator {
