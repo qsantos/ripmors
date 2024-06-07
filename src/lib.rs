@@ -24,7 +24,7 @@ pub fn ascii_encode_to_writer<W: Write>(
                     cur -= 1;
                 }
                 unsafe {
-                    let dst = buf.as_ptr().add(cur) as *mut u64;
+                    let dst = buf.as_mut_ptr().add(cur) as *mut u64;
                     dst.write_unaligned(bytes);
                 }
             } else {
