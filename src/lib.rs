@@ -8,8 +8,8 @@ pub fn ascii_encode_to_writer<W: Write>(
     writer: &mut W,
     s: &[u8],
     need_separator: &mut bool,
+    buf: &mut [u8; 1 << 15],
 ) -> Result<(), std::io::Error> {
-    let mut buf = [0u8; 1 << 15];
     let mut cur = 0;
     if *need_separator {
         buf[cur] = b' ';
@@ -62,7 +62,8 @@ pub fn ascii_encode_to_writer<W: Write>(
 
 pub fn ascii_encode_to_string(s: &str) -> String {
     let mut writer = BufWriter::new(Vec::new());
-    ascii_encode_to_writer(&mut writer, s.as_bytes(), &mut false).unwrap();
+    let mut buf = [0u8; 1 << 15];
+    ascii_encode_to_writer(&mut writer, s.as_bytes(), &mut false, &mut buf).unwrap();
     let vec = writer.into_inner().unwrap();
     String::from_utf8(vec).unwrap()
 }
@@ -72,10 +73,10 @@ pub fn standard_encode_to_writer<W: Write>(
     s: &str,
     need_separator: &mut bool,
 ) -> Result<(), std::io::Error> {
-    if s.is_ascii() {
-        return ascii_encode_to_writer(writer, s.as_bytes(), need_separator);
-    }
     let mut buf = [0u8; 1 << 15];
+    if s.is_ascii() {
+        return ascii_encode_to_writer(writer, s.as_bytes(), need_separator, &mut buf);
+    }
     let mut cur = 0;
     if *need_separator {
         buf[cur] = b' ';
@@ -309,12 +310,13 @@ pub fn encode_stream_standard<R: Read, W: Write>(i: &mut R, o: &mut W) {
 pub fn encode_stream_ascii<R: Read, W: Write>(i: &mut R, o: &mut W) {
     let mut input_buf = vec![0u8; 1 << 15];
     let mut need_separator = false;
+    let mut buf = [0u8; 1 << 15];
     loop {
         let n = i.read(&mut input_buf).unwrap();
         if n == 0 {
             break;
         }
-        ascii_encode_to_writer(o, &input_buf[..n], &mut need_separator).unwrap();
+        ascii_encode_to_writer(o, &input_buf[..n], &mut need_separator, &mut buf).unwrap();
     }
 }
 
