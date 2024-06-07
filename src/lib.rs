@@ -72,10 +72,10 @@ pub fn standard_encode_to_writer<W: Write>(
     writer: &mut W,
     s: &str,
     need_separator: &mut bool,
+    buf: &mut [u8; 1 << 15],
 ) -> Result<(), std::io::Error> {
-    let mut buf = [0u8; 1 << 15];
     if s.is_ascii() {
-        return ascii_encode_to_writer(writer, s.as_bytes(), need_separator, &mut buf);
+        return ascii_encode_to_writer(writer, s.as_bytes(), need_separator, buf);
     }
     let mut cur = 0;
     if *need_separator {
@@ -140,7 +140,8 @@ pub fn standard_encode_to_writer<W: Write>(
 
 pub fn standard_encode_to_string(s: &str) -> String {
     let mut writer = BufWriter::new(Vec::new());
-    standard_encode_to_writer(&mut writer, s, &mut false).unwrap();
+    let mut buf = [0u8; 1 << 15];
+    standard_encode_to_writer(&mut writer, s, &mut false, &mut buf).unwrap();
     let vec = writer.into_inner().unwrap();
     String::from_utf8(vec).unwrap()
 }
@@ -287,6 +288,7 @@ pub fn encode_stream_standard<R: Read, W: Write>(i: &mut R, o: &mut W) {
     let mut input_buf = vec![0u8; 1 << 15];
     let mut bytes_available = 0;
     let mut need_separator = false;
+    let mut buf = [0u8; 1 << 15];
     loop {
         let n = i.read(&mut input_buf[bytes_available..]).unwrap();
         if n == 0 {
@@ -300,7 +302,7 @@ pub fn encode_stream_standard<R: Read, W: Write>(i: &mut R, o: &mut W) {
                 unsafe { std::str::from_utf8_unchecked(&input_buf[..bytes_decoded]) }
             }
         };
-        standard_encode_to_writer(o, s, &mut need_separator).unwrap();
+        standard_encode_to_writer(o, s, &mut need_separator, &mut buf).unwrap();
         let bytes_decoded = s.as_bytes().len();
         input_buf.copy_within(bytes_decoded..bytes_available, 0);
         bytes_available -= bytes_decoded;
