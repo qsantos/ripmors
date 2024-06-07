@@ -635,385 +635,421 @@ pub fn standard_to_morse(c: char) -> (&'static [u8], usize) {
     }
 }
 
-pub fn morse_to_standard(s: &[u8]) -> char {
-    match s {
-        // Space
-        b"/" => ' ',
-
-        // NOTE: Mappings are sorted like a complete binary tree in array representation. In other
-        // words, they are sorted by length, then in lexicographic order. For lengths up to 5, all
-        // possible combinations of Morse symbols are listed.
-
-        // One element
-        b"." => 'E',
-        b"-" => 'T',
-
-        // Two elements
-        b".." => 'I',
-        b".-" => 'A',
-        b"-." => 'N',
-        b"--" => 'M',
-
-        // Three elements
-        b"..." => 'S',
-        b"..-" => 'U',
-        b".-." => 'R',
-        b".--" => 'W',
-        b"-.." => 'D',
-        b"-.-" => 'K',
-        b"--." => 'G',
-        b"---" => 'O',
-
-        // Four elements
-        b"...." => 'H',
-        b"...-" => 'V',
-        b"..-." => 'F',
-        // ..--
-        b".-.." => 'L',
-        // .-.-
-        b".--." => 'P',
-        b".---" => 'J',
-        b"-..." => 'B',
-        b"-..-" => 'X',
-        b"-.-." => 'C',
-        b"-.--" => 'Y',
-        b"--.." => 'Z',
-        b"--.-" => 'Q',
-        // ---.
-        // ----
-
-        // Five elements
-        b"....." => '5',
-        b"....-" => '4',
-        // ...-.
-        b"...--" => '3',
-        // ..-..
-        // ..-.-
-        b"..--." => '!',
-        b"..---" => '2',
-        // .-...
-        // .-..-
-        b".-.-." => '+',
-        // .-.--
-        // .--..
-        // .--.-
-        // .---.
-        b".----" => '1',
-        b"-...." => '6',
-        b"-...-" => '=',
-        b"-..-." => '/',
-        // -..--
-        // -.-..
-        // -.-.-
-        b"-.--." => '(',
-        // -.---
-        b"--..." => '7',
-        // --..-
-        // --.-.
-        // --.--
-        b"---.." => '8',
-        // ---.-
-        b"----." => '9',
-        b"-----" => '0',
-
-        // Six elements (only mapped)
-        b"..--.." => '?',
-        b"..--.-" => '_',
-        b".-..-." => '"',
-        b".-.-.-" => '.',
-        b".--.-." => '@',
-        b".----." => '\'',
-        b".-----." => '`',
-        b"-....-" => '-',
-        b"-.-.-." => ';',
-        b"-.--.-" => ')',
-        b"--..--" => ',',
-        b"---..." => ':',
-
-        // Seven elements (only mapped)
-        b"...-..-" => '$',
-
-        _ => '\0',
-    }
+macro_rules! element_to_binary_digit {
+    ($binary_value:ident, $elements:expr, $offset:expr) => {
+        let elements = $elements;
+        let offset = $offset;
+        if elements.len() > offset {
+            $binary_value *= 2;
+            if elements[offset] == b'.' {
+                $binary_value += 0;
+            } else if elements[offset] == b'-' {
+                $binary_value += 1;
+            } else {
+                panic!("Unexpected element");
+            }
+        }
+    };
 }
 
-pub fn morse_to_greek(c: &[u8]) -> char {
-    match c {
-        // Greek Morse code
-        // Wikipedia: The Greek Morse code alphabet is very similar to the
-        //            Latin alphabet. It uses one extra letter for Greek
-        //            letter Χ and no longer uses the codes for Latin
-        //            letters "J ", "U" and "V".
-        // https://en.wikipedia.org/wiki/Morse_code_for_non-Latin_alphabets#Greek
-        b".-" => 'Α',
-        b"-..." => 'Β',
-        b"--." => 'Γ',
-        b"-.." => 'Δ',
-        b"." => 'Ε',
-        b"--.." => 'Ζ',
-        b"...." => 'Η',
-        b"-.-." => 'Θ',
-        b".." => 'Ι',
-        b"-.-" => 'Κ',
-        b".-.." => 'Λ',
-        b"--" => 'Μ',
-        b"-." => 'Ν',
-        b"-..-" => 'Ξ',
-        b"---" => 'Ο',
-        b".--." => 'Π',
-        b".-." => 'Ρ',
-        b"..." => 'Σ',
-        b"-" => 'Τ',
-        b"-.--" => 'Υ',
-        b"..-." => 'Φ',
-        b"----" => 'Χ',
-        b"--.-" => 'Ψ',
-        _ => '\0',
-    }
+macro_rules! morse_decode {
+    ($array_name:ident, $function_name:ident, $($elements:expr => $character:expr),+ $(,)? ) => {
+        pub const $array_name: [char; 256] = {
+            let mut x = ['\0'; 256];
+            $(
+                let elements = $elements.as_bytes();
+                let mut binary_value = 1;
+                if elements.len() > 8 { panic!("Too many elements"); }
+                element_to_binary_digit!(binary_value, elements, 7);
+                element_to_binary_digit!(binary_value, elements, 6);
+                element_to_binary_digit!(binary_value, elements, 5);
+                element_to_binary_digit!(binary_value, elements, 4);
+                element_to_binary_digit!(binary_value, elements, 3);
+                element_to_binary_digit!(binary_value, elements, 2);
+                element_to_binary_digit!(binary_value, elements, 1);
+                element_to_binary_digit!(binary_value, elements, 0);
+                if x[binary_value as usize] != '\0' {
+                    panic!("Conflict between binary values");
+                }
+                x[binary_value as usize] = $character;
+            )+
+            x[0] = ' ';
+            x
+        };
+        pub fn $function_name(elements: u8) -> char {
+            $array_name[elements as usize]
+        }
+    };
 }
 
-pub fn morse_to_russian(c: &[u8]) -> char {
-    match c {
-        // Russian Morse code for Cyrillic
-        // https://en.wikipedia.org/wiki/Russian_Morse_code (1857)
-        // Полное собрание законов Российской Империи. Собрание Второе
-        // These are listed in the order of the Wikipedia page (alphabetical
-        // order of the corresponding latin script character)
-        b".-" => 'А',   // a
-        b"-..." => 'Б', // be
-        b".--" => 'В',  // ve
-        b"--." => 'Г',  // ghe
-        b"-.." => 'Д',  // de
-        b"." => 'Е',    // ie
-        b"...-" => 'Ж', // zhe
-        b"--.." => 'З', // ze
-        b".." => 'И',   // i
-        b".---" => 'Й', // short i
-        b"-.-" => 'К',  // ka
-        b".-.." => 'Л', // el
-        b"--" => 'М',   // em
-        b"-." => 'Н',   // en
-        b"---" => 'О',  // o
-        b".--." => 'П', // pe
-        b".-." => 'Р',  // er
-        b"..." => 'С',  // es
-        b"-" => 'Т',
-        b"..-" => 'У',   // u
-        b"..-." => 'Ф',  // ef
-        b"...." => 'Х',  // ha
-        b"-.-." => 'Ц',  // tse
-        b"---." => 'Ч',  // che
-        b"----" => 'Ш',  // sha
-        b"--.-" => 'Щ',  // shcha
-        b"-..-" => 'Ъ',  // hard sign
-        b"-.--" => 'Ы',  // yeru
-        b"..-.." => 'Ѣ', // yat  in Wikipedia article and in Russian law document
-        b"..--" => 'Ю',  // yu
-        b".-.-" => 'Я',  // ya
-        _ => '\0',
-    }
+morse_decode! {
+    MORSE_TO_STANDARD,
+    morse_to_standard,
+    // NOTE: Mappings are sorted like a complete binary tree in array representation. In other
+    // words, they are sorted by length, then in lexicographic order. For lengths up to 5, all
+    // possible combinations of Morse symbols are listed.
+
+    // One element
+    "." => 'E',
+    "-" => 'T',
+
+    // Two elements
+    ".." => 'I',
+    ".-" => 'A',
+    "-." => 'N',
+    "--" => 'M',
+
+    // Three elements
+    "..." => 'S',
+    "..-" => 'U',
+    ".-." => 'R',
+    ".--" => 'W',
+    "-.." => 'D',
+    "-.-" => 'K',
+    "--." => 'G',
+    "---" => 'O',
+
+    // Four elements
+    "...." => 'H',
+    "...-" => 'V',
+    "..-." => 'F',
+    // ..--
+    ".-.." => 'L',
+    // .-.-
+    ".--." => 'P',
+    ".---" => 'J',
+    "-..." => 'B',
+    "-..-" => 'X',
+    "-.-." => 'C',
+    "-.--" => 'Y',
+    "--.." => 'Z',
+    "--.-" => 'Q',
+    // ---.
+    // ----
+
+    // Five elements
+    "....." => '5',
+    "....-" => '4',
+    // ...-.
+    "...--" => '3',
+    // ..-..
+    // ..-.-
+    "..--." => '!',
+    "..---" => '2',
+    // .-...
+    // .-..-
+    ".-.-." => '+',
+    // .-.--
+    // .--..
+    // .--.-
+    // .---.
+    ".----" => '1',
+    "-...." => '6',
+    "-...-" => '=',
+    "-..-." => '/',
+    // -..--
+    // -.-..
+    // -.-.-
+    "-.--." => '(',
+    // -.---
+    "--..." => '7',
+    // --..-
+    // --.-.
+    // --.--
+    "---.." => '8',
+    // ---.-
+    "----." => '9',
+    "-----" => '0',
+
+    // Six elements (only mapped)
+    "..--.." => '?',
+    "..--.-" => '_',
+    ".-..-." => '"',
+    ".-.-.-" => '.',
+    ".--.-." => '@',
+    ".----." => '\'',
+    ".-----." => '`',
+    "-....-" => '-',
+    "-.-.-." => ';',
+    "-.--.-" => ')',
+    "--..--" => ',',
+    "---..." => ':',
+
+    // Seven elements (only mapped)
+    "...-..-" => '$',
 }
 
-pub fn morse_to_japanese(c: &[u8]) -> char {
-    match c {
-        // Wabun code for Japanese, tnx JE1TRV
-        // https://en.wikipedia.org/wiki/Wabun_code
-        // https://www.rfcafe.com/references/qst/japanese-morse-telegraph-code-sep-1942-qst.htm (1942)
-        // https://web.archive.org/web/20220129114408/https://elaws.e-gov.go.jp/data/325M50080000017_20200622_502M60000008061/pict/S25F30901000017-001.pdf (1945?)
-        // 1. Kanas without any diacritics (dakuten or handakuten)
-        b".-" => 'イ',    // i
-        b".-.-" => 'ロ',  // ro
-        b"-..." => 'ハ',  // ha
-        b"-.-." => 'ニ',  // ni
-        b"-.." => 'ホ',   // ho
-        b"." => 'ヘ',     // he
-        b"..-.." => 'ト', // to
-        b"..-." => 'チ',  // ti
-        b"--." => 'リ',   // ri
-        b"...." => 'ヌ',  // nu
-        b"-.--." => 'ル', // ru
-        b".---" => 'ヲ',  // wo
-        b"-.-" => 'ワ',   // wa
-        b".-.." => 'カ',  // ka
-        b"--" => 'ヨ',    // yo
-        b"-." => 'タ',    // ta
-        b"---" => 'レ',   // re
-        b"---." => 'ソ',  // so
-        b".--." => 'ツ',  // tu
-        b"--.-" => 'ネ',  // ne
-        b".-." => 'ナ',   // na
-        b"..." => 'ラ',   // ra
-        b"-" => 'ム',     // mu
-        b"..-" => 'ウ',   // u
-        b".-..-" => 'ヰ', // yi
-        b"..--" => 'ノ',  // no
-        b".-..." => 'オ', // o
-        b"...-" => 'ク',  // ku
-        b".--" => 'ヤ',   // ya
-        b"-..-" => 'マ',  // ma
-        b"-.--" => 'ケ',  // ke
-        b"--.." => 'フ',  // fu
-        b"----" => 'コ',  // ko
-        b"-.---" => 'エ', // e
-        b".-.--" => 'テ', // te
-        b"--.--" => 'ア', // a
-        b"-.-.-" => 'サ', // sa
-        b"-.-.." => 'キ', // ki
-        b"-..--" => 'ユ', // yu
-        b"-...-" => 'メ', // me
-        b"..-.-" => 'ミ', // mi
-        b"--.-." => 'シ', // si
-        b".--.." => 'ヱ', // ye
-        b"--..-" => 'ヒ', // hi
-        b"-..-." => 'モ', // mo
-        b".---." => 'セ', // se
-        b"---.-" => 'ス', // su
-        b".-.-." => 'ン', // n
-        // 2. kanas with dakuten
-        b".." => '゛',       // dakuten modifier
-        b".-.. .." => 'ガ',  // ga
-        b"-.-.. .." => 'ギ', // gi
-        b"...- .." => 'グ',  // gu
-        b"-.-- .." => 'ゲ',  // ge
-        b"---- .." => 'ゴ',  // go
-        b"-.-.- .." => 'ザ', // za
-        b"--.-. .." => 'ジ', // zi
-        b"---.- .." => 'ズ', // zu
-        b".---. .." => 'ゼ', // ze
-        b"---. .." => 'ゾ',  // zo
-        b"-. .." => 'ダ',    // da
-        b"..-. .." => 'ヂ',  // di
-        b".--. .." => 'ヅ',  // du
-        b".-.-- .." => 'デ', // de
-        b"..-.. .." => 'ド', // do
-        b"-... .." => 'バ',  // ba
-        b"--..- .." => 'ビ', // bi
-        b"--.. .." => 'ブ',  // bu
-        b". .." => 'ベ',     // be
-        b"-.. .." => 'ボ',   // bo
-        // 3. kanas with handakuten
-        b"..--." => '゜',       // handakuten modifier
-        b"-... ..--." => 'パ',  // pa
-        b"--..- ..--." => 'ピ', // pi
-        b"--.. ..--." => 'プ',  // pu
-        b". ..--." => 'ペ',     // pe
-        b"-.. ..--." => 'ポ',   // po
-        b".--.-" => 'ー',       // -
-        b"-.--.-" => '（',      // (
-        b".-..-." => '）',      // )
-        b".-.-.-" => '、',      // .
-        b".-.-.." => '」',      // \n
-        _ => '\0',
-    }
+morse_decode! {
+    MORSE_TO_GREEK,
+    morse_to_greek,
+    // Greek Morse code
+    // Wikipedia: The Greek Morse code alphabet is very similar to the
+    //            Latin alphabet. It uses one extra letter for Greek
+    //            letter Χ and no longer uses the codes for Latin
+    //            letters "J ", "U" and "V".
+    // https://en.wikipedia.org/wiki/Morse_code_for_non-Latin_alphabets#Greek
+    ".-" => 'Α',
+    "-..." => 'Β',
+    "--." => 'Γ',
+    "-.." => 'Δ',
+    "." => 'Ε',
+    "--.." => 'Ζ',
+    "...." => 'Η',
+    "-.-." => 'Θ',
+    ".." => 'Ι',
+    "-.-" => 'Κ',
+    ".-.." => 'Λ',
+    "--" => 'Μ',
+    "-." => 'Ν',
+    "-..-" => 'Ξ',
+    "---" => 'Ο',
+    ".--." => 'Π',
+    ".-." => 'Ρ',
+    "..." => 'Σ',
+    "-" => 'Τ',
+    "-.--" => 'Υ',
+    "..-." => 'Φ',
+    "----" => 'Χ',
+    "--.-" => 'Ψ',
 }
 
-pub fn morse_to_korean(c: &[u8]) -> char {
-    match c {
-        // SKATS for Korean
-        // The ARRL handbook for the radio amateur, 19-3 (1985)
-        // https://archive.org/details/arrlhandbookforr0000unse_w7j4/page/n415/mode/2up
-        b".-.." => 'ㄱ',    // kiyeok
-        b"..-." => 'ㄴ',    // nieun
-        b"-..." => 'ㄷ',    // tikeut
-        b"...-" => 'ㄹ',    // rieul
-        b"--" => 'ㅁ',      // mieum
-        b".--" => 'ㅂ',     // pieup
-        b"--." => 'ㅅ',     // sios
-        b"-.-" => 'ㅇ',     // ieung
-        b".--." => 'ㅈ',    // cieuc
-        b"-.-." => 'ㅊ',    // chieuch
-        b"-..-" => 'ㅋ',    // khieukh
-        b"--.." => 'ㅌ',    // thieuth
-        b"---" => 'ㅍ',     // phieuph
-        b".---" => 'ㅎ',    // hieuh
-        b"." => 'ㅏ',       // a
-        b"--.-" => 'ㅐ',    // ae
-        b".." => 'ㅑ',      // ya
-        b".. ..-" => 'ㅒ',  // yae
-        b"-" => 'ㅓ',       // eo
-        b"-.--" => 'ㅔ',    // e
-        b"..." => 'ㅕ',     // yeo
-        b"... ..-" => 'ㅖ', // ye
-        b".-" => 'ㅗ',      // o
-        b"-." => 'ㅛ',      // yo
-        b"...." => 'ㅜ',    // u
-        b".-." => 'ㅠ',     // yu
-        b"-.." => 'ㅡ',     // eu
-        b"..-" => 'ㅣ',     // i
-        _ => '\0',
-    }
+morse_decode! {
+    MORSE_TO_RUSSIAN,
+    morse_to_russian,
+    // Russian Morse code for Cyrillic
+    // https://en.wikipedia.org/wiki/Russian_Morse_code (1857)
+    // Полное собрание законов Российской Империи. Собрание Второе
+    // These are listed in the order of the Wikipedia page (alphabetical
+    // order of the corresponding latin script character)
+    ".-" => 'А',   // a
+    "-..." => 'Б', // be
+    ".--" => 'В',  // ve
+    "--." => 'Г',  // ghe
+    "-.." => 'Д',  // de
+    "." => 'Е',    // ie
+    "...-" => 'Ж', // zhe
+    "--.." => 'З', // ze
+    ".." => 'И',   // i
+    ".---" => 'Й', // short i
+    "-.-" => 'К',  // ka
+    ".-.." => 'Л', // el
+    "--" => 'М',   // em
+    "-." => 'Н',   // en
+    "---" => 'О',  // o
+    ".--." => 'П', // pe
+    ".-." => 'Р',  // er
+    "..." => 'С',  // es
+    "-" => 'Т',
+    "..-" => 'У',   // u
+    "..-." => 'Ф',  // ef
+    "...." => 'Х',  // ha
+    "-.-." => 'Ц',  // tse
+    "---." => 'Ч',  // che
+    "----" => 'Ш',  // sha
+    "--.-" => 'Щ',  // shcha
+    "-..-" => 'Ъ',  // hard sign
+    "-.--" => 'Ы',  // yeru
+    "..-.." => 'Ѣ', // yat  in Wikipedia article and in Russian law document
+    "..--" => 'Ю',  // yu
+    ".-.-" => 'Я',  // ya
 }
 
-pub fn morse_to_hebrew(c: &[u8]) -> char {
-    match c {
-        // Hebrew
-        // The ARRL handbook for the radio amateur, 19-3 (1985)
-        // https://archive.org/details/arrlhandbookforr0000unse_w7j4/page/n415/mode/2up
-        b".-" => 'א',   // alef
-        b"-..." => 'ב', // bet
-        b"--." => 'ג',  // gimel
-        b"-.." => 'ד',  // dalet
-        b"---" => 'ה',  // he
-        b"." => 'ו',    // vav
-        b"--.." => 'ז', // zayin
-        b"...." => 'ח', // chet
-        b"..-" => 'ט',  // tet
-        b".." => 'י',   // yod
-        b"-.-" => 'כ',  // kaf
-        b".-.." => 'ל', // lamed
-        b"--" => 'מ',   // mem
-        b"-." => 'נ',   // nun
-        b"-.-." => 'ס', // samekh
-        b".---" => 'ע', // ayin
-        b".--." => 'פ', // pe
-        b".--" => 'צ',  // tsadi
-        b"--.-" => 'ק', // qof
-        b".-." => 'ר',  // resh
-        b"..." => 'ש',  // dotless shin
-        b"-" => 'ת',    // dotless tav
-        _ => '\0',
-    }
+morse_decode! {
+    MORSE_TO_JAPANESE,
+    morse_to_japanese,
+    // Wabun code for Japanese, tnx JE1TRV
+    // https://en.wikipedia.org/wiki/Wabun_code
+    // https://www.rfcafe.com/references/qst/japanese-morse-telegraph-code-sep-1942-qst.htm (1942)
+    // https://web.archive.org/web/20220129114408/https://elaws.e-gov.go.jp/data/325M50080000017_20200622_502M60000008061/pict/S25F30901000017-001.pdf (1945?)
+    // 1. Kanas without any diacritics (dakuten or handakuten)
+    ".-" => 'イ',    // i
+    ".-.-" => 'ロ',  // ro
+    "-..." => 'ハ',  // ha
+    "-.-." => 'ニ',  // ni
+    "-.." => 'ホ',   // ho
+    "." => 'ヘ',     // he
+    "..-.." => 'ト', // to
+    "..-." => 'チ',  // ti
+    "--." => 'リ',   // ri
+    "...." => 'ヌ',  // nu
+    "-.--." => 'ル', // ru
+    ".---" => 'ヲ',  // wo
+    "-.-" => 'ワ',   // wa
+    ".-.." => 'カ',  // ka
+    "--" => 'ヨ',    // yo
+    "-." => 'タ',    // ta
+    "---" => 'レ',   // re
+    "---." => 'ソ',  // so
+    ".--." => 'ツ',  // tu
+    "--.-" => 'ネ',  // ne
+    ".-." => 'ナ',   // na
+    "..." => 'ラ',   // ra
+    "-" => 'ム',     // mu
+    "..-" => 'ウ',   // u
+    ".-..-" => 'ヰ', // yi
+    "..--" => 'ノ',  // no
+    ".-..." => 'オ', // o
+    "...-" => 'ク',  // ku
+    ".--" => 'ヤ',   // ya
+    "-..-" => 'マ',  // ma
+    "-.--" => 'ケ',  // ke
+    "--.." => 'フ',  // fu
+    "----" => 'コ',  // ko
+    "-.---" => 'エ', // e
+    ".-.--" => 'テ', // te
+    "--.--" => 'ア', // a
+    "-.-.-" => 'サ', // sa
+    "-.-.." => 'キ', // ki
+    "-..--" => 'ユ', // yu
+    "-...-" => 'メ', // me
+    "..-.-" => 'ミ', // mi
+    "--.-." => 'シ', // si
+    ".--.." => 'ヱ', // ye
+    "--..-" => 'ヒ', // hi
+    "-..-." => 'モ', // mo
+    ".---." => 'セ', // se
+    "---.-" => 'ス', // su
+    ".-.-." => 'ン', // n
+    // 2. kanas with dakuten
+    ".." => '゛',       // dakuten modifier
+    //".-.. .." => 'ガ',  // ga
+    //"-.-.. .." => 'ギ', // gi
+    //"...- .." => 'グ',  // gu
+    //"-.-- .." => 'ゲ',  // ge
+    //"---- .." => 'ゴ',  // go
+    //"-.-.- .." => 'ザ', // za
+    //"--.-. .." => 'ジ', // zi
+    //"---.- .." => 'ズ', // zu
+    //".---. .." => 'ゼ', // ze
+    //"---. .." => 'ゾ',  // zo
+    //"-. .." => 'ダ',    // da
+    //"..-. .." => 'ヂ',  // di
+    //".--. .." => 'ヅ',  // du
+    //".-.-- .." => 'デ', // de
+    //"..-.. .." => 'ド', // do
+    //"-... .." => 'バ',  // ba
+    //"--..- .." => 'ビ', // bi
+    //"--.. .." => 'ブ',  // bu
+    //". .." => 'ベ',     // be
+    //"-.. .." => 'ボ',   // bo
+    // 3. kanas with handakuten
+    "..--." => '゜',       // handakuten modifier
+    //"-... ..--." => 'パ',  // pa
+    //"--..- ..--." => 'ピ', // pi
+    //"--.. ..--." => 'プ',  // pu
+    //". ..--." => 'ペ',     // pe
+    //"-.. ..--." => 'ポ',   // po
+    //".--.-" => 'ー',       // -
+    //"-.--.-" => '（',      // (
+    //".-..-." => '）',      // )
+    //".-.-.-" => '、',      // .
+    //".-.-.." => '」',      // \n
 }
 
-pub fn morse_to_arabic(c: &[u8]) -> char {
-    match c {
-        // Arabic
-        // The ARRL handbook for the radio amateur, 19-3 (1985)
-        // https://archive.org/details/arrlhandbookforr0000unse_w7j4/page/n415/mode/2up
-        // Unicode points were copied from “Isolated form”, and names from “Letter name” in
-        // https://en.wikipedia.org/wiki/Arabic_alphabet#Table_of_basic_letters
-        // TODO: add contextual forms
-        b".-" => 'ا',    // ʾalif
-        b"-..." => 'ب',  // bāʾ/bah
-        b"-" => 'ت',     // tāʾ/tah
-        b"-.-." => 'ث',  // thāʾ/thah
-        b".---" => 'ج',  // jīm
-        b"...." => 'ح',  // ḥāʾ/ḥah
-        b"---" => 'خ',   // khāʾ/khah
-        b"-.." => 'د',   // dāl/dāʾ/dah
-        b"--.." => 'ذ',  // dhāl/dhāʾ/dhah
-        b".-." => 'ر',   // rāʾ/rah
-        b"---." => 'ز',  // zāy/zayn/zāʾ/zah
-        b"..." => 'س',   // sīn
-        b"----" => 'ش',  // shīn
-        b"-..-" => 'ص',  // ṣād
-        b"...-" => 'ض',  // ḍād/ḍāʾ/ḍah
-        b"..-" => 'ط',   // ṭāʾ/ṭah
-        b"-.--" => 'ظ',  // ẓāʾ/ẓah
-        b".-.-" => 'ع',  // ʿayn
-        b"--." => 'غ',   // ghayn
-        b"..-." => 'ف',  // fāʾ/fah
-        b"--.-" => 'ق',  // qāf
-        b"-.-" => 'ڪ',   // kāf/kāʾ/kah
-        b".-.." => 'ل',  // lām
-        b"--" => 'م',    // mīm
-        b"-." => 'ن',    // nūn
-        b"..-.." => 'ه', // hāʾ/hah
-        b".--" => 'و',   // wāw
-        b".." => 'ے',    // yāʾ/yah
-        //".-...-" => 'لا', // lām-alif (ligature)
-        // other characters without a reference
-        b"." => 'ء', // hamzah
-        _ => '\0',
-    }
+morse_decode! {
+    MORSE_TO_KOREAN,
+    morse_to_korean,
+    // SKATS for Korean
+    // The ARRL handbook for the radio amateur, 19-3 (1985)
+    // https://archive.org/details/arrlhandbookforr0000unse_w7j4/page/n415/mode/2up
+    ".-.." => 'ㄱ',    // kiyeok
+    "..-." => 'ㄴ',    // nieun
+    "-..." => 'ㄷ',    // tikeut
+    "...-" => 'ㄹ',    // rieul
+    "--" => 'ㅁ',      // mieum
+    ".--" => 'ㅂ',     // pieup
+    "--." => 'ㅅ',     // sios
+    "-.-" => 'ㅇ',     // ieung
+    ".--." => 'ㅈ',    // cieuc
+    "-.-." => 'ㅊ',    // chieuch
+    "-..-" => 'ㅋ',    // khieukh
+    "--.." => 'ㅌ',    // thieuth
+    "---" => 'ㅍ',     // phieuph
+    ".---" => 'ㅎ',    // hieuh
+    "." => 'ㅏ',       // a
+    "--.-" => 'ㅐ',    // ae
+    ".." => 'ㅑ',      // ya
+    //".. ..-" => 'ㅒ',  // yae
+    "-" => 'ㅓ',       // eo
+    "-.--" => 'ㅔ',    // e
+    "..." => 'ㅕ',     // yeo
+    //"... ..-" => 'ㅖ', // ye
+    ".-" => 'ㅗ',      // o
+    "-." => 'ㅛ',      // yo
+    "...." => 'ㅜ',    // u
+    ".-." => 'ㅠ',     // yu
+    "-.." => 'ㅡ',     // eu
+    "..-" => 'ㅣ',     // i
+}
+
+morse_decode! {
+    MORSE_TO_HEBREW,
+    morse_to_hebrew,
+    // Hebrew
+    // The ARRL handbook for the radio amateur, 19-3 (1985)
+    // https://archive.org/details/arrlhandbookforr0000unse_w7j4/page/n415/mode/2up
+    ".-" => 'א',   // alef
+    "-..." => 'ב', // bet
+    "--." => 'ג',  // gimel
+    "-.." => 'ד',  // dalet
+    "---" => 'ה',  // he
+    "." => 'ו',    // vav
+    "--.." => 'ז', // zayin
+    "...." => 'ח', // chet
+    "..-" => 'ט',  // tet
+    ".." => 'י',   // yod
+    "-.-" => 'כ',  // kaf
+    ".-.." => 'ל', // lamed
+    "--" => 'מ',   // mem
+    "-." => 'נ',   // nun
+    "-.-." => 'ס', // samekh
+    ".---" => 'ע', // ayin
+    ".--." => 'פ', // pe
+    ".--" => 'צ',  // tsadi
+    "--.-" => 'ק', // qof
+    ".-." => 'ר',  // resh
+    "..." => 'ש',  // dotless shin
+    "-" => 'ת',    // dotless tav
+}
+
+morse_decode! {
+    MORSE_TO_ARABIC,
+    morse_to_arabic,
+    // Arabic
+    // The ARRL handbook for the radio amateur, 19-3 (1985)
+    // https://archive.org/details/arrlhandbookforr0000unse_w7j4/page/n415/mode/2up
+    // Unicode points were copied from “Isolated form”, and names from “Letter name” in
+    // https://en.wikipedia.org/wiki/Arabic_alphabet#Table_of_basic_letters
+    // TODO: add contextual forms
+    ".-" => 'ا',    // ʾalif
+    "-..." => 'ب',  // bāʾ/bah
+    "-" => 'ت',     // tāʾ/tah
+    "-.-." => 'ث',  // thāʾ/thah
+    ".---" => 'ج',  // jīm
+    "...." => 'ح',  // ḥāʾ/ḥah
+    "---" => 'خ',   // khāʾ/khah
+    "-.." => 'د',   // dāl/dāʾ/dah
+    "--.." => 'ذ',  // dhāl/dhāʾ/dhah
+    ".-." => 'ر',   // rāʾ/rah
+    "---." => 'ز',  // zāy/zayn/zāʾ/zah
+    "..." => 'س',   // sīn
+    "----" => 'ش',  // shīn
+    "-..-" => 'ص',  // ṣād
+    "...-" => 'ض',  // ḍād/ḍāʾ/ḍah
+    "..-" => 'ط',   // ṭāʾ/ṭah
+    "-.--" => 'ظ',  // ẓāʾ/ẓah
+    ".-.-" => 'ع',  // ʿayn
+    "--." => 'غ',   // ghayn
+    "..-." => 'ف',  // fāʾ/fah
+    "--.-" => 'ق',  // qāf
+    "-.-" => 'ڪ',   // kāf/kāʾ/kah
+    ".-.." => 'ل',  // lām
+    "--" => 'م',    // mīm
+    "-." => 'ن',    // nūn
+    "..-.." => 'ه', // hāʾ/hah
+    ".--" => 'و',   // wāw
+    ".." => 'ے',    // yāʾ/yah
+    //".-...-" => 'لا', // lām-alif (ligature)
+    // other characters without a reference
+    "." => 'ء', // hamzah
 }
