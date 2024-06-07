@@ -82,19 +82,35 @@ pub fn standard_encode_to_writer<W: Write>(
         cur += 1;
     }
     for c in s.chars() {
-        let (bytes, len) = standard_to_morse(c);
-        if len == 0 {
-        } else if len <= 8 {
-            if (c == '\t' || c == '\n' || c == '\r') && cur > 0 && buf[cur - 1] == b' ' {
-                cur -= 1;
+        if c.is_ascii() {
+            let (bytes, len) = ASCII_TO_MORSE2[c as usize];
+            if len == 0 {
+            } else if len <= 8 {
+                if (c == '\t' || c == '\n' || c == '\r') && cur > 0 && buf[cur - 1] == b' ' {
+                    cur -= 1;
+                }
+                unsafe {
+                    let dst = buf.as_ptr().add(cur) as *mut u64;
+                    dst.write_unaligned(bytes);
+                }
+            } else {
+                // handle only ASCII character encoded as more than 7 elements + space
+                assert_eq!(c, '%');
+                buf[cur..cur + 18].copy_from_slice(b"----- -..-. ----- ");
             }
-            let buf8 = unsafe { buf.get_unchecked_mut(cur..cur + 8) };
-            let bytes8 = unsafe { &*(bytes.as_ptr() as *const [u8; 8]) };
-            buf8.copy_from_slice(bytes8);
+            cur += len;
         } else {
-            buf[cur..cur + len].copy_from_slice(bytes);
+            let (bytes, len) = standard_to_morse(c);
+            if len == 0 {
+            } else if len <= 8 {
+                let buf8 = unsafe { buf.get_unchecked_mut(cur..cur + 8) };
+                let bytes8 = unsafe { &*(bytes.as_ptr() as *const [u8; 8]) };
+                buf8.copy_from_slice(bytes8);
+            } else {
+                buf[cur..cur + len].copy_from_slice(bytes);
+            }
+            cur += len;
         }
-        cur += len;
         // flush buffer
         if cur >= buf.len() - 25 {
             if buf[cur - 1] == b' ' {
