@@ -5,8 +5,8 @@ use ripmors::{decode_stream, encode_stream_ascii, encode_stream_standard, morse_
 fn compare_output_to_oracle(writer: BufWriter<Vec<u8>>, expected_filename: &str) {
     let output = String::from_utf8(writer.into_inner().unwrap()).unwrap();
     let expected = std::fs::read_to_string(expected_filename).unwrap();
-    let mut output_lines = output.split("\n");
-    let mut expected_lines = expected.split("\n");
+    let mut output_lines = output.split('\n');
+    let mut expected_lines = expected.split('\n');
     loop {
         match (expected_lines.next(), output_lines.next()) {
             (Some(l1), Some(l2)) => {
