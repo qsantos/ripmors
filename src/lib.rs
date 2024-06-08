@@ -193,7 +193,8 @@ pub fn morse_decode_to_writer<W: Write>(
             chunk_start = i + 1;
         }
         // flush buffer
-        if cur >= buf.len() {
+        // NOTE: we may write up to two character per iteration
+        if cur > buf.len() - 2 {
             let decoded: String = buf[..cur].iter().collect();
             writer.write_all(decoded.as_bytes())?;
             cur = 0;
