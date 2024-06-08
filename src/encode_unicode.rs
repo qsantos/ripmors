@@ -4,7 +4,7 @@ use crate::encode_ascii::ascii_encode_to_writer;
 use crate::encode_ascii_mapping::ASCII_TO_QWORD;
 use crate::encode_unicode_mapping::from_unicode;
 
-pub fn unicode_encode_to_writer<W: Write>(
+fn encode_buffer<W: Write>(
     writer: &mut W,
     s: &str,
     need_separator: &mut bool,
@@ -77,7 +77,7 @@ pub fn unicode_encode_to_writer<W: Write>(
 pub fn encode_string(s: &str) -> String {
     let mut writer = BufWriter::new(Vec::new());
     let mut buf = [0u8; 1 << 15];
-    unicode_encode_to_writer(&mut writer, s, &mut false, &mut buf).unwrap();
+    encode_buffer(&mut writer, s, &mut false, &mut buf).unwrap();
     let vec = writer.into_inner().unwrap();
     String::from_utf8(vec).unwrap()
 }
@@ -100,7 +100,7 @@ pub fn encode_stream<R: Read, W: Write>(i: &mut R, o: &mut W) {
                 unsafe { std::str::from_utf8_unchecked(&input_buf[..bytes_decoded]) }
             }
         };
-        unicode_encode_to_writer(o, s, &mut need_separator, &mut buf).unwrap();
+        encode_buffer(o, s, &mut need_separator, &mut buf).unwrap();
         let bytes_decoded = s.as_bytes().len();
         input_buf.copy_within(bytes_decoded..bytes_available, 0);
         bytes_available -= bytes_decoded;
