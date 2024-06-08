@@ -24,6 +24,10 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Rustfmt
         run: cargo fmt --check
+      - name: Typos
+        uses: crate-ci/typos@master
+        with:
+          files: src/
       - name: Clippy
         run: cargo clippy --tests
       - name: Install tarpaulin
