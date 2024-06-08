@@ -225,7 +225,7 @@ pub fn morse_decode_to_string<F: Fn(u8) -> char>(s: &[u8], char_decode: &F) -> S
 }
 
 #[test]
-fn test_ascii_encode() {
+fn test_ascii_encode_simple() {
     assert_eq!(ascii_encode_to_string("PARIS"), ".--. .- .-. .. ...");
     assert_eq!(
         ascii_encode_to_string("Hello, World!"),
@@ -235,8 +235,23 @@ fn test_ascii_encode() {
         ascii_encode_to_string("one line\nand  another\tline"),
         "--- -. . / .-.. .. -. .\n.- -. -.. / / .- -. --- - .... . .-.\t.-.. .. -. ."
     );
+}
 
-    // with random data
+// short enough to run with Miri
+#[test]
+fn test_ascii_encode_random_short() {
+    use rand::{distributions::Standard, Rng};
+    let data: String = rand::thread_rng()
+        .sample_iter::<u8, _>(Standard)
+        .take(1024)
+        .map(|c| c as char)
+        .collect();
+    ascii_encode_to_string(&data);
+}
+
+#[test]
+#[cfg_attr(miri, ignore)]
+fn test_ascii_encode_random_large() {
     use rand::{distributions::Standard, Rng};
     let data: String = rand::thread_rng()
         .sample_iter::<u8, _>(Standard)
@@ -272,8 +287,23 @@ fn test_standard_encode() {
         standard_encode_to_string("one line\nand  another\tline"),
         "--- -. . / .-.. .. -. .\n.- -. -.. / / .- -. --- - .... . .-.\t.-.. .. -. ."
     );
+}
 
-    // with random data
+// short enough to run with Miri
+#[test]
+fn test_standard_encode_random_short() {
+    use rand::{distributions::Standard, Rng};
+    let data: String = rand::thread_rng()
+        .sample_iter::<u8, _>(Standard)
+        .take(1024)
+        .map(|c| c as char)
+        .collect();
+    standard_encode_to_string(&data);
+}
+
+#[test]
+#[cfg_attr(miri, ignore)]
+fn test_standard_encode_random_large() {
     use rand::{distributions::Standard, Rng};
     let data: String = rand::thread_rng()
         .sample_iter::<u8, _>(Standard)
