@@ -175,11 +175,7 @@ pub fn morse_decode_to_writer<W: Write>(
     let mut chunk_start = 0;
     for i in 0..s.len() {
         let c = s[i];
-        if c == b'/' {
-            buf[cur] = ' ';
-            cur += 1;
-            chunk_start = i + 1;
-        } else if c <= b' ' {
+        if c <= b' ' {
             let binary = unsafe { morse_to_binary(s.as_ptr().add(chunk_start), i - chunk_start) };
             let decoded = char_decode(binary);
             if decoded != '\0' {
@@ -191,6 +187,10 @@ pub fn morse_decode_to_writer<W: Write>(
                 buf[cur] = c as char;
                 cur += 1;
             }
+        } else if c == b'/' {
+            buf[cur] = ' ';
+            cur += 1;
+            chunk_start = i + 1;
         }
         // flush buffer
         if cur >= buf.len() {
