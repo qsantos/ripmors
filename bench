@@ -10,11 +10,11 @@ repeat() {
         cat "${args64[@]}"
     done
 }
-echo "Self test"
+echo "No-op"
 repeat 500 4-unicode.txt | pv >/dev/null
-echo "Encoding Unicode"
-repeat 30 4-unicode.txt | pv | taskset -c 0 ./target/release/ripmors -e standard >/dev/null
 echo "Encoding ASCII"
 repeat 5 1-original.txt | pv | taskset -c 0 ./target/release/ripmors -e ascii >/dev/null
+echo "Encoding Unicode"
+repeat 30 4-unicode.txt | pv | taskset -c 0 ./target/release/ripmors -e standard >/dev/null
 echo "Decoding"
 repeat 1 2-encoded.txt | pv | taskset -c 0 ./target/release/ripmors -d >/dev/null
