@@ -216,9 +216,9 @@ pub fn morse_decode_to_writer_end<W: Write>(
     let chunk_start = morse_decode_to_writer(writer, s, char_decode, &mut buf)?;
     let binary = unsafe { morse_to_binary(s.as_ptr().add(chunk_start), s.len() - chunk_start) };
     let decoded = char_decode(binary);
-    //if decoded != '\0' {
-    writer.write_all(decoded.to_string().as_bytes())?;
-    //}
+    if decoded != '\0' {
+        writer.write_all(decoded.to_string().as_bytes())?;
+    }
     Ok(())
 }
 
