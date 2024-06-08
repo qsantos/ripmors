@@ -337,6 +337,7 @@ fn test_standard_encode_decode() {
         f("one line\nand  another\tline"),
         "ONE LINE\nAND  ANOTHER\tLINE"
     );
+    assert_eq!(f("trailing SPACE "), "TRAILING SPACE ");
 }
 
 pub fn encode_stream_standard<R: Read, W: Write>(i: &mut R, o: &mut W) {
