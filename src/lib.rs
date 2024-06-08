@@ -165,8 +165,8 @@ pub fn morse_decode_to_writer<W: Write>(
     writer: &mut W,
     s: &[u8],
     char_decode: fn(u8) -> char,
+    buf: &mut [char; 1 << 15],
 ) -> Result<usize, std::io::Error> {
-    let mut buf = ['\0'; 1 << 15];
     let mut cur = 0;
     let mut chunk_start = 0;
     for i in 0..s.len() {
@@ -208,7 +208,8 @@ pub fn morse_decode_to_writer_end<W: Write>(
     s: &[u8],
     char_decode: fn(u8) -> char,
 ) -> Result<(), std::io::Error> {
-    let chunk_start = morse_decode_to_writer(writer, s, char_decode)?;
+    let mut buf = ['\0'; 1 << 15];
+    let chunk_start = morse_decode_to_writer(writer, s, char_decode, &mut buf)?;
     let binary = unsafe { morse_to_binary(s.as_ptr().add(chunk_start), s.len() - chunk_start) };
     let decoded = char_decode(binary);
     //if decoded != '\0' {
@@ -375,6 +376,7 @@ pub fn encode_stream_ascii<R: Read, W: Write>(i: &mut R, o: &mut W) {
 pub fn decode_stream<R: Read, W: Write>(i: &mut R, o: &mut W, char_decode: fn(u8) -> char) {
     let mut input_buf = vec![0u8; 1 << 15];
     let mut bytes_available = 0;
+    let mut buf = ['\0'; 1 << 15];
     loop {
         let bytes_read = i.read(&mut input_buf[bytes_available..]).unwrap();
         if bytes_read == 0 {
@@ -383,7 +385,8 @@ pub fn decode_stream<R: Read, W: Write>(i: &mut R, o: &mut W, char_decode: fn(u8
         bytes_available += bytes_read;
 
         let bytes_used =
-            morse_decode_to_writer(o, &input_buf[..bytes_available], char_decode).unwrap();
+            morse_decode_to_writer(o, &input_buf[..bytes_available], char_decode, &mut buf)
+                .unwrap();
 
         input_buf.copy_within(bytes_used..bytes_available, 0);
         bytes_available -= bytes_used;
