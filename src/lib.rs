@@ -11,7 +11,7 @@ pub use decode_mapping::{
     to_arabic, to_greek, to_hebrew, to_japanese, to_korean, to_russian, to_standard,
 };
 pub use encode_ascii::{encode_stream_ascii, encode_string_ascii};
-pub use encode_unicode::{encode_stream_unicode, encode_string};
+pub use encode_unicode::{encode_stream, encode_string};
 
 #[test]
 fn test_unicode_round_trip() {

@@ -82,7 +82,7 @@ pub fn encode_string(s: &str) -> String {
     String::from_utf8(vec).unwrap()
 }
 
-pub fn encode_stream_unicode<R: Read, W: Write>(i: &mut R, o: &mut W) {
+pub fn encode_stream<R: Read, W: Write>(i: &mut R, o: &mut W) {
     let mut input_buf = vec![0u8; 1 << 15];
     let mut bytes_available = 0;
     let mut need_separator = false;

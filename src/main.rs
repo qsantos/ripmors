@@ -52,6 +52,6 @@ fn main() {
     } else if args.encode == Some(EncodeVariant::Ascii) {
         encode_stream_ascii(&mut stdin, &mut stdout);
     } else {
-        encode_stream_unicode(&mut stdin, &mut stdout);
+        encode_stream(&mut stdin, &mut stdout);
     }
 }
