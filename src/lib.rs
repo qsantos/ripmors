@@ -329,7 +329,7 @@ fn test_standard_decode() {
 }
 
 #[test]
-fn test_standard_encode_decode() {
+fn test_standard_round_trip() {
     let f = |s| morse_decode_to_string(standard_encode_to_string(s).as_bytes(), morse_to_standard);
     assert_eq!(f("paris"), "PARIS");
     assert_eq!(f("Hello, World!"), "HELLO, WORLD!");
