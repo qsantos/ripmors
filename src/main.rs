@@ -6,7 +6,7 @@ use clap::{Parser, ValueEnum};
 #[clap(rename_all = "kebab_case")]
 enum EncodeVariant {
     #[default]
-    Standard,
+    Unicode,
     Ascii,
 }
 
@@ -26,7 +26,7 @@ enum DecodeVariant {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    #[arg(short, long, num_args = 0..=1, default_missing_value = "standard")]
+    #[arg(short, long, num_args = 0..=1, default_missing_value = "unicode")]
     decode: Option<DecodeVariant>,
     #[arg(short, long, num_args = 0..=1, default_missing_value = "standard")]
     encode: Option<EncodeVariant>,
@@ -52,6 +52,6 @@ fn main() {
     } else if args.encode == Some(EncodeVariant::Ascii) {
         encode_stream_ascii(&mut stdin, &mut stdout);
     } else {
-        encode_stream_standard(&mut stdin, &mut stdout);
+        encode_stream_unicode(&mut stdin, &mut stdout);
     }
 }

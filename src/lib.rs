@@ -2,8 +2,8 @@ mod decode;
 mod decode_mapping;
 mod encode_ascii;
 mod encode_ascii_mapping;
-mod encode_standard;
-mod encode_standard_mapping;
+mod encode_unicode;
+mod encode_unicode_mapping;
 
 // Public API
 pub use decode::{decode_stream, morse_decode_to_string};
@@ -12,11 +12,11 @@ pub use decode_mapping::{
     morse_to_russian, morse_to_standard,
 };
 pub use encode_ascii::{ascii_encode_to_string, encode_stream_ascii};
-pub use encode_standard::{encode_stream_standard, standard_encode_to_string};
+pub use encode_unicode::{encode_stream_unicode, unicode_encode_to_string};
 
 #[test]
-fn test_standard_round_trip() {
-    let f = |s| morse_decode_to_string(standard_encode_to_string(s).as_bytes(), morse_to_standard);
+fn test_unicode_round_trip() {
+    let f = |s| morse_decode_to_string(unicode_encode_to_string(s).as_bytes(), morse_to_standard);
     assert_eq!(f("paris"), "PARIS");
     assert_eq!(f("Hello, World!"), "HELLO, WORLD!");
     assert_eq!(
