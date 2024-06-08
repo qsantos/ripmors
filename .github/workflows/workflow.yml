@@ -1,5 +1,3 @@
-name: Rust API
-
 on:
   push:
     branches: master
