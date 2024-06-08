@@ -10,7 +10,7 @@ pub use decode::{decode_stream, decode_string};
 pub use decode_mapping::{
     to_arabic, to_greek, to_hebrew, to_japanese, to_korean, to_russian, to_standard,
 };
-pub use encode_ascii::{ascii_encode_to_string, encode_stream_ascii};
+pub use encode_ascii::{encode_stream_ascii, encode_string_ascii};
 pub use encode_unicode::{encode_stream_unicode, unicode_encode_to_string};
 
 #[test]

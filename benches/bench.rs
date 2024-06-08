@@ -12,7 +12,7 @@ fn ascii_benchmark(c: &mut Criterion) {
     group.throughput(Throughput::Bytes(data.len() as u64));
 
     group.bench_function("string", |b| {
-        b.iter(|| ascii_encode_to_string(black_box(&data)))
+        b.iter(|| encode_string_ascii(black_box(&data)))
     });
 
     group.bench_function("stream", |b| {

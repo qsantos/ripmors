@@ -58,7 +58,7 @@ pub fn ascii_encode_to_writer<W: Write>(
     Ok(())
 }
 
-pub fn ascii_encode_to_string(s: &str) -> String {
+pub fn encode_string_ascii(s: &str) -> String {
     let mut writer = BufWriter::new(Vec::new());
     let mut buf = [0u8; 1 << 15];
     ascii_encode_to_writer(&mut writer, s.as_bytes(), &mut false, &mut buf).unwrap();
@@ -81,13 +81,13 @@ pub fn encode_stream_ascii<R: Read, W: Write>(i: &mut R, o: &mut W) {
 
 #[test]
 fn test_ascii_encode_simple() {
-    assert_eq!(ascii_encode_to_string("PARIS"), ".--. .- .-. .. ...");
+    assert_eq!(encode_string_ascii("PARIS"), ".--. .- .-. .. ...");
     assert_eq!(
-        ascii_encode_to_string("Hello, World!"),
+        encode_string_ascii("Hello, World!"),
         ".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--."
     );
     assert_eq!(
-        ascii_encode_to_string("one line\nand  another\tline"),
+        encode_string_ascii("one line\nand  another\tline"),
         "--- -. . / .-.. .. -. .\n.- -. -.. / / .- -. --- - .... . .-.\t.-.. .. -. ."
     );
 }
@@ -101,7 +101,7 @@ fn test_ascii_encode_random_short() {
         .take(1024)
         .map(|c| c as char)
         .collect();
-    ascii_encode_to_string(&data);
+    encode_string_ascii(&data);
 }
 
 #[test]
@@ -113,5 +113,5 @@ fn test_ascii_encode_random_large() {
         .take(1048576)
         .map(|c| c as char)
         .collect();
-    ascii_encode_to_string(&data);
+    encode_string_ascii(&data);
 }
