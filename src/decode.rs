@@ -31,7 +31,7 @@ fn morse_to_binary_safe(bytes: &[u8], len: usize) -> u8 {
     ret
 }
 
-pub fn morse_decode_to_writer<W: Write>(
+pub fn decode_buffer<W: Write>(
     writer: &mut W,
     s: &[u8],
     char_decode: fn(u8) -> char,
@@ -95,13 +95,13 @@ pub fn morse_decode_to_writer<W: Write>(
     Ok(chunk_start)
 }
 
-pub fn morse_decode_to_writer_end<W: Write>(
+pub fn decode_buffer_end<W: Write>(
     writer: &mut W,
     s: &[u8],
     char_decode: fn(u8) -> char,
 ) -> Result<(), std::io::Error> {
     let mut buf = ['\0'; 1 << 15];
-    let chunk_start = morse_decode_to_writer(writer, s, char_decode, &mut buf)?;
+    let chunk_start = decode_buffer(writer, s, char_decode, &mut buf)?;
     let binary = morse_to_binary_safe(&s[chunk_start..], s.len() - chunk_start);
     let decoded = char_decode(binary);
     if decoded != '\0' {
@@ -112,7 +112,7 @@ pub fn morse_decode_to_writer_end<W: Write>(
 
 pub fn decode_string(s: &[u8], char_decode: fn(u8) -> char) -> String {
     let mut writer = BufWriter::new(Vec::new());
-    morse_decode_to_writer_end(&mut writer, s, char_decode).unwrap();
+    decode_buffer_end(&mut writer, s, char_decode).unwrap();
     let vec = writer.into_inner().unwrap();
     String::from_utf8(vec).unwrap()
 }
@@ -129,15 +129,14 @@ pub fn decode_stream<R: Read, W: Write>(i: &mut R, o: &mut W, char_decode: fn(u8
         bytes_available += bytes_read;
 
         let bytes_used =
-            morse_decode_to_writer(o, &input_buf[..bytes_available], char_decode, &mut buf)
-                .unwrap();
+            decode_buffer(o, &input_buf[..bytes_available], char_decode, &mut buf).unwrap();
 
         input_buf.copy_within(bytes_used..bytes_available, 0);
         bytes_available -= bytes_used;
     }
 
     if bytes_available != 0 {
-        morse_decode_to_writer_end(o, &input_buf[..bytes_available], char_decode).unwrap();
+        decode_buffer_end(o, &input_buf[..bytes_available], char_decode).unwrap();
     }
 }
 
