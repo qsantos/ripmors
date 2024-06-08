@@ -54,7 +54,7 @@ fn decode_benchmark(c: &mut Criterion) {
     group.throughput(Throughput::Bytes(data.len() as u64));
 
     group.bench_function("string", |b| {
-        b.iter(|| morse_decode_to_string(black_box(&data.as_bytes()), to_standard))
+        b.iter(|| decode_string(black_box(&data.as_bytes()), to_standard))
     });
 
     group.bench_function("stream", |b| {

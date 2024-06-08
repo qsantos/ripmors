@@ -110,7 +110,7 @@ pub fn morse_decode_to_writer_end<W: Write>(
     Ok(())
 }
 
-pub fn morse_decode_to_string(s: &[u8], char_decode: fn(u8) -> char) -> String {
+pub fn decode_string(s: &[u8], char_decode: fn(u8) -> char) -> String {
     let mut writer = BufWriter::new(Vec::new());
     morse_decode_to_writer_end(&mut writer, s, char_decode).unwrap();
     let vec = writer.into_inner().unwrap();
@@ -144,7 +144,7 @@ pub fn decode_stream<R: Read, W: Write>(i: &mut R, o: &mut W, char_decode: fn(u8
 #[test]
 fn test_standard_decode() {
     use crate::decode_mapping::to_standard;
-    let f = |s| morse_decode_to_string(s, to_standard);
+    let f = |s| decode_string(s, to_standard);
     assert_eq!(f(b".--. .- .-. .. ..."), "PARIS");
     assert_eq!(
         f(b".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--."),
