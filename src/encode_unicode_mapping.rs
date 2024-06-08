@@ -1,6 +1,6 @@
-use crate::encode_ascii_mapping::ASCII_TO_MORSE;
+use crate::encode_ascii_mapping::ASCII_TO_BYTES;
 
-macro_rules! unicode_to_morse {
+macro_rules! from_unicode {
     ($c:expr, $($letter:pat => $elements:literal),+ $(,)? ) => {
         match $c {
             $(
@@ -22,11 +22,11 @@ macro_rules! unicode_to_morse {
     };
 }
 
-pub fn unicode_to_morse(c: char) -> (&'static [u8], usize) {
+pub fn from_unicode(c: char) -> (&'static [u8], usize) {
     if c.is_ascii() {
-        return ASCII_TO_MORSE[c as usize];
+        return ASCII_TO_BYTES[c as usize];
     }
-    unicode_to_morse! {
+    from_unicode! {
         c,
         // Dot-less i (see https://en.wikipedia.org/wiki/Dotless_I)
         'ı' => "..",

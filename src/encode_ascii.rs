@@ -1,6 +1,6 @@
 use std::io::{BufWriter, Read, Write};
 
-use crate::encode_ascii_mapping::ASCII_TO_MORSE2;
+use crate::encode_ascii_mapping::ASCII_TO_QWORD;
 
 pub fn ascii_encode_to_writer<W: Write>(
     writer: &mut W,
@@ -15,7 +15,7 @@ pub fn ascii_encode_to_writer<W: Write>(
     }
     for chunk in s.chunks(1 << 10) {
         for c in chunk {
-            let (bytes, len) = ASCII_TO_MORSE2[*c as usize];
+            let (bytes, len) = ASCII_TO_QWORD[*c as usize];
             if len == 0 {
             } else if len <= 8 {
                 if (*c == b'\t' || *c == b'\n' || *c == b'\r') && cur > 0 && buf[cur - 1] == b' ' {

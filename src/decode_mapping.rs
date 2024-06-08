@@ -15,7 +15,7 @@ macro_rules! element_to_binary_digit {
     };
 }
 
-macro_rules! morse_decode {
+macro_rules! to_script {
     ($array_name:ident, $function_name:ident, $($elements:expr => $character:expr),+ $(,)? ) => {
         const $array_name: [char; 256] = {
             let mut x = ['\0'; 256];
@@ -45,9 +45,9 @@ macro_rules! morse_decode {
     };
 }
 
-morse_decode! {
-    MORSE_TO_STANDARD,
-    morse_to_standard,
+to_script! {
+    TO_STANDARD,
+    to_standard,
     // NOTE: Mappings are sorted like a complete binary tree in array representation. In other
     // words, they are sorted by length, then in lexicographic order. For lengths up to 5, all
     // possible combinations of Morse symbols are listed.
@@ -142,9 +142,9 @@ morse_decode! {
     "...-..-" => '$',
 }
 
-morse_decode! {
-    MORSE_TO_GREEK,
-    morse_to_greek,
+to_script! {
+    TO_GREEK,
+    to_greek,
     // Greek Morse code
     // Wikipedia: The Greek Morse code alphabet is very similar to the
     //            Latin alphabet. It uses one extra letter for Greek
@@ -176,9 +176,9 @@ morse_decode! {
     "--.-" => 'Ψ',
 }
 
-morse_decode! {
-    MORSE_TO_RUSSIAN,
-    morse_to_russian,
+to_script! {
+    TO_RUSSIAN,
+    to_russian,
     // Russian Morse code for Cyrillic
     // https://en.wikipedia.org/wiki/Russian_Morse_code (1857)
     // Полное собрание законов Российской Империи. Собрание Второе
@@ -217,9 +217,9 @@ morse_decode! {
     ".-.-" => 'Я',  // ya
 }
 
-morse_decode! {
-    MORSE_TO_JAPANESE,
-    morse_to_japanese,
+to_script! {
+    TO_JAPANESE,
+    to_japanese,
     // Wabun code for Japanese, tnx JE1TRV
     // https://en.wikipedia.org/wiki/Wabun_code
     // https://www.rfcafe.com/references/qst/japanese-morse-telegraph-code-sep-1942-qst.htm (1942)
@@ -309,9 +309,9 @@ morse_decode! {
     //".-.-.." => '」',      // \n
 }
 
-morse_decode! {
-    MORSE_TO_KOREAN,
-    morse_to_korean,
+to_script! {
+    TO_KOREAN,
+    to_korean,
     // SKATS for Korean
     // The ARRL handbook for the radio amateur, 19-3 (1985)
     // https://archive.org/details/arrlhandbookforr0000unse_w7j4/page/n415/mode/2up
@@ -345,9 +345,9 @@ morse_decode! {
     "..-" => 'ㅣ',     // i
 }
 
-morse_decode! {
-    MORSE_TO_HEBREW,
-    morse_to_hebrew,
+to_script! {
+    TO_HEBREW,
+    to_hebrew,
     // Hebrew
     // The ARRL handbook for the radio amateur, 19-3 (1985)
     // https://archive.org/details/arrlhandbookforr0000unse_w7j4/page/n415/mode/2up
@@ -375,9 +375,9 @@ morse_decode! {
     "-" => 'ת',    // dotless tav
 }
 
-morse_decode! {
-    MORSE_TO_ARABIC,
-    morse_to_arabic,
+to_script! {
+    TO_ARABIC,
+    to_arabic,
     // Arabic
     // The ARRL handbook for the radio amateur, 19-3 (1985)
     // https://archive.org/details/arrlhandbookforr0000unse_w7j4/page/n415/mode/2up

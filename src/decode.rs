@@ -143,8 +143,8 @@ pub fn decode_stream<R: Read, W: Write>(i: &mut R, o: &mut W, char_decode: fn(u8
 
 #[test]
 fn test_standard_decode() {
-    use crate::decode_mapping::morse_to_standard;
-    let f = |s| morse_decode_to_string(s, morse_to_standard);
+    use crate::decode_mapping::to_standard;
+    let f = |s| morse_decode_to_string(s, to_standard);
     assert_eq!(f(b".--. .- .-. .. ..."), "PARIS");
     assert_eq!(
         f(b".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--."),

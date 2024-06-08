@@ -8,15 +8,14 @@ mod encode_unicode_mapping;
 // Public API
 pub use decode::{decode_stream, morse_decode_to_string};
 pub use decode_mapping::{
-    morse_to_arabic, morse_to_greek, morse_to_hebrew, morse_to_japanese, morse_to_korean,
-    morse_to_russian, morse_to_standard,
+    to_arabic, to_greek, to_hebrew, to_japanese, to_korean, to_russian, to_standard,
 };
 pub use encode_ascii::{ascii_encode_to_string, encode_stream_ascii};
 pub use encode_unicode::{encode_stream_unicode, unicode_encode_to_string};
 
 #[test]
 fn test_unicode_round_trip() {
-    let f = |s| morse_decode_to_string(unicode_encode_to_string(s).as_bytes(), morse_to_standard);
+    let f = |s| morse_decode_to_string(unicode_encode_to_string(s).as_bytes(), to_standard);
     assert_eq!(f("paris"), "PARIS");
     assert_eq!(f("Hello, World!"), "HELLO, WORLD!");
     assert_eq!(

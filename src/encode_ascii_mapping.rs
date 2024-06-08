@@ -3,9 +3,9 @@
 #[repr(align(64))]
 struct AlignedBytes([u8; 8]);
 
-macro_rules! ascii_to_morse {
+macro_rules! from_ascii {
     ($($letter:expr => $elements:literal),+ $(,)? ) => {
-        pub const ASCII_TO_MORSE: [(&'static [u8], usize); 256] = {
+        pub const ASCII_TO_BYTES: [(&'static [u8], usize); 256] = {
             let mut x: [(&'static [u8], usize); 256] = [(&[0u8; 8], 0); 256];
             $(
                 assert!($letter >= 0);
@@ -26,7 +26,7 @@ macro_rules! ascii_to_morse {
             x[b'\r' as usize] = (b"\r\0\0\0\0\0\0\0", 1);
             x
         };
-        pub const ASCII_TO_MORSE2: [(u64, usize); 256] = {
+        pub const ASCII_TO_QWORD: [(u64, usize); 256] = {
             let mut x: [(u64, usize); 256] = [(0, 0); 256];
             $(
                 assert!($letter >= 0);
@@ -55,7 +55,7 @@ macro_rules! ascii_to_morse {
     };
 }
 
-ascii_to_morse! {
+from_ascii! {
     // NOTE: look for `=> "",` for missing characters
     b'\t' => "\t",
     b'\n' => "\n",

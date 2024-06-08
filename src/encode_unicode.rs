@@ -1,8 +1,8 @@
 use std::io::{BufWriter, Read, Write};
 
 use crate::encode_ascii::ascii_encode_to_writer;
-use crate::encode_ascii_mapping::ASCII_TO_MORSE2;
-use crate::encode_unicode_mapping::unicode_to_morse;
+use crate::encode_ascii_mapping::ASCII_TO_QWORD;
+use crate::encode_unicode_mapping::from_unicode;
 
 pub fn unicode_encode_to_writer<W: Write>(
     writer: &mut W,
@@ -20,7 +20,7 @@ pub fn unicode_encode_to_writer<W: Write>(
     }
     for c in s.chars() {
         if c.is_ascii() {
-            let (bytes, len) = ASCII_TO_MORSE2[c as usize];
+            let (bytes, len) = ASCII_TO_QWORD[c as usize];
             if len == 0 {
             } else if len <= 8 {
                 if (c == '\t' || c == '\n' || c == '\r') && cur > 0 && buf[cur - 1] == b' ' {
@@ -37,7 +37,7 @@ pub fn unicode_encode_to_writer<W: Write>(
             }
             cur += len;
         } else {
-            let (bytes, len) = unicode_to_morse(c);
+            let (bytes, len) = from_unicode(c);
             if len == 0 {
             } else if len <= 8 {
                 let buf8 = unsafe { buf.get_unchecked_mut(cur..cur + 8) };

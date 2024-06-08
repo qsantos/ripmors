@@ -1,6 +1,6 @@
 use std::io::BufWriter;
 
-use ripmors::{decode_stream, encode_stream_ascii, encode_stream_unicode, morse_to_standard};
+use ripmors::{decode_stream, encode_stream_ascii, encode_stream_unicode, to_standard};
 
 fn compare_output_to_oracle(writer: BufWriter<Vec<u8>>, expected_filename: &str) {
     let output = String::from_utf8(writer.into_inner().unwrap()).unwrap();
@@ -46,6 +46,6 @@ fn test_encode_stream_unicode() {
 fn test_decode_stream() {
     let mut f = std::fs::File::open("2-encoded.txt").unwrap();
     let mut writer = BufWriter::new(Vec::new());
-    decode_stream(&mut f, &mut writer, morse_to_standard);
+    decode_stream(&mut f, &mut writer, to_standard);
     compare_output_to_oracle(writer, "3-decoded.txt");
 }

@@ -40,13 +40,13 @@ fn main() {
 
     if let Some(variant) = args.decode {
         let char_decode = match variant {
-            DecodeVariant::Standard => morse_to_standard,
-            DecodeVariant::Greek => morse_to_greek,
-            DecodeVariant::Russian => morse_to_russian,
-            DecodeVariant::Japanese => morse_to_japanese,
-            DecodeVariant::Korean => morse_to_korean,
-            DecodeVariant::Hebrew => morse_to_hebrew,
-            DecodeVariant::Arabic => morse_to_arabic,
+            DecodeVariant::Standard => to_standard,
+            DecodeVariant::Greek => to_greek,
+            DecodeVariant::Russian => to_russian,
+            DecodeVariant::Japanese => to_japanese,
+            DecodeVariant::Korean => to_korean,
+            DecodeVariant::Hebrew => to_hebrew,
+            DecodeVariant::Arabic => to_arabic,
         };
         decode_stream(&mut stdin, &mut stdout, char_decode);
     } else if args.encode == Some(EncodeVariant::Ascii) {
