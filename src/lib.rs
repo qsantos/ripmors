@@ -11,11 +11,11 @@ pub use decode_mapping::{
     to_arabic, to_greek, to_hebrew, to_japanese, to_korean, to_russian, to_standard,
 };
 pub use encode_ascii::{encode_stream_ascii, encode_string_ascii};
-pub use encode_unicode::{encode_stream_unicode, unicode_encode_to_string};
+pub use encode_unicode::{encode_stream_unicode, encode_string};
 
 #[test]
 fn test_unicode_round_trip() {
-    let f = |s| decode_string(unicode_encode_to_string(s).as_bytes(), to_standard);
+    let f = |s| decode_string(encode_string(s).as_bytes(), to_standard);
     assert_eq!(f("paris"), "PARIS");
     assert_eq!(f("Hello, World!"), "HELLO, WORLD!");
     assert_eq!(

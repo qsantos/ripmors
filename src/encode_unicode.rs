@@ -74,7 +74,7 @@ pub fn unicode_encode_to_writer<W: Write>(
     Ok(())
 }
 
-pub fn unicode_encode_to_string(s: &str) -> String {
+pub fn encode_string(s: &str) -> String {
     let mut writer = BufWriter::new(Vec::new());
     let mut buf = [0u8; 1 << 15];
     unicode_encode_to_writer(&mut writer, s, &mut false, &mut buf).unwrap();
@@ -110,24 +110,21 @@ pub fn encode_stream_unicode<R: Read, W: Write>(i: &mut R, o: &mut W) {
 #[test]
 fn test_unicode_encode() {
     assert_eq!(
-        unicode_encode_to_string("télégraphie"),
+        encode_string("télégraphie"),
         "- ..-.. .-.. ..-.. --. .-. .- .--. .... .. ."
     );
+    assert_eq!(encode_string("でんしん"), ".-.-- .. .-.-. --.-. .-.-.");
+    assert_eq!(encode_string("تلغراف"), "- .-.. --. .-. .- ..-.");
     assert_eq!(
-        unicode_encode_to_string("でんしん"),
-        ".-.-- .. .-.-. --.-. .-.-."
-    );
-    assert_eq!(unicode_encode_to_string("تلغراف"), "- .-.. --. .-. .- ..-.");
-    assert_eq!(
-        unicode_encode_to_string("телеграфия"),
+        encode_string("телеграфия"),
         "- . .-.. . --. .-. .- ..-. .. .-.-"
     );
     assert_eq!(
-        unicode_encode_to_string("τηλεγραφία"),
+        encode_string("τηλεγραφία"),
         "- .... .-.. . --. .-. .- ..-. .. .-"
     );
     assert_eq!(
-        unicode_encode_to_string("one line\nand  another\tline"),
+        encode_string("one line\nand  another\tline"),
         "--- -. . / .-.. .. -. .\n.- -. -.. / / .- -. --- - .... . .-.\t.-.. .. -. ."
     );
 }
@@ -141,7 +138,7 @@ fn test_unicode_encode_random_short() {
         .take(1024)
         .map(|c| c as char)
         .collect();
-    unicode_encode_to_string(&data);
+    encode_string(&data);
 }
 
 #[test]
@@ -153,5 +150,5 @@ fn test_unicode_encode_random_large() {
         .take(1048576)
         .map(|c| c as char)
         .collect();
-    unicode_encode_to_string(&data);
+    encode_string(&data);
 }

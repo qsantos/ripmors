@@ -33,7 +33,7 @@ fn standard_benchmark(c: &mut Criterion) {
     group.throughput(Throughput::Bytes(data.len() as u64));
 
     group.bench_function("string", |b| {
-        b.iter(|| standard_encode_to_string(black_box(&data)))
+        b.iter(|| encode_string(black_box(&data)))
     });
 
     group.bench_function("stream", |b| {
