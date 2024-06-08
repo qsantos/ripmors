@@ -151,13 +151,16 @@ unsafe fn morse_to_binary(bytes: *const u8, len: usize) -> u8 {
     // Interpret next 8 bytes as u64
     let a = unsafe { (bytes as *const u64).read_unaligned() };
     // Only keep the LSB of each byte
-    let a = a & 0x0101010101010101;
+    let b = 0x0101010101010101;
+    let a = a & b;
     // Pack the bits together
     let a = a.wrapping_mul(0x102040810204080) >> 56;
     // Truncate to len lowest significant bits
     let a = a & !(0xff << len);
     // Add a leading one to distinguish e.g. - from .-, ..-, ...- and ....-
-    let a = a | (1 << len);
+    // NOTE: we use "b" instead of "1" to avoid having to load another immediate in a register.
+    // Since the lowest byte of b is 0x01 and we only keep the last byte, it works.
+    let a = a | (b << len);
     // Done
     a as u8
 }
