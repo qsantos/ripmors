@@ -2,7 +2,7 @@ use std::io::{BufWriter, Read, Write};
 
 use crate::encode_ascii_mapping::ASCII_TO_QWORD;
 
-pub fn encode_buffer_ascii<W: Write>(
+fn encode_buffer_ascii<W: Write>(
     writer: &mut W,
     s: &[u8],
     need_separator: &mut bool,

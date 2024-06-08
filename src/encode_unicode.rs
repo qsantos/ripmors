@@ -1,6 +1,5 @@
 use std::io::{BufWriter, Read, Write};
 
-use crate::encode_ascii::encode_buffer_ascii;
 use crate::encode_ascii_mapping::ASCII_TO_QWORD;
 use crate::encode_unicode_mapping::from_unicode;
 
@@ -10,9 +9,6 @@ fn encode_buffer<W: Write>(
     need_separator: &mut bool,
     buf: &mut [u8; 1 << 15],
 ) -> Result<(), std::io::Error> {
-    if s.is_ascii() {
-        return encode_buffer_ascii(writer, s.as_bytes(), need_separator, buf);
-    }
     let mut cur = 0;
     if *need_separator {
         buf[cur] = b' ';
