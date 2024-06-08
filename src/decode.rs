@@ -31,7 +31,7 @@ fn morse_to_binary_safe(bytes: &[u8], len: usize) -> u8 {
     ret
 }
 
-pub fn decode_buffer<W: Write>(
+fn decode_buffer<W: Write>(
     writer: &mut W,
     s: &[u8],
     char_decode: fn(u8) -> char,
@@ -95,7 +95,7 @@ pub fn decode_buffer<W: Write>(
     Ok(chunk_start)
 }
 
-pub fn decode_buffer_end<W: Write>(
+fn decode_buffer_end<W: Write>(
     writer: &mut W,
     s: &[u8],
     char_decode: fn(u8) -> char,
