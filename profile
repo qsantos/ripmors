@@ -7,9 +7,9 @@ cargo build --profile=profiling
 repeat() {
     local count=$1
     local file=$2
-    local args8=($file $file $file $file $file $file $file $file $file $file)
+    local args8=($file $file $file $file $file $file $file $file)
     local args64=("${args8[@]}" "${args8[@]}" "${args8[@]}" "${args8[@]}" "${args8[@]}" "${args8[@]}" "${args8[@]}" "${args8[@]}")
-    for (( i = 0; i <= $count; i++ )); do
+    for (( i = 0; i < $count; i++ )); do
         cat "${args64[@]}"
     done
 }
