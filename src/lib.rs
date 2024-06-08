@@ -146,6 +146,7 @@ pub fn standard_encode_to_string(s: &str) -> String {
     String::from_utf8(vec).unwrap()
 }
 
+#[inline(always)] // prefer inline to avoid reloading constants in registers
 unsafe fn morse_to_binary(bytes: *const u8, len: usize) -> u8 {
     // Interpret next 8 bytes as u64
     let a = unsafe { (bytes as *const u64).read_unaligned() };
