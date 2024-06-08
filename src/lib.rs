@@ -165,6 +165,18 @@ unsafe fn morse_to_binary(bytes: *const u8, len: usize) -> u8 {
     a as u8
 }
 
+fn morse_to_binary_safe(bytes: &[u8], len: usize) -> u8 {
+    if len + 8 <= bytes.len() {
+        return unsafe { morse_to_binary(bytes.as_ptr(), len) };
+    }
+    let mut ret = 1;
+    for byte in bytes[..len].iter().rev() {
+        ret *= 2;
+        ret |= byte & 1;
+    }
+    ret
+}
+
 pub fn morse_decode_to_writer<W: Write>(
     writer: &mut W,
     s: &[u8],
@@ -173,7 +185,8 @@ pub fn morse_decode_to_writer<W: Write>(
 ) -> Result<usize, std::io::Error> {
     let mut cur = 0;
     let mut chunk_start = 0;
-    for i in 0..s.len() {
+    let last_seven_bytes = s.len().saturating_sub(7);
+    for i in 0..last_seven_bytes {
         let c = s[i];
         if c <= b' ' {
             let binary = unsafe { morse_to_binary(s.as_ptr().add(chunk_start), i - chunk_start) };
@@ -200,6 +213,26 @@ pub fn morse_decode_to_writer<W: Write>(
             cur = 0;
         }
     }
+    for i in last_seven_bytes..s.len() {
+        let c = s[i];
+        if c <= b' ' {
+            let binary = morse_to_binary_safe(&s[chunk_start..], i - chunk_start);
+            let decoded = char_decode(binary);
+            if decoded != '\0' {
+                buf[cur] = decoded;
+                cur += 1;
+            }
+            chunk_start = i + 1;
+            if c != b' ' {
+                buf[cur] = c as char;
+                cur += 1;
+            }
+        } else if c == b'/' {
+            buf[cur] = ' ';
+            cur += 1;
+            chunk_start = i + 1;
+        }
+    }
     // flush buffer
     if cur > 0 {
         let decoded: String = buf[..cur].iter().collect();
@@ -215,7 +248,7 @@ pub fn morse_decode_to_writer_end<W: Write>(
 ) -> Result<(), std::io::Error> {
     let mut buf = ['\0'; 1 << 15];
     let chunk_start = morse_decode_to_writer(writer, s, char_decode, &mut buf)?;
-    let binary = unsafe { morse_to_binary(s.as_ptr().add(chunk_start), s.len() - chunk_start) };
+    let binary = morse_to_binary_safe(&s[chunk_start..], s.len() - chunk_start);
     let decoded = char_decode(binary);
     if decoded != '\0' {
         writer.write_all(decoded.to_string().as_bytes())?;

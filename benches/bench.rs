@@ -67,5 +67,10 @@ fn decode_benchmark(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, ascii_benchmark, standard_benchmark, decode_benchmark);
+criterion_group!(
+    benches,
+    ascii_benchmark,
+    standard_benchmark,
+    decode_benchmark
+);
 criterion_main!(benches);
