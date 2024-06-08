@@ -42,3 +42,10 @@ jobs:
         run: cargo build --verbose
       - name: Audit
         run: cargo audit -D warnings
+      - name: Install Miri
+        run: |
+          rustup toolchain install nightly --component miri
+          rustup override set nightly
+          cargo miri setup
+      - name: Miri
+        run: cargo miri test
