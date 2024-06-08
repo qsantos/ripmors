@@ -24,6 +24,7 @@ fn compare_output_to_oracle(writer: BufWriter<Vec<u8>>, expected_filename: &str)
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn test_encode_stream_ascii() {
     let mut f = std::fs::File::open("1-original.txt").unwrap();
     let mut writer = BufWriter::new(Vec::new());
@@ -32,6 +33,7 @@ fn test_encode_stream_ascii() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn test_encode_stream_standard() {
     let mut f = std::fs::File::open("1-original.txt").unwrap();
     let mut writer = BufWriter::new(Vec::new());
@@ -40,6 +42,7 @@ fn test_encode_stream_standard() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn test_decode_stream() {
     let mut f = std::fs::File::open("2-encoded.txt").unwrap();
     let mut writer = BufWriter::new(Vec::new());
