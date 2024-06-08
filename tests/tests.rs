@@ -43,6 +43,6 @@ fn test_encode_stream_standard() {
 fn test_decode_stream() {
     let mut f = std::fs::File::open("2-encoded.txt").unwrap();
     let mut writer = BufWriter::new(Vec::new());
-    decode_stream(&mut f, &mut writer, &morse_to_standard);
+    decode_stream(&mut f, &mut writer, morse_to_standard);
     compare_output_to_oracle(writer, "3-decoded.txt");
 }

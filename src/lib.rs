@@ -161,10 +161,10 @@ unsafe fn morse_to_binary(bytes: *const u8, len: usize) -> u8 {
     a as u8
 }
 
-pub fn morse_decode_to_writer<W: Write, F: Fn(u8) -> char>(
+pub fn morse_decode_to_writer<W: Write>(
     writer: &mut W,
     s: &[u8],
-    char_decode: &F,
+    char_decode: fn(u8) -> char,
 ) -> Result<usize, std::io::Error> {
     let mut buf = ['\0'; 1 << 15];
     let mut cur = 0;
@@ -203,10 +203,10 @@ pub fn morse_decode_to_writer<W: Write, F: Fn(u8) -> char>(
     Ok(chunk_start)
 }
 
-pub fn morse_decode_to_writer_end<W: Write, F: Fn(u8) -> char>(
+pub fn morse_decode_to_writer_end<W: Write>(
     writer: &mut W,
     s: &[u8],
-    char_decode: &F,
+    char_decode: fn(u8) -> char,
 ) -> Result<(), std::io::Error> {
     let chunk_start = morse_decode_to_writer(writer, s, char_decode)?;
     let binary = unsafe { morse_to_binary(s.as_ptr().add(chunk_start), s.len() - chunk_start) };
@@ -217,7 +217,7 @@ pub fn morse_decode_to_writer_end<W: Write, F: Fn(u8) -> char>(
     Ok(())
 }
 
-pub fn morse_decode_to_string<F: Fn(u8) -> char>(s: &[u8], char_decode: &F) -> String {
+pub fn morse_decode_to_string(s: &[u8], char_decode: fn(u8) -> char) -> String {
     let mut writer = BufWriter::new(Vec::new());
     morse_decode_to_writer_end(&mut writer, s, char_decode).unwrap();
     let vec = writer.into_inner().unwrap();
@@ -315,7 +315,7 @@ fn test_standard_encode_random_large() {
 
 #[test]
 fn test_standard_decode() {
-    let f = |s| morse_decode_to_string(s, &morse_to_standard);
+    let f = |s| morse_decode_to_string(s, morse_to_standard);
     assert_eq!(f(b".--. .- .-. .. ..."), "PARIS");
     assert_eq!(
         f(b".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--."),
@@ -325,7 +325,7 @@ fn test_standard_decode() {
 
 #[test]
 fn test_standard_encode_decode() {
-    let f = |s| morse_decode_to_string(standard_encode_to_string(s).as_bytes(), &morse_to_standard);
+    let f = |s| morse_decode_to_string(standard_encode_to_string(s).as_bytes(), morse_to_standard);
     assert_eq!(f("paris"), "PARIS");
     assert_eq!(f("Hello, World!"), "HELLO, WORLD!");
     assert_eq!(
@@ -372,7 +372,7 @@ pub fn encode_stream_ascii<R: Read, W: Write>(i: &mut R, o: &mut W) {
     }
 }
 
-pub fn decode_stream<R: Read, W: Write, F: Fn(u8) -> char>(i: &mut R, o: &mut W, char_decode: &F) {
+pub fn decode_stream<R: Read, W: Write>(i: &mut R, o: &mut W, char_decode: fn(u8) -> char) {
     let mut input_buf = vec![0u8; 1 << 15];
     let mut bytes_available = 0;
     loop {
