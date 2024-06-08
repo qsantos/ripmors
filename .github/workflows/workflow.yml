@@ -1,0 +1,42 @@
+name: Rust API
+
+on:
+  push:
+    branches: master
+  pull_request:
+    branches: master
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -Dwarnings
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Enable caching
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/
+            tarpaulin-target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Rustfmt
+        run: cargo fmt --check
+      - name: Clippy
+        run: cargo clippy --tests
+      - name: Install tarpaulin
+        run: cargo install cargo-tarpaulin
+      - name: Tests
+        run: cargo tarpaulin --verbose --out Xml
+      - name: Report test coverage
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+          filename: cobertura.xml
+      - name: Build
+        run: cargo build --verbose
+      - name: Audit
+        run: cargo audit -D warnings
