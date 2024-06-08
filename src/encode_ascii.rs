@@ -2,7 +2,7 @@ use std::io::{BufWriter, Read, Write};
 
 use crate::encode_ascii_mapping::ASCII_TO_QWORD;
 
-pub fn ascii_encode_to_writer<W: Write>(
+pub fn encode_buffer_ascii<W: Write>(
     writer: &mut W,
     s: &[u8],
     need_separator: &mut bool,
@@ -61,7 +61,7 @@ pub fn ascii_encode_to_writer<W: Write>(
 pub fn encode_string_ascii(s: &str) -> String {
     let mut writer = BufWriter::new(Vec::new());
     let mut buf = [0u8; 1 << 15];
-    ascii_encode_to_writer(&mut writer, s.as_bytes(), &mut false, &mut buf).unwrap();
+    encode_buffer_ascii(&mut writer, s.as_bytes(), &mut false, &mut buf).unwrap();
     let vec = writer.into_inner().unwrap();
     String::from_utf8(vec).unwrap()
 }
@@ -75,7 +75,7 @@ pub fn encode_stream_ascii<R: Read, W: Write>(i: &mut R, o: &mut W) {
         if n == 0 {
             break;
         }
-        ascii_encode_to_writer(o, &input_buf[..n], &mut need_separator, &mut buf).unwrap();
+        encode_buffer_ascii(o, &input_buf[..n], &mut need_separator, &mut buf).unwrap();
     }
 }
 
