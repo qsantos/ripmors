@@ -32,9 +32,7 @@ fn standard_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("Encode Unicode");
     group.throughput(Throughput::Bytes(data.len() as u64));
 
-    group.bench_function("string", |b| {
-        b.iter(|| encode_string(black_box(&data)))
-    });
+    group.bench_function("string", |b| b.iter(|| encode_string(black_box(&data))));
 
     group.bench_function("stream", |b| {
         b.iter(|| {
