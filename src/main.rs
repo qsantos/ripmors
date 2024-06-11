@@ -26,9 +26,9 @@ enum DecodeVariant {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    #[arg(short, long, num_args = 0..=1, default_missing_value = "unicode")]
-    decode: Option<DecodeVariant>,
     #[arg(short, long, num_args = 0..=1, default_missing_value = "standard")]
+    decode: Option<DecodeVariant>,
+    #[arg(short, long, num_args = 0..=1, default_missing_value = "unicode")]
     encode: Option<EncodeVariant>,
 }
 
