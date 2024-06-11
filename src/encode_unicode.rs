@@ -89,11 +89,11 @@ pub fn encode_stream<R: Read, W: Write>(i: &mut R, o: &mut W) {
             break;
         }
         bytes_available += n;
-        let s = match std::str::from_utf8(&input_buf[..bytes_available]) {
+        let s = match core::str::from_utf8(&input_buf[..bytes_available]) {
             Ok(s) => s,
             Err(e) => {
                 let bytes_decoded = e.valid_up_to();
-                unsafe { std::str::from_utf8_unchecked(&input_buf[..bytes_decoded]) }
+                unsafe { core::str::from_utf8_unchecked(&input_buf[..bytes_decoded]) }
             }
         };
         encode_buffer(o, s, &mut need_separator, &mut buf).unwrap();
