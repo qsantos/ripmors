@@ -19,6 +19,21 @@ unsafe fn morse_to_binary_fast(bytes: *const u8, len: usize) -> u8 {
     a as u8
 }
 
+#[test]
+fn test_morse_to_binary_fast() {
+    unsafe {
+        // zero length
+        assert_eq!(morse_to_binary_fast(b"________".as_ptr(), 0), 1);
+        assert_eq!(morse_to_binary_fast(b"..._____".as_ptr(), 0), 1);
+        assert_eq!(morse_to_binary_fast(b"---_____".as_ptr(), 0), 1);
+
+        // non-zero length
+        assert_eq!(morse_to_binary_fast(b"._______".as_ptr(), 1), 0b10);
+        assert_eq!(morse_to_binary_fast(b"-_______".as_ptr(), 1), 0b11);
+        assert_eq!(morse_to_binary_fast(b"..-.____".as_ptr(), 4), 0b10100);
+    }
+}
+
 fn morse_to_binary_safe(bytes: &[u8], len: usize) -> u8 {
     let mut ret = 1;
     for byte in bytes[..len].iter().rev() {
