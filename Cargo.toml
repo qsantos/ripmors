@@ -1,6 +1,7 @@
 [package]
 name = "ripmors"
 version = "0.1.0"
+authors = ["Quentin Santos <qsantos@qsantos.fr>"]
 repository = "https://github.com/qsantos/ripmors/"
 license = "Apache-2.0 and MIT"
 edition = "2021"
