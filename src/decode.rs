@@ -28,6 +28,19 @@ fn morse_to_binary_safe(bytes: &[u8], len: usize) -> u8 {
     ret
 }
 
+#[test]
+fn test_morse_to_binary_safe() {
+    // zero length
+    assert_eq!(morse_to_binary_safe(b"", 0), 1);
+    assert_eq!(morse_to_binary_safe(b"...", 0), 1);
+    assert_eq!(morse_to_binary_safe(b"---", 0), 1);
+
+    // non-zero length
+    assert_eq!(morse_to_binary_safe(b".", 1), 0b10);
+    assert_eq!(morse_to_binary_safe(b"-", 1), 0b11);
+    assert_eq!(morse_to_binary_safe(b"..-.", 4), 0b10100);
+}
+
 fn morse_to_binary(bytes: &[u8], len: usize) -> u8 {
     if len + 8 <= bytes.len() {
         unsafe { morse_to_binary_fast(bytes.as_ptr(), len) }
