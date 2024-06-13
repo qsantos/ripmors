@@ -19,7 +19,7 @@ unsafe fn morse_to_binary_fast(bytes: *const u8, len: usize) -> u8 {
     a as u8
 }
 
-fn morse_to_binary_safe(bytes: &[u8], len: usize) -> u8 {
+fn morse_to_binary(bytes: &[u8], len: usize) -> u8 {
     if len + 8 <= bytes.len() {
         return unsafe { morse_to_binary_fast(bytes.as_ptr(), len) };
     }
@@ -71,7 +71,7 @@ fn decode_buffer<W: Write>(
     for i in last_seven_bytes..s.len() {
         let c = s[i];
         if c <= b' ' {
-            let binary = morse_to_binary_safe(&s[chunk_start..], i - chunk_start);
+            let binary = morse_to_binary(&s[chunk_start..], i - chunk_start);
             let decoded = char_decode(binary);
             if decoded != '\0' {
                 buf[cur] = decoded;
@@ -103,7 +103,7 @@ fn decode_buffer_end<W: Write>(
 ) -> Result<(), std::io::Error> {
     let mut buf = ['\0'; 1 << 15];
     let chunk_start = decode_buffer(writer, s, char_decode, &mut buf)?;
-    let binary = morse_to_binary_safe(&s[chunk_start..], s.len() - chunk_start);
+    let binary = morse_to_binary(&s[chunk_start..], s.len() - chunk_start);
     let decoded = char_decode(binary);
     if decoded != '\0' {
         writer.write_all(decoded.to_string().as_bytes())?;
