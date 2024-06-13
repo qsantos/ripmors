@@ -1,6 +1,7 @@
 [package]
 name = "ripmors"
 version = "0.1.0"
+repository = "https://github.com/qsantos/ripmors/"
 license = "Apache-2.0 and MIT"
 edition = "2021"
 rust-version = "1.74.1"
