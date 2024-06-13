@@ -14,5 +14,5 @@ repeat() {
     done
 }
 repeat 5 1-original.txt | taskset -c 0 samply record ./target/profiling/ripmors -e ascii >/dev/null
-repeat 30 4-unicode.txt | taskset -c 0 samply record ./target/release/ripmors -e standard >/dev/null
+repeat 30 4-unicode.txt | taskset -c 0 samply record ./target/release/ripmors -e unicode >/dev/null
 repeat 1 2-encoded.txt | taskset -c 0 samply record ./target/profiling/ripmors -d >/dev/null

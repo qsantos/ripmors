@@ -15,6 +15,6 @@ repeat 1000 4-unicode.txt | pv >/dev/null
 echo "Encoding ASCII"
 repeat 10 1-original.txt | pv | taskset -c 0 ./target/release/ripmors -e ascii >/dev/null
 echo "Encoding Unicode"
-repeat 50 4-unicode.txt | pv | taskset -c 0 ./target/release/ripmors -e standard >/dev/null
+repeat 50 4-unicode.txt | pv | taskset -c 0 ./target/release/ripmors -e unicode >/dev/null
 echo "Decoding"
 repeat 2 2-encoded.txt | pv | taskset -c 0 ./target/release/ripmors -d >/dev/null
