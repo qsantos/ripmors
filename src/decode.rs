@@ -19,16 +19,21 @@ unsafe fn morse_to_binary_fast(bytes: *const u8, len: usize) -> u8 {
     a as u8
 }
 
-fn morse_to_binary(bytes: &[u8], len: usize) -> u8 {
-    if len + 8 <= bytes.len() {
-        return unsafe { morse_to_binary_fast(bytes.as_ptr(), len) };
-    }
+fn morse_to_binary_safe(bytes: &[u8], len: usize) -> u8 {
     let mut ret = 1;
     for byte in bytes[..len].iter().rev() {
         ret *= 2;
         ret |= byte & 1;
     }
     ret
+}
+
+fn morse_to_binary(bytes: &[u8], len: usize) -> u8 {
+    if len + 8 <= bytes.len() {
+        unsafe { morse_to_binary_fast(bytes.as_ptr(), len) }
+    } else {
+        morse_to_binary_safe(bytes, len)
+    }
 }
 
 fn decode_buffer<W: Write>(
