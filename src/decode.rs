@@ -1,7 +1,7 @@
 use std::io::{BufWriter, Read, Write};
 
 #[inline(always)] // prefer inline to avoid reloading constants in registers
-unsafe fn morse_to_binary(bytes: *const u8, len: usize) -> u8 {
+unsafe fn morse_to_binary_fast(bytes: *const u8, len: usize) -> u8 {
     // Interpret next 8 bytes as u64
     let a = unsafe { (bytes as *const u64).read_unaligned() };
     // Only keep the LSB of each byte
@@ -21,7 +21,7 @@ unsafe fn morse_to_binary(bytes: *const u8, len: usize) -> u8 {
 
 fn morse_to_binary_safe(bytes: &[u8], len: usize) -> u8 {
     if len + 8 <= bytes.len() {
-        return unsafe { morse_to_binary(bytes.as_ptr(), len) };
+        return unsafe { morse_to_binary_fast(bytes.as_ptr(), len) };
     }
     let mut ret = 1;
     for byte in bytes[..len].iter().rev() {
@@ -43,7 +43,8 @@ fn decode_buffer<W: Write>(
     for i in 0..last_seven_bytes {
         let c = s[i];
         if c <= b' ' {
-            let binary = unsafe { morse_to_binary(s.as_ptr().add(chunk_start), i - chunk_start) };
+            let binary =
+                unsafe { morse_to_binary_fast(s.as_ptr().add(chunk_start), i - chunk_start) };
             let decoded = char_decode(binary);
             if decoded != '\0' {
                 buf[cur] = decoded;
