@@ -3,8 +3,8 @@ use std::io::{BufWriter, Read, Write};
 use crate::encode_ascii_mapping::ASCII_TO_QWORD;
 use crate::encode_unicode_mapping::from_unicode;
 
-fn encode_buffer<W: Write>(
-    output: &mut W,
+fn encode_buffer(
+    output: &mut impl Write,
     input: &str,
     need_separator: &mut bool,
     output_buf: &mut [u8; 1 << 15],
@@ -78,7 +78,7 @@ pub fn encode_string(input: &str) -> String {
     String::from_utf8(vec).unwrap()
 }
 
-pub fn encode_stream<R: Read, W: Write>(input: &mut R, output: &mut W) {
+pub fn encode_stream(input: &mut impl Read, output: &mut impl Write) {
     let mut input_buf = vec![0u8; 1 << 15];
     let mut bytes_available = 0;
     let mut need_separator = false;

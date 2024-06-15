@@ -64,8 +64,8 @@ fn morse_to_binary(bytes: &[u8], len: usize) -> u8 {
     }
 }
 
-fn decode_buffer<W: Write>(
-    output: &mut W,
+fn decode_buffer(
+    output: &mut impl Write,
     input: &[u8],
     char_decode: fn(u8) -> char,
     output_buf: &mut [char; 1 << 15],
@@ -129,8 +129,8 @@ fn decode_buffer<W: Write>(
     Ok(chunk_start)
 }
 
-fn decode_buffer_end<W: Write>(
-    output: &mut W,
+fn decode_buffer_end(
+    output: &mut impl Write,
     input: &[u8],
     char_decode: fn(u8) -> char,
 ) -> Result<(), std::io::Error> {
@@ -211,11 +211,7 @@ pub fn decode_string(input: &[u8], char_decode: fn(u8) -> char) -> String {
 ///     ripmors::decode_stream(&mut stdin, &mut stdout, ripmors::to_standard);
 /// }
 /// ```
-pub fn decode_stream<R: Read, W: Write>(
-    input: &mut R,
-    output: &mut W,
-    char_decode: fn(u8) -> char,
-) {
+pub fn decode_stream(input: &mut impl Read, output: &mut impl Write, char_decode: fn(u8) -> char) {
     let mut input_buf = vec![0u8; 1 << 15];
     let mut bytes_available = 0;
     let mut output_buf = ['\0'; 1 << 15];
