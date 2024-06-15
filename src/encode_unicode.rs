@@ -78,6 +78,30 @@ pub fn encode_string(input: &str) -> String {
     String::from_utf8(vec).unwrap()
 }
 
+/// Encode Unicode characters from a [Read][std::io::Read] object into a [Write][std::io::Write] object.
+///
+/// Bytes from `input` are interpreted as Unicode characters encoded in UTF-8. The following ASCII
+/// characters are used to represent Morse code:
+///
+/// - Full stop (.) represents the Morse dot;
+/// - Hyphen (-) represents the Morse dash;
+/// - Space ( ) represents the letter space;
+/// - Slash (/) represents the word space;
+/// - Tab (\t), line feed (\n) and carriage return (\r) are kept as-is.
+///
+/// Unicode characters that cannot be converted to Morse are ignored.
+///
+/// **Note:** This will read data from `input` until exhaustion.
+///
+/// For example, the program below encodes an UTF-8 input.
+/// ```
+/// # #[allow(clippy::needless_doctest_main)]
+/// fn main() {
+///     let mut stdin = std::io::stdin();
+///     let mut stdout = std::io::stdout();
+///     ripmors::encode_stream(&mut stdin, &mut stdout);
+/// }
+/// ```
 pub fn encode_stream(input: &mut impl Read, output: &mut impl Write) {
     let mut input_buf = vec![0u8; 1 << 15];
     let mut bytes_available = 0;
