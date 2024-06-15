@@ -62,7 +62,7 @@ from_ascii! {
     b'\r' => "\r",
     b' ' => "/",
 
-    b'!' => "..--.",  // non standard
+    b'!' => "-.-.--", // non standard
     b'"' => ".-..-.", // Straight quotes (1.1.3)
     b'$' => "...-..-",           // non standard
     // NOTE: % is actually handled in code
