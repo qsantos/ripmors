@@ -24,6 +24,7 @@ debug = true
 
 [dependencies]
 clap = { version = "4.5.4", features = ["derive"], optional = true }
+simdutf8 = "0.1.4"
 
 [features]
 default = ["clap"]
