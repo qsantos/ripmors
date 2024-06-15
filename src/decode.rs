@@ -68,7 +68,7 @@ fn decode_buffer<W: Write>(
     writer: &mut W,
     s: &[u8],
     char_decode: fn(u8) -> char,
-    buf: &mut [char; 1 << 15],
+    output_buf: &mut [char; 1 << 15],
 ) -> Result<usize, std::io::Error> {
     let mut cur = 0;
     let mut chunk_start = 0;
@@ -80,23 +80,23 @@ fn decode_buffer<W: Write>(
                 unsafe { morse_to_binary_fast(s.as_ptr().add(chunk_start), i - chunk_start) };
             let decoded = char_decode(binary);
             if decoded != '\0' {
-                buf[cur] = decoded;
+                output_buf[cur] = decoded;
                 cur += 1;
             }
             chunk_start = i + 1;
             if c != b' ' {
-                buf[cur] = c as char;
+                output_buf[cur] = c as char;
                 cur += 1;
             }
         } else if c == b'/' {
-            buf[cur] = ' ';
+            output_buf[cur] = ' ';
             cur += 1;
             chunk_start = i + 1;
         }
         // flush buffer
         // NOTE: we may write up to two character per iteration
-        if cur > buf.len() - 2 {
-            let decoded: String = buf[..cur].iter().collect();
+        if cur > output_buf.len() - 2 {
+            let decoded: String = output_buf[..cur].iter().collect();
             writer.write_all(decoded.as_bytes())?;
             cur = 0;
         }
@@ -107,23 +107,23 @@ fn decode_buffer<W: Write>(
             let binary = morse_to_binary(&s[chunk_start..], i - chunk_start);
             let decoded = char_decode(binary);
             if decoded != '\0' {
-                buf[cur] = decoded;
+                output_buf[cur] = decoded;
                 cur += 1;
             }
             chunk_start = i + 1;
             if c != b' ' {
-                buf[cur] = c as char;
+                output_buf[cur] = c as char;
                 cur += 1;
             }
         } else if c == b'/' {
-            buf[cur] = ' ';
+            output_buf[cur] = ' ';
             cur += 1;
             chunk_start = i + 1;
         }
     }
     // flush buffer
     if cur > 0 {
-        let decoded: String = buf[..cur].iter().collect();
+        let decoded: String = output_buf[..cur].iter().collect();
         writer.write_all(decoded.as_bytes())?;
     }
     Ok(chunk_start)
@@ -134,8 +134,8 @@ fn decode_buffer_end<W: Write>(
     s: &[u8],
     char_decode: fn(u8) -> char,
 ) -> Result<(), std::io::Error> {
-    let mut buf = ['\0'; 1 << 15];
-    let chunk_start = decode_buffer(writer, s, char_decode, &mut buf)?;
+    let mut output_buf = ['\0'; 1 << 15];
+    let chunk_start = decode_buffer(writer, s, char_decode, &mut output_buf)?;
     let binary = morse_to_binary(&s[chunk_start..], s.len() - chunk_start);
     let decoded = char_decode(binary);
     if decoded != '\0' {
@@ -154,7 +154,7 @@ pub fn decode_string(s: &[u8], char_decode: fn(u8) -> char) -> String {
 pub fn decode_stream<R: Read, W: Write>(i: &mut R, o: &mut W, char_decode: fn(u8) -> char) {
     let mut input_buf = vec![0u8; 1 << 15];
     let mut bytes_available = 0;
-    let mut buf = ['\0'; 1 << 15];
+    let mut output_buf = ['\0'; 1 << 15];
     loop {
         let bytes_read = i.read(&mut input_buf[bytes_available..]).unwrap();
         if bytes_read == 0 {
@@ -162,8 +162,13 @@ pub fn decode_stream<R: Read, W: Write>(i: &mut R, o: &mut W, char_decode: fn(u8
         }
         bytes_available += bytes_read;
 
-        let bytes_used =
-            decode_buffer(o, &input_buf[..bytes_available], char_decode, &mut buf).unwrap();
+        let bytes_used = decode_buffer(
+            o,
+            &input_buf[..bytes_available],
+            char_decode,
+            &mut output_buf,
+        )
+        .unwrap();
 
         input_buf.copy_within(bytes_used..bytes_available, 0);
         bytes_available -= bytes_used;

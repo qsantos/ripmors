@@ -6,11 +6,11 @@ fn encode_buffer_ascii<W: Write>(
     writer: &mut W,
     s: &[u8],
     need_separator: &mut bool,
-    buf: &mut [u8; 1 << 15],
+    output_buf: &mut [u8; 1 << 15],
 ) -> Result<(), std::io::Error> {
     let mut cur = 0;
     if *need_separator {
-        buf[cur] = b' ';
+        output_buf[cur] = b' ';
         cur += 1;
     }
     for chunk in s.chunks(1 << 10) {
@@ -18,50 +18,53 @@ fn encode_buffer_ascii<W: Write>(
             let (bytes, len) = ASCII_TO_QWORD[*c as usize];
             if len == 0 {
             } else if len <= 8 {
-                if (*c == b'\t' || *c == b'\n' || *c == b'\r') && cur > 0 && buf[cur - 1] == b' ' {
+                if (*c == b'\t' || *c == b'\n' || *c == b'\r')
+                    && cur > 0
+                    && output_buf[cur - 1] == b' '
+                {
                     cur -= 1;
                 }
                 unsafe {
-                    let dst = buf.as_mut_ptr().add(cur) as *mut u64;
+                    let dst = output_buf.as_mut_ptr().add(cur) as *mut u64;
                     dst.write_unaligned(bytes);
                 }
             } else {
                 // handle only ASCII character encoded as more than 7 elements + space
                 assert_eq!(*c, b'%');
-                buf[cur..cur + 18].copy_from_slice(b"----- -..-. ----- ");
+                output_buf[cur..cur + 18].copy_from_slice(b"----- -..-. ----- ");
             }
             cur += len;
         }
         // flush buffer
-        if cur >= buf.len() - (1 << 10) * 18 {
-            if buf[cur - 1] == b' ' {
+        if cur >= output_buf.len() - (1 << 10) * 18 {
+            if output_buf[cur - 1] == b' ' {
                 cur -= 1;
-                writer.write_all(&buf[..cur])?;
-                buf[0] = b' ';
+                writer.write_all(&output_buf[..cur])?;
+                output_buf[0] = b' ';
                 cur = 1;
             } else {
-                writer.write_all(&buf[..cur])?;
+                writer.write_all(&output_buf[..cur])?;
                 cur = 0;
             }
         }
     }
     // flush buffer
     if cur != 0 {
-        if buf[cur - 1] == b' ' {
+        if output_buf[cur - 1] == b' ' {
             cur -= 1;
             *need_separator = true;
         } else {
             *need_separator = false;
         }
-        writer.write_all(&buf[..cur])?;
+        writer.write_all(&output_buf[..cur])?;
     }
     Ok(())
 }
 
 pub fn encode_string_ascii(s: &str) -> String {
     let mut writer = BufWriter::new(Vec::new());
-    let mut buf = [0u8; 1 << 15];
-    encode_buffer_ascii(&mut writer, s.as_bytes(), &mut false, &mut buf).unwrap();
+    let mut output_buf = [0u8; 1 << 15];
+    encode_buffer_ascii(&mut writer, s.as_bytes(), &mut false, &mut output_buf).unwrap();
     let vec = writer.into_inner().unwrap();
     String::from_utf8(vec).unwrap()
 }
@@ -69,13 +72,13 @@ pub fn encode_string_ascii(s: &str) -> String {
 pub fn encode_stream_ascii<R: Read, W: Write>(i: &mut R, o: &mut W) {
     let mut input_buf = vec![0u8; 1 << 15];
     let mut need_separator = false;
-    let mut buf = [0u8; 1 << 15];
+    let mut output_buf = [0u8; 1 << 15];
     loop {
         let n = i.read(&mut input_buf).unwrap();
         if n == 0 {
             break;
         }
-        encode_buffer_ascii(o, &input_buf[..n], &mut need_separator, &mut buf).unwrap();
+        encode_buffer_ascii(o, &input_buf[..n], &mut need_separator, &mut output_buf).unwrap();
     }
 }
 
