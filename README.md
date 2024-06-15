@@ -8,11 +8,20 @@ It is _fast_:
 - Encoding Unicode text to Morse code: 730 MiB/s
 - Decoding Morse code: 570 MiB/s
 
-```
+```shell
 $ echo 'Hello, World!' | ripmors
 .... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--.
 $ echo '-- --- .-. ... . / -.-. --- -.. .' | ripmors -d
 MORSE CODE
+```
+
+Or, in Rust:
+
+```rust
+use ripmors::{decode_string, encode_string, to_standard};
+
+assert_eq!(encode_string("Hello, World!"), ".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--.");
+assert_eq!(decode_string(b"-- --- .-. ... . / -.-. --- -.. .", to_standard), "MORSE CODE");
 ```
 
 In addition to the standard International Morse Code and its Latin extensions,
@@ -25,9 +34,18 @@ the following variants are supported:
 - Hebrew
 - Arabic
 
-```
+```shell
 $ echo 'モールスふごう' | ripmors
 -..-. .--.- -.--. ---.- --.. ---- .. ..-
 $ echo '-..-. .--.- -.--. ---.- --.. ---- .. ..-' | ripmors -d japanese
 モルスフコ゛ウ
+```
+
+Or, in Rust:
+
+```rust
+use ripmors::{decode_string, encode_string, to_japanese};
+
+assert_eq!(encode_string("モールスふごう"), "-..-. .--.- -.--. ---.- --.. ---- .. ..-");
+assert_eq!(decode_string(b"-..-. .--.- -.--. ---.- --.. ---- .. ..-", to_japanese), "モルスフコ゛ウ");
 ```

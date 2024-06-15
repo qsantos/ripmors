@@ -1,5 +1,10 @@
 #![warn(unsafe_op_in_unsafe_fn)]
 
+// test examples in the README
+#[doc = include_str!("../README.md")]
+#[cfg(doctest)]
+pub struct ReadmeDoctests;
+
 mod decode;
 mod decode_mapping;
 mod encode_ascii;
