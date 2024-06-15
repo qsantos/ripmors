@@ -61,6 +61,24 @@ fn encode_buffer_ascii(
     Ok(())
 }
 
+/// Encode ASCII characters from a [byte slice][slice] into a [String].
+///
+/// Bytes from `input` are interpreted as ASCII characters. The following ASCII characters are used to
+/// represent Morse code:
+///
+/// - Full stop (.) represents the Morse dot;
+/// - Hyphen (-) represents the Morse dash;
+/// - Space ( ) represents the letter space;
+/// - Slash (/) represents the word space;
+/// - Tab (\t), line feed (\n) and carriage return (\r) are kept as-is.
+///
+/// ASCII characters that cannot be converted to Morse and non-ASCII bytes, such as UTF-8 encodings, are ignored.
+///
+/// For example, the program below encodes ASCII input.
+/// ```
+/// let morse = ripmors::encode_string_ascii(b"Morse code");
+/// assert_eq!(morse, "-- --- .-. ... . / -.-. --- -.. .");
+/// ```
 pub fn encode_string_ascii(input: &[u8]) -> String {
     let mut writer = BufWriter::new(Vec::new());
     let mut output_buf = [0u8; 1 << 15];
