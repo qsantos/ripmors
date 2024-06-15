@@ -336,12 +336,12 @@ pub fn from_unicode(c: char) -> (&'static [u8], usize) {
         'ペ' | 'ぺ' => ". ..--.",     // pe
         'ポ' | 'ぽ' => "-.. ..--.",   // po
         // 4. Other characters in the Wabun code
-        '－' => ".--.-",  // -
-        'ー' => ".--.-",  // -
-        '（' => "-.--.-", // (
-        '）' => ".-..-.", // )
-        '、' => ".-.-.-", // .
-        '」' => ".-.-..", // \n
+        '－' => ".--.-",  // mapped to -
+        'ー' => ".--.-",  // mapped to -
+        '（' => "-.--.-", // mapped to (
+        '）' => ".-..-.", // mapped to )
+        '、' => ".-.-.-", // mapped to .
+        '」' => ".-.-..", // mapped to .
 
         // SKATS for Korean
         // The ARRL handbook for the radio amateur, 19-3 (1985)
