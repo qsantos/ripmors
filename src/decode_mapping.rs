@@ -290,13 +290,13 @@ to_script! {
     ".---." => 'セ', // se
     "---.-" => 'ス', // su
     ".-.-." => 'ン', // n
-    ".." => '゛',          // dakuten modifier
-    "..--." => '゜',       // handakuten modifier
-    ".--.-" => 'ー',       // mapped to -
-    "-.--.-" => '（',      // mapped to (
-    ".-..-." => '）',      // mapped to )
-    ".-.-.-" => '、',      // mapped to .
-    ".-.-.." => '」',      // mapped to .
+    ".." => '゛',    // dakuten modifier
+    "..--." => '゜', // handakuten modifier
+    ".--.-" => 'ー',
+    "-.--.-" => '（',
+    ".-..-." => '）',
+    ".-.-.-" => '、',
+    ".-.-.." => '。',
 }
 
 to_script! {
