@@ -15,6 +15,8 @@ $ echo '-- --- .-. ... . / -.-. --- -.. .' | ripmors -d
 MORSE CODE
 ```
 
+## Usage
+
 Or, in Rust:
 
 ```rust
