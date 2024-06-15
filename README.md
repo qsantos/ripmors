@@ -38,7 +38,7 @@ the following variants are supported:
 $ echo 'モールスふごう' | ripmors
 -..-. .--.- -.--. ---.- --.. ---- .. ..-
 $ echo '-..-. .--.- -.--. ---.- --.. ---- .. ..-' | ripmors -d japanese
-モルスフコ゛ウ
+モールスフコ゛ウ
 ```
 
 Or, in Rust:
@@ -47,5 +47,5 @@ Or, in Rust:
 use ripmors::{decode_string, encode_string, to_japanese};
 
 assert_eq!(encode_string("モールスふごう"), "-..-. .--.- -.--. ---.- --.. ---- .. ..-");
-assert_eq!(decode_string(b"-..-. .--.- -.--. ---.- --.. ---- .. ..-", to_japanese), "モルスフコ゛ウ");
+assert_eq!(decode_string(b"-..-. .--.- -.--. ---.- --.. ---- .. ..-", to_japanese), "モールスフコ゛ウ");
 ```
