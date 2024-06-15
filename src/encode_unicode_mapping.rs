@@ -32,7 +32,7 @@ pub fn from_unicode(c: char) -> (&'static [u8], usize) {
         'ı' => "..",
 
         '“' | '”' | '«' | '»' => ".-..-.", // English & French quotes (1.1.3)
-        '×' => "-..",                      // Multiplication sign (1.1.3)
+        '×' => "-..-",                     // Multiplication sign (1.1.3)
         '‰' => "----- -..-. ----- -----",  // Mapped to "0/00" (3.3.1)
         '′' => ".----.",                   // Minute (3.5.1), mapped to "'"
         '″' => ".----. .----.",            // Second (3.5.1), mapped to "''"
