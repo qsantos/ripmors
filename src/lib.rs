@@ -1,4 +1,8 @@
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))]
+//! # Feature Flags
+//! There is a single feature flag, `clap`. It is only used for the binary. It only exists to
+//! reduce the dependencies of the libraries without splitting the crate.
+
 // Do not consider the body of unsafe functions to be an unsafe block by default. This forces one
 // to explicitly mark what parts of an unsafe functions are actually unsafe.
 #![warn(unsafe_op_in_unsafe_fn)]
