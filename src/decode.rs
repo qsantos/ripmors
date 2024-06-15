@@ -151,6 +151,39 @@ pub fn decode_string(input: &[u8], char_decode: fn(u8) -> char) -> String {
     String::from_utf8(vec).unwrap()
 }
 
+/// Decode Morse code from a [Read][std::io::Read] object into a [Write][std::io::Write] object.
+///
+/// Bytes from `input` are interpreted as ASCII characters.
+///
+/// - Full stop (.) is interpreted as Morse dot;
+/// - Hyphen (-) is interpreted as Morse dash;
+/// - Space ( ) is interpreted as letter space;
+/// - Slash (/) is interpreted as word space;
+/// - Tab (\t), line feed (\n) and carriage return (\r) are kept as-is.
+///
+/// Other ASCII characters, and non-ASCII bytes, such as UTF-8 encodings, are ignored.
+///
+/// **Note:** This will read data from `input` until exhaustion.
+///
+/// The third argument selects a local variant of Morse code. It should be one of:
+///
+/// - [to_standard][crate::to_standard] for International Morse code and Latin extensions;
+/// - [to_arabic][crate::to_arabic] for Arabic;
+/// - [to_greek][crate::to_greek] for Greek;
+/// - [to_hebrew][crate::to_hebrew] for Hebrew;
+/// - [to_japanese][crate::to_japanese] for Japanese (Katakana);
+/// - [to_korean][crate::to_korean] for Korean (Hangul);
+/// - [to_russian][crate::to_russian] for Russian (Cyrillic).
+///
+/// For example, the program below decodes international Morse code.
+/// ```
+/// # #[allow(clippy::needless_doctest_main)]
+/// fn main() {
+///     let mut stdin = std::io::stdin();
+///     let mut stdout = std::io::stdout();
+///     ripmors::decode_stream(&mut stdin, &mut stdout, ripmors::to_standard);
+/// }
+/// ```
 pub fn decode_stream<R: Read, W: Write>(
     input: &mut R,
     output: &mut W,
