@@ -64,6 +64,34 @@ fn morse_to_binary(bytes: &[u8], len: usize) -> u8 {
     }
 }
 
+#[test]
+fn test_morse_to_binary() {
+    // this is just the same tests as for test_morse_to_binary_fast and test_morse_to_binary_safe;
+    // not very imaginative, but it's fast and we'll have covered everything
+
+    // fast-friendly
+    // zero length
+    assert_eq!(morse_to_binary(b"________", 0), 1);
+    assert_eq!(morse_to_binary(b"..._____", 0), 1);
+    assert_eq!(morse_to_binary(b"---_____", 0), 1);
+
+    // non-zero length
+    assert_eq!(morse_to_binary(b"._______", 1), 0b10);
+    assert_eq!(morse_to_binary(b"-_______", 1), 0b11);
+    assert_eq!(morse_to_binary(b"..-.____", 4), 0b10100);
+
+    // fast-unfriendly
+    // zero length
+    assert_eq!(morse_to_binary(b"", 0), 1);
+    assert_eq!(morse_to_binary(b"...", 0), 1);
+    assert_eq!(morse_to_binary(b"---", 0), 1);
+
+    // non-zero length
+    assert_eq!(morse_to_binary(b".", 1), 0b10);
+    assert_eq!(morse_to_binary(b"-", 1), 0b11);
+    assert_eq!(morse_to_binary(b"..-.", 4), 0b10100);
+}
+
 fn decode_buffer(
     output: &mut impl Write,
     input: &[u8],
