@@ -89,15 +89,15 @@ pub fn encode_stream<R: Read, W: Write>(i: &mut R, o: &mut W) {
             break;
         }
         bytes_available += n;
-        let s = match simdutf8::compat::from_utf8(&input_buf[..bytes_available]) {
-            Ok(s) => s,
+        let (s, bytes_decoded) = match simdutf8::compat::from_utf8(&input_buf[..bytes_available]) {
+            Ok(s) => (s, bytes_available),
             Err(e) => {
                 let bytes_decoded = e.valid_up_to();
-                unsafe { core::str::from_utf8_unchecked(&input_buf[..bytes_decoded]) }
+                let s = unsafe { core::str::from_utf8_unchecked(&input_buf[..bytes_decoded]) };
+                (s, bytes_decoded)
             }
         };
         encode_buffer(o, s, &mut need_separator, &mut buf).unwrap();
-        let bytes_decoded = s.as_bytes().len();
         input_buf.copy_within(bytes_decoded..bytes_available, 0);
         bytes_available -= bytes_decoded;
     }
