@@ -380,11 +380,11 @@ pub fn from_unicode(c: char) -> (&'static [u8], usize) {
         // https://archive.org/details/arrlhandbookforr0000unse_w7j4/page/n415/mode/2up
         'א' => ".-",   // alef
         'ב' => "-...", // bet
-        //'בּ' => "-...", // dotted bet
+        //'בּ' => "-...", // dotted bet (multiple Unicode codepoints)
         'ג' => "--.", // gimel
-        //'גּ' => "--.",   // dotted gimel
+        //'גּ' => "--.",   // dotted gimel (multiple Unicode codepoints)
         'ד' => "-..", // dalet
-        //'דּ' => "-..",   // dotted dalet
+        //'דּ' => "-..",   // dotted dalet (multiple Unicode codepoints)
         'ה' => "---",  // he
         'ו' => ".",    // vav
         'ז' => "--..", // zayin
@@ -392,9 +392,9 @@ pub fn from_unicode(c: char) -> (&'static [u8], usize) {
         'ט' => "..-",  // tet
         'י' => "..",   // yod
         'ך' => "-.-",  // final kaf
-        //'ךּ' => "-.-",   // dotted final kaf
+        //'ךּ' => "-.-",   // dotted final kaf (multiple Unicode codepoints)
         'כ' => "-.-", // kaf
-        //'כּ' => "-.-",   // dotted kaf
+        //'כּ' => "-.-",   // dotted kaf (multiple Unicode codepoints)
         'ל' => ".-..", // lamed
         'ם' => "--",   // final mem
         'מ' => "--",   // mem
@@ -403,18 +403,18 @@ pub fn from_unicode(c: char) -> (&'static [u8], usize) {
         'ס' => "-.-.", // samekh
         'ע' => ".---", // ayin
         'ף' => ".--.", // final pe
-        //'ףּ' => ".--.", // final pe
+        //'ףּ' => ".--.", // final pe (multiple Unicode codepoints)
         'פ' => ".--.", // pe
-        //'פּ' => ".--.", // dotted pe
+        //'פּ' => ".--.", // dotted pe (multiple Unicode codepoints)
         'ץ' => ".--",  // final tsadi
         'צ' => ".--",  // tsadi
         'ק' => "--.-", // qof
         'ר' => ".-.",  // resh
         'ש' => "...",  // dotless shin
-        //'שׁ' => "...",   // right-dotted shin
-        //'שׂ' => "...",   // left-dotted shin
+        //'שׁ' => "...",   // right-dotted shin (multiple Unicode codepoints)
+        //'שׂ' => "...",   // left-dotted shin (multiple Unicode codepoints)
         'ת' => "-", // dotless tav
-        //'תּ' => "-",     // dotted tav
+        //'תּ' => "-",     // dotted tav (multiple Unicode codepoints)
 
         // Arabic
         // The ARRL handbook for the radio amateur, 19-3 (1985)
@@ -452,7 +452,7 @@ pub fn from_unicode(c: char) -> (&'static [u8], usize) {
         'و' => ".--",   // wāw
         'ے' => "..",    // yāʾ/yah
         'ي' => "..",    // yāʾ/yah
-        //'لا' => ".-...-", // lām-alif (ligature)
+        //'لا' => ".-...-", // lām-alif (ligature) (multiple Unicode codepoints)
         // other characters without a reference
         'ء' => ".", // hamzah
     }
