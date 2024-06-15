@@ -70,6 +70,23 @@ fn encode_buffer(
     Ok(())
 }
 
+/// Encode characters from a [string slice][&str] into a [String].
+///
+/// The following ASCII characters are used to represent Morse code:
+///
+/// - Full stop (.) represents the Morse dot;
+/// - Hyphen (-) represents the Morse dash;
+/// - Space ( ) represents the letter space;
+/// - Slash (/) represents the word space;
+/// - Tab (\t), line feed (\n) and carriage return (\r) are kept as-is.
+///
+/// Characters that cannot be converted to Morse are ignored.
+///
+/// For example, the program below encodes a string slice.
+/// ```
+/// let morse = ripmors::encode_string("télégraphie");
+/// assert_eq!(morse, "- ..-.. .-.. ..-.. --. .-. .- .--. .... .. .");
+/// ```
 pub fn encode_string(input: &str) -> String {
     let mut writer = BufWriter::new(Vec::new());
     let mut output_buf = [0u8; 1 << 15];
