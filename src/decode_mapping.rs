@@ -59,6 +59,9 @@ to_script! {
     // NOTE: Mappings are sorted like a complete binary tree in array representation. In other
     // words, they are sorted by length, then in lexicographic order. For lengths up to 5, all
     // possible combinations of Morse symbols are listed.
+    //
+    // This is the same order as in
+    // The ARRL handbook for the Radio Amateur (1985), 19-20 https://archive.org/details/arrlhandbookforr0000unse_w7j4/page/n433/mode/2up
 
     // One element
     "." => 'E',
@@ -84,9 +87,9 @@ to_script! {
     "...." => 'H',
     "...-" => 'V',
     "..-." => 'F',
-    // ..--
+    "..--" => 'Ü',
     ".-.." => 'L',
-    // .-.-
+    ".-.-" => 'Ä',
     ".--." => 'P',
     ".---" => 'J',
     "-..." => 'B',
@@ -95,59 +98,62 @@ to_script! {
     "-.--" => 'Y',
     "--.." => 'Z',
     "--.-" => 'Q',
-    // ---.
-    // ----
+    "---." => 'Ö',
+    // "----" => 'CH', // no single Unicode codepoint for this digraph
 
     // Five elements
     "....." => '5',
     "....-" => '4',
-    // ...-.
+    // "...-." => '<SN>', // prosign
     "...--" => '3',
-    // ..-..
-    // ..-.-
-    "..--." => '!',
+    "..-.." => 'É', // or 'È' or 'Ę'
+    // "..-.-" => '<INT>', // prosign
+    "..--." => '!', // ??
     "..---" => '2',
-    // .-...
-    // .-..-
-    ".-.-." => '+',
+    // ".-..." => '<AS>',
+    // ".-..-" => '<AU>',
+    ".-.-." => '+', // or '<AR>'
     // .-.--
     // .--..
-    // .--.-
+    ".--.-" => 'Á', // or 'À' or 'Ä' or 'Å'
     // .---.
     ".----" => '1',
     "-...." => '6',
-    "-...-" => '=',
-    "-..-." => '/',
+    "-...-" => '=', // or '<BT>'
+    "-..-." => '/', // or '<DN>'
     // -..--
-    // -.-..
-    // -.-.-
-    "-.--." => '(',
+    "-.-.." => 'Ç',
+    // "-.-.-" => '<KA>', // prosign
+    "-.--." => '(', // or '<KN>'
     // -.---
     "--..." => '7',
-    // --..-
-    // --.-.
-    // --.--
+    "--..-" => 'Ź', // or 'Ż', probably, but not listed in ARRL handbook
+    // --.-. // NOTE: missing from the ARRL handbook
+    "--.--" => 'Ñ', // NOTE: typo in the ARRL handbook incorrectly shows it encoded as --..--
     "---.." => '8',
     // ---.-
     "----." => '9',
     "-----" => '0',
 
     // Six elements (only mapped)
-    "..--.." => '?',
-    "..--.-" => '_',
-    ".-..-." => '"',
-    ".-.-.-" => '.',
-    ".--.-." => '@',
-    ".----." => '\'',
-    ".-----." => '`',
-    "-....-" => '-',
-    "-.-.-." => ';',
-    "-.--.-" => ')',
-    "--..--" => ',',
-    "---..." => ':',
+    // "....--" => '<HM>', // prosign
+    // "...-.-" => '<SK>', // prosign
+    // "..-..-" => '<IX>', // prosign
+    "..--.." => '?', // or '<IMI>'
+    "..--.-" => '_', // or '<IQ>'
+    ".-..-." => '"', // or '<AF>'
+    ".-.-.-" => '.', // or '<AAA>'
+    ".--.-." => '@', // becaome official after 1985 ARRL handbook was published
+    ".----." => '\'', // or '<WG>'
+    "-....-" => '-', // or '<DU>'
+    "-.-.-." => ';', // or '<KR>'
+    "-.--.-" => ')', // or '<KK>'
+    "--..--" => ',', // or '<MIM>'
+    "---..." => ':', // or '<OS>'
 
     // Seven elements (only mapped)
-    "...-..-" => '$',
+    "...-..-" => '$', // or '<SX>'
+    ".-----." => '`',
 }
 
 to_script! {

@@ -29,7 +29,10 @@ pub fn from_unicode(c: char) -> (&'static [u8], usize) {
     from_unicode! {
         c,
         // non-English Latin extensions (from https://en.wikipedia.org/wiki/Morse_code#Letters,_numbers,_punctuation,_prosigns_for_Morse_code_and_non-Latin_variants)
+        // The ARRL handbook for the Radio Amateur (1985), 19-2 https://archive.org/details/arrlhandbookforr0000unse_w7j4/page/n415/mode/2up
+        // The ARRL handbook for the Radio Amateur (1985), 19-20 https://archive.org/details/arrlhandbookforr0000unse_w7j4/page/n433/mode/2up
         // Uppercase | Lowercase
+        'Á' | 'á' => ".--.-",
         'À' | 'à' => ".--.-",
         'Ä' | 'ä' => ".-.-",
         'Å' | 'å' => ".--.-",
@@ -48,7 +51,7 @@ pub fn from_unicode(c: char) -> (&'static [u8], usize) {
         'Ĵ' | 'ĵ' => ".---.",
         'Ł' | 'ł' => ".-..-",
         'Ń' | 'ń' => "--.--",
-        'Ñ' | 'ñ' => "--.--",
+        'Ñ' | 'ñ' => "--.--", // NOTE: typo in the ARRL handbook incorrectly shows it encoded as --..--
         'Ó' | 'ó' => "---.",
         'Ö' | 'ö' => "---.",
         'Ø' | 'ø' => "---.",
@@ -60,9 +63,8 @@ pub fn from_unicode(c: char) -> (&'static [u8], usize) {
         'Ŭ' | 'ŭ' => "..--",
         'Ź' | 'ź' => "--..-.",
         'Ż' | 'ż' => "--..-.",
-        // not in Wikipedia article
+        // not in Wikipedia article nor in ARRL handbook
         'ß' => "...--..",
-        'Á' | 'á' => ".--.-",
         'Œ' | 'œ' => "---.",
         'Ì' | 'ì' => ".---.",
 
