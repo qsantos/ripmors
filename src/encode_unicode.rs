@@ -4,8 +4,8 @@ use crate::encode_ascii_mapping::ASCII_TO_QWORD;
 use crate::encode_unicode_mapping::from_unicode;
 
 fn encode_buffer<W: Write>(
-    writer: &mut W,
-    s: &str,
+    output: &mut W,
+    input: &str,
     need_separator: &mut bool,
     output_buf: &mut [u8; 1 << 15],
 ) -> Result<(), std::io::Error> {
@@ -14,7 +14,7 @@ fn encode_buffer<W: Write>(
         output_buf[cur] = b' ';
         cur += 1;
     }
-    for c in s.chars() {
+    for c in input.chars() {
         if c.is_ascii() {
             let (bytes, len) = ASCII_TO_QWORD[c as usize];
             if len == 0 {
@@ -48,11 +48,11 @@ fn encode_buffer<W: Write>(
         if cur >= output_buf.len() - 25 {
             if output_buf[cur - 1] == b' ' {
                 cur -= 1;
-                writer.write_all(&output_buf[..cur])?;
+                output.write_all(&output_buf[..cur])?;
                 output_buf[0] = b' ';
                 cur = 1;
             } else {
-                writer.write_all(&output_buf[..cur])?;
+                output.write_all(&output_buf[..cur])?;
                 cur = 0;
             }
         }
@@ -65,39 +65,41 @@ fn encode_buffer<W: Write>(
         } else {
             *need_separator = false;
         }
-        writer.write_all(&output_buf[..cur])?;
+        output.write_all(&output_buf[..cur])?;
     }
     Ok(())
 }
 
-pub fn encode_string(s: &str) -> String {
+pub fn encode_string(input: &str) -> String {
     let mut writer = BufWriter::new(Vec::new());
     let mut output_buf = [0u8; 1 << 15];
-    encode_buffer(&mut writer, s, &mut false, &mut output_buf).unwrap();
+    encode_buffer(&mut writer, input, &mut false, &mut output_buf).unwrap();
     let vec = writer.into_inner().unwrap();
     String::from_utf8(vec).unwrap()
 }
 
-pub fn encode_stream<R: Read, W: Write>(i: &mut R, o: &mut W) {
+pub fn encode_stream<R: Read, W: Write>(input: &mut R, output: &mut W) {
     let mut input_buf = vec![0u8; 1 << 15];
     let mut bytes_available = 0;
     let mut need_separator = false;
     let mut output_buf = [0u8; 1 << 15];
     loop {
-        let n = i.read(&mut input_buf[bytes_available..]).unwrap();
-        if n == 0 {
+        let bytes_read = input.read(&mut input_buf[bytes_available..]).unwrap();
+        if bytes_read == 0 {
             break;
         }
-        bytes_available += n;
-        let (s, bytes_decoded) = match simdutf8::compat::from_utf8(&input_buf[..bytes_available]) {
-            Ok(s) => (s, bytes_available),
-            Err(e) => {
-                let bytes_decoded = e.valid_up_to();
-                let s = unsafe { core::str::from_utf8_unchecked(&input_buf[..bytes_decoded]) };
-                (s, bytes_decoded)
-            }
-        };
-        encode_buffer(o, s, &mut need_separator, &mut output_buf).unwrap();
+        bytes_available += bytes_read;
+        let (decoded, bytes_decoded) =
+            match simdutf8::compat::from_utf8(&input_buf[..bytes_available]) {
+                Ok(decoded) => (decoded, bytes_available),
+                Err(e) => {
+                    let bytes_decoded = e.valid_up_to();
+                    let decoded =
+                        unsafe { core::str::from_utf8_unchecked(&input_buf[..bytes_decoded]) };
+                    (decoded, bytes_decoded)
+                }
+            };
+        encode_buffer(output, decoded, &mut need_separator, &mut output_buf).unwrap();
         input_buf.copy_within(bytes_decoded..bytes_available, 0);
         bytes_available -= bytes_decoded;
     }

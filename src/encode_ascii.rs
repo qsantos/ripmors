@@ -3,8 +3,8 @@ use std::io::{BufWriter, Read, Write};
 use crate::encode_ascii_mapping::ASCII_TO_QWORD;
 
 fn encode_buffer_ascii<W: Write>(
-    writer: &mut W,
-    s: &[u8],
+    output: &mut W,
+    input: &[u8],
     need_separator: &mut bool,
     output_buf: &mut [u8; 1 << 15],
 ) -> Result<(), std::io::Error> {
@@ -13,7 +13,7 @@ fn encode_buffer_ascii<W: Write>(
         output_buf[cur] = b' ';
         cur += 1;
     }
-    for chunk in s.chunks(1 << 10) {
+    for chunk in input.chunks(1 << 10) {
         for c in chunk {
             let (bytes, len) = ASCII_TO_QWORD[*c as usize];
             if len == 0 {
@@ -39,11 +39,11 @@ fn encode_buffer_ascii<W: Write>(
         if cur >= output_buf.len() - (1 << 10) * 18 {
             if output_buf[cur - 1] == b' ' {
                 cur -= 1;
-                writer.write_all(&output_buf[..cur])?;
+                output.write_all(&output_buf[..cur])?;
                 output_buf[0] = b' ';
                 cur = 1;
             } else {
-                writer.write_all(&output_buf[..cur])?;
+                output.write_all(&output_buf[..cur])?;
                 cur = 0;
             }
         }
@@ -56,29 +56,35 @@ fn encode_buffer_ascii<W: Write>(
         } else {
             *need_separator = false;
         }
-        writer.write_all(&output_buf[..cur])?;
+        output.write_all(&output_buf[..cur])?;
     }
     Ok(())
 }
 
-pub fn encode_string_ascii(s: &str) -> String {
+pub fn encode_string_ascii(input: &str) -> String {
     let mut writer = BufWriter::new(Vec::new());
     let mut output_buf = [0u8; 1 << 15];
-    encode_buffer_ascii(&mut writer, s.as_bytes(), &mut false, &mut output_buf).unwrap();
+    encode_buffer_ascii(&mut writer, input.as_bytes(), &mut false, &mut output_buf).unwrap();
     let vec = writer.into_inner().unwrap();
     String::from_utf8(vec).unwrap()
 }
 
-pub fn encode_stream_ascii<R: Read, W: Write>(i: &mut R, o: &mut W) {
+pub fn encode_stream_ascii<R: Read, W: Write>(input: &mut R, output: &mut W) {
     let mut input_buf = vec![0u8; 1 << 15];
     let mut need_separator = false;
     let mut output_buf = [0u8; 1 << 15];
     loop {
-        let n = i.read(&mut input_buf).unwrap();
-        if n == 0 {
+        let bytes_read = input.read(&mut input_buf).unwrap();
+        if bytes_read == 0 {
             break;
         }
-        encode_buffer_ascii(o, &input_buf[..n], &mut need_separator, &mut output_buf).unwrap();
+        encode_buffer_ascii(
+            output,
+            &input_buf[..bytes_read],
+            &mut need_separator,
+            &mut output_buf,
+        )
+        .unwrap();
     }
 }
 
