@@ -16,7 +16,7 @@ macro_rules! element_to_binary_digit {
 }
 
 macro_rules! to_script {
-    ($array_name:ident, $function_name:ident, $($elements:expr => $character:expr),+ $(,)? ) => {
+    ($(#[$outer:meta])* $array_name:ident, $function_name:ident, $($elements:expr => $character:expr),+ $(,)? ) => {
         const $array_name: [char; 256] = {
             let mut x = ['\0'; 256];
             $(
@@ -39,6 +39,13 @@ macro_rules! to_script {
             x[0] = ' ';
             x
         };
+        $(#[$outer])*
+        ///
+        /// This function should not be called directly, but passed as an argument to either
+        /// [decode_stream][crate::decode_stream] or [decode_string][crate::decode_string].
+        ///
+        /// The `elements` parameter represents up to 7 Morse code elements. There is one bit per
+        /// element (0 for dot, 1 for dash), and a leading bit do detect the number of elements.
         pub fn $function_name(elements: u8) -> char {
             $array_name[elements as usize]
         }
@@ -46,6 +53,7 @@ macro_rules! to_script {
 }
 
 to_script! {
+    /// Mapping from Morse code to Latin text
     TO_STANDARD,
     to_standard,
     // NOTE: Mappings are sorted like a complete binary tree in array representation. In other
@@ -143,6 +151,7 @@ to_script! {
 }
 
 to_script! {
+    /// Mapping from Morse code to Greek text
     TO_GREEK,
     to_greek,
     // Greek Morse code
@@ -177,6 +186,7 @@ to_script! {
 }
 
 to_script! {
+    /// Mapping from Morse code to Russian (Cyrillic) text
     TO_RUSSIAN,
     to_russian,
     // Russian Morse code for Cyrillic
@@ -218,6 +228,7 @@ to_script! {
 }
 
 to_script! {
+    /// Mapping from Morse code to Japanese (Katakana) text
     TO_JAPANESE,
     to_japanese,
     // Wabun code for Japanese, tnx JE1TRV
@@ -310,6 +321,7 @@ to_script! {
 }
 
 to_script! {
+    /// Mapping from Morse code to Korean (Hangul) text
     TO_KOREAN,
     to_korean,
     // SKATS for Korean
@@ -346,6 +358,7 @@ to_script! {
 }
 
 to_script! {
+    /// Mapping from Morse code to Hebrew text
     TO_HEBREW,
     to_hebrew,
     // Hebrew
@@ -376,6 +389,7 @@ to_script! {
 }
 
 to_script! {
+    /// Mapping from Morse code to Arabic text
     TO_ARABIC,
     to_arabic,
     // Arabic
