@@ -111,7 +111,7 @@ pub fn encode_string(input: &str) -> String {
 /// **Note:** This will read data from `input` until exhaustion.
 ///
 /// For example, the program below encodes an UTF-8 input.
-/// ```
+/// ```no_run
 /// # #[allow(clippy::needless_doctest_main)]
 /// fn main() {
 ///     let mut stdin = std::io::stdin();

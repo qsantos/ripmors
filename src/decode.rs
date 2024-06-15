@@ -203,7 +203,7 @@ pub fn decode_string(input: &[u8], char_decode: fn(u8) -> char) -> String {
 /// - [to_russian][crate::to_russian] for Russian (Cyrillic).
 ///
 /// For example, the program below decodes international Morse code.
-/// ```
+/// ```no_run
 /// # #[allow(clippy::needless_doctest_main)]
 /// fn main() {
 ///     let mut stdin = std::io::stdin();

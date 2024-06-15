@@ -103,7 +103,7 @@ pub fn encode_string_ascii(input: &[u8]) -> String {
 /// **Note:** This will read data from `input` until exhaustion.
 ///
 /// For example, the program below encodes ASCII input.
-/// ```
+/// ```no_run
 /// # #[allow(clippy::needless_doctest_main)]
 /// fn main() {
 ///     let mut stdin = std::io::stdin();
