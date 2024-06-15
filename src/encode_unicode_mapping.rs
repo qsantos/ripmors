@@ -28,7 +28,7 @@ pub fn from_unicode(c: char) -> (&'static [u8], usize) {
     }
     from_unicode! {
         c,
-        // non-Latin extensions (from https://en.wikipedia.org/wiki/Morse_code#Letters,_numbers,_punctuation,_prosigns_for_Morse_code_and_non-Latin_variants)
+        // non-English Latin extensions (from https://en.wikipedia.org/wiki/Morse_code#Letters,_numbers,_punctuation,_prosigns_for_Morse_code_and_non-Latin_variants)
         // Uppercase | Lowercase
         'À' | 'à' => ".--.-",
         'Ä' | 'ä' => ".-.-",
@@ -38,7 +38,6 @@ pub fn from_unicode(c: char) -> (&'static [u8], usize) {
         'Ć' | 'ć' => "-.-..",
         'Ĉ' | 'ĉ' => "-.-..",
         'Ç' | 'ç' => "-.-..",
-        // 'CH' | 'ch' => "----",
         'Đ' | 'đ' => "..-..",
         'Ð' | 'ð' => "..-.",
         'É' | 'é' => "..-..",
@@ -61,10 +60,7 @@ pub fn from_unicode(c: char) -> (&'static [u8], usize) {
         'Ŭ' | 'ŭ' => "..--",
         'Ź' | 'ź' => "--..-.",
         'Ż' | 'ż' => "--..-.",
-
-        // other characters without a reference
-        // Uppercase | Lowercase
-        /* "SS" */
+        // not in Wikipedia article
         'ß' => "...--..",
         'Á' | 'á' => ".--.-",
         'Œ' | 'œ' => "---.",
