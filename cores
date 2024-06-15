@@ -1,35 +1,5 @@
-#!/usr/bin/env python3
-from statistics import fmean, stdev
-from subprocess import DEVNULL, run
-from time import perf_counter
-
-task = ["./target/release/ripmors", "-e", "ascii"]
-with open("1-original.txt", "rb") as f:
-    data = f.read()
-data = data + data
-data = data + data
-data = data + data
-data = data + data
-data = data + data
-
-
-iterations_per_core = 1000
-cores = 32
-total_iterations = iterations_per_core * cores
-
-times = {core: [] for core in range(32)}
-
-for iteration_per_core in range(iterations_per_core):
-    for core in range(cores):
-        iteration = iteration_per_core * cores + core
-        print(f"\r{iteration / total_iterations * 100:5.1f} %", end="", flush=True)
-
-        start = perf_counter()
-        run(["taskset", "-c", str(core), *task], check=True, input=data, stdout=DEVNULL)
-        elapsed = perf_counter() - start
-        times[core].append(elapsed)
-
-print("\r", end="")
-print(f"Core  Min   Mean  ±Stdev Max")
-for core, times in times.items():
-    print(f"{core:4}  {min(times):.2f}  {fmean(times):.2f}  ±{stdev(times):.2f}  {max(times):.2f}")
+#!/usr/bin/env bash
+last=$(( $(nproc) - 1 ))
+(for N in $(seq 0 $last); do
+    echo "$(cat /sys/devices/system/cpu/cpu${N}/acpi_cppc/highest_perf) ${N}"
+done) | sort -n
