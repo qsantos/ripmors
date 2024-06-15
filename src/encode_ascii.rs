@@ -61,10 +61,10 @@ fn encode_buffer_ascii(
     Ok(())
 }
 
-pub fn encode_string_ascii(input: &str) -> String {
+pub fn encode_string_ascii(input: &[u8]) -> String {
     let mut writer = BufWriter::new(Vec::new());
     let mut output_buf = [0u8; 1 << 15];
-    encode_buffer_ascii(&mut writer, input.as_bytes(), &mut false, &mut output_buf).unwrap();
+    encode_buffer_ascii(&mut writer, input, &mut false, &mut output_buf).unwrap();
     let vec = writer.into_inner().unwrap();
     String::from_utf8(vec).unwrap()
 }
@@ -114,13 +114,13 @@ pub fn encode_stream_ascii(input: &mut impl Read, output: &mut impl Write) {
 
 #[test]
 fn test_ascii_encode_simple() {
-    assert_eq!(encode_string_ascii("PARIS"), ".--. .- .-. .. ...");
+    assert_eq!(encode_string_ascii(b"PARIS"), ".--. .- .-. .. ...");
     assert_eq!(
-        encode_string_ascii("Hello, World!"),
+        encode_string_ascii(b"Hello, World!"),
         ".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--."
     );
     assert_eq!(
-        encode_string_ascii("one line\nand  another\tline"),
+        encode_string_ascii(b"one line\nand  another\tline"),
         "--- -. . / .-.. .. -. .\n.- -. -.. / / .- -. --- - .... . .-.\t.-.. .. -. ."
     );
 }
@@ -129,10 +129,9 @@ fn test_ascii_encode_simple() {
 #[test]
 fn test_ascii_encode_random_short() {
     use rand::{distributions::Standard, Rng};
-    let data: String = rand::thread_rng()
+    let data: Vec<u8> = rand::thread_rng()
         .sample_iter::<u8, _>(Standard)
         .take(1024)
-        .map(|c| c as char)
         .collect();
     encode_string_ascii(&data);
 }
@@ -141,10 +140,9 @@ fn test_ascii_encode_random_short() {
 #[cfg_attr(miri, ignore)]
 fn test_ascii_encode_random_large() {
     use rand::{distributions::Standard, Rng};
-    let data: String = rand::thread_rng()
+    let data: Vec<u8> = rand::thread_rng()
         .sample_iter::<u8, _>(Standard)
         .take(1048576)
-        .map(|c| c as char)
         .collect();
     encode_string_ascii(&data);
 }

@@ -6,6 +6,7 @@ use ripmors::*;
 
 fn ascii_benchmark(c: &mut Criterion) {
     let data = std::fs::read_to_string("1-original.txt").unwrap();
+    let data = data.as_bytes();
     let mut f = std::fs::File::open("1-original.txt").unwrap();
     let mut devnull = std::fs::File::create("/dev/null").unwrap();
     let mut group = c.benchmark_group("Encode ASCII");
