@@ -87,9 +87,9 @@ to_script! {
     "...." => 'H',
     "...-" => 'V',
     "..-." => 'F',
-    "..--" => 'Ü',
+    "..--" => 'Ü', // or 'Ŭ' according to Wikipedia
     ".-.." => 'L',
-    ".-.-" => 'Ä',
+    ".-.-" => 'Ä', // or 'Æ' or 'Ą' according to Wikipedia
     ".--." => 'P',
     ".---" => 'J',
     "-..." => 'B',
@@ -98,42 +98,43 @@ to_script! {
     "-.--" => 'Y',
     "--.." => 'Z',
     "--.-" => 'Q',
-    "---." => 'Ö',
-    // "----" => 'CH', // no single Unicode codepoint for this digraph
+    "---." => 'Ö', // or 'Ó' or 'Ø', according to Wikipedia, or 'Œ' maybe
+    "----" => 'Ĥ', // according to Wikipedia, or 'Š' according to Wikipedia, or 'CH' (no single Unicode codepoint)
 
     // Five elements
     "....." => '5',
     "....-" => '4',
-    // "...-." => '<SN>', // prosign
+    "...-." => 'Ŝ', // according to Wikipedia, or '<SN>'
     "...--" => '3',
-    "..-.." => 'É', // or 'È' or 'Ę'
+    "..-.." => 'É', // or 'Đ' according to Wikipedia, or 'Ę'
     // "..-.-" => '<INT>', // prosign
-    // ..--.
+    "..--." => 'Ð', // according to Wikipedia
     "..---" => '2',
     // ".-..." => '<AS>',
-    // ".-..-" => '<AU>',
+    ".-..-" => 'È', // according to Wikipedia, or 'Ł' according to Wikipedia, or '<AU>',
     ".-.-." => '+', // or '<AR>'
     // .-.--
-    // .--..
-    ".--.-" => 'Á', // or 'À' or 'Ä' or 'Å'
-    // .---.
+    ".--.." => 'Þ', // according to Wikipedia
+    ".--.-" => 'Á', // or 'À' or 'Å'
+    ".---." => 'Ĵ', // according to Wikipedia, or 'Ì' according to Wikipedia
     ".----" => '1',
     "-...." => '6',
     "-...-" => '=', // or '<BT>'
     "-..-." => '/', // or '<DN>'
     // -..--
-    "-.-.." => 'Ç',
+    "-.-.." => 'Ç', // or 'Ç' or 'Ć' according to Wikipedia
     // "-.-.-" => '<KA>', // prosign
     "-.--." => '(', // or '<KN>'
     // -.---
     "--..." => '7',
-    "--..-" => 'Ź', // or 'Ż', probably, but not listed in ARRL handbook
-    // --.-. // NOTE: missing from the ARRL handbook
-    "--.--" => 'Ñ', // NOTE: typo in the ARRL handbook incorrectly shows it encoded as --..--
+    "--..-" => 'Ź', // or 'Ż' according to Wikipedia
+    "--.-." => 'Ĝ', // according to Wikipedia; NOTE: missing from the ARRL handbook
+    "--.--" => 'Ñ', // or 'Ń' according to Wikipedia; NOTE: typo in the ARRL handbook incorrectly shows it encoded as --..--
     "---.." => '8',
     // ---.-
     "----." => '9',
     "-----" => '0',
+
 
     // Six elements (only mapped)
     // "....--" => '<HM>', // prosign
@@ -153,7 +154,9 @@ to_script! {
     "---..." => ':', // or '<OS>'
 
     // Seven elements (only mapped)
+    "...-..." => 'Ś', // according to Wikipedia
     "...-..-" => '$', // or '<SX>'
+    "...--.." => 'ß', // according to Wikipedia
     ".-----." => '`',
 }
 
