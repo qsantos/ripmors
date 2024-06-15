@@ -28,15 +28,6 @@ pub fn from_unicode(c: char) -> (&'static [u8], usize) {
     }
     from_unicode! {
         c,
-        // Dot-less i (see https://en.wikipedia.org/wiki/Dotless_I)
-        'ı' => "..",
-
-        '“' | '”' | '«' | '»' => ".-..-.", // English & French quotes (1.1.3)
-        '×' => "-..-",                     // Multiplication sign (1.1.3)
-        '‰' => "----- -..-. ----- -----",  // Mapped to "0/00" (3.3.1)
-        '′' => ".----.",                   // Minute (3.5.1), mapped to "'"
-        '″' => ".----. .----.",            // Second (3.5.1), mapped to "''"
-
         // non-Latin extensions (from https://en.wikipedia.org/wiki/Morse_code#Letters,_numbers,_punctuation,_prosigns_for_Morse_code_and_non-Latin_variants)
         // Uppercase | Lowercase
         'À' | 'à' => ".--.-",
@@ -79,7 +70,12 @@ pub fn from_unicode(c: char) -> (&'static [u8], usize) {
         'Œ' | 'œ' => "---.",
         'Ì' | 'ì' => ".---.",
 
-        // mapping of other Latin characters with diacritics to standard characters
+        // mappings to standard characters
+        '“' | '”' | '«' | '»' => ".-..-.", // English & French quotes (1.1.3), mapped to "
+        '×' => "-..-",                     // Multiplication sign (1.1.3), mapped to x
+        '‰' => "----- -..-. ----- -----",  // Per mille (3.3.1), mapped to 0/00
+        '′' => ".----.",                   // Minute (3.5.1), mapped to '
+        '″' => ".----. .----.",            // Second (3.5.1), mapped to ''
         // Uppercase | Lowercase
         // A
         'Â' | 'â' => ".-",
@@ -105,6 +101,7 @@ pub fn from_unicode(c: char) -> (&'static [u8], usize) {
         // H
         'Ħ' | 'ħ' => "....",
         // I
+        'ı' => "..",
         'Í' | 'í' => "..",
         'Î' | 'î' => "..",
         'Ï' | 'ï' => "..",
