@@ -202,7 +202,8 @@ to_script! {
     // https://en.wikipedia.org/wiki/Russian_Morse_code (1857)
     // Полное собрание законов Российской Империи. Собрание Второе
     // These are listed in the order of the Wikipedia page (alphabetical
-    // order of the corresponding latin script character)
+    // order of the corresponding Latin script character)
+    // letters
     ".-" => 'А',   // a
     "-..." => 'Б', // be
     ".--" => 'В',  // ve
@@ -234,6 +235,32 @@ to_script! {
     "..-.." => 'Ѣ', // yat  in Wikipedia article and in Russian law document
     "..--" => 'Ю',  // yu
     ".-.-" => 'Я',  // ya
+    // numbers
+    ".----" => '1',
+    "..---" => '2',
+    "...--" => '3',
+    "....-" => '4',
+    "....." => '5',
+    "-...." => '6',
+    "--..." => '7',
+    "---.." => '8',
+    "----." => '9',
+    "-----" => '0',
+    // punctuation
+    "......" => '.',
+    ".-.-.-" => ',',
+    "---..." => ':',
+    "-.-.-" => ';',
+    "-.--.-" => '(', // or ')'
+    ".----." => '\'',
+    ".-..-." => '"',
+    "-....-" => '—',
+    "-..-." => '/',
+    "..--.." => '?',
+    "--..--" => '!',
+    "-...-" => '-',
+    // "........" => '', // error/redo
+    ".--.-." => '@',
 }
 
 to_script! {
