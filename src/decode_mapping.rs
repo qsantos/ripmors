@@ -22,8 +22,7 @@ macro_rules! to_script {
             $(
                 let elements = $elements.as_bytes();
                 let mut binary_value = 1;
-                if elements.len() > 8 { panic!("Too many elements"); }
-                element_to_binary_digit!(binary_value, elements, 7);
+                if elements.len() >= 8 { panic!("Too many elements"); }
                 element_to_binary_digit!(binary_value, elements, 6);
                 element_to_binary_digit!(binary_value, elements, 5);
                 element_to_binary_digit!(binary_value, elements, 4);
