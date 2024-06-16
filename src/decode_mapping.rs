@@ -196,7 +196,7 @@ to_script! {
 }
 
 to_script! {
-    /// Mapping from Morse code to Russian (Cyrillic) text
+    /// Mapping from Morse code to Russian (Cyrillic) text ([Russian Morse code](https://en.wikipedia.org/wiki/Russian_Morse_code))
     TO_RUSSIAN,
     to_russian,
     // Russian Morse code for Cyrillic
@@ -238,7 +238,7 @@ to_script! {
 }
 
 to_script! {
-    /// Mapping from Morse code to Japanese (Katakana) text
+    /// Mapping from Morse code to Japanese (Katakana) text ([Wabun code](https://en.wikipedia.org/wiki/Wabun_code))
     TO_JAPANESE,
     to_japanese,
     // Wabun code for Japanese, tnx JE1TRV
@@ -304,7 +304,7 @@ to_script! {
 }
 
 to_script! {
-    /// Mapping from Morse code to Korean (Hangul) text
+    /// Mapping from Morse code to Korean (Hangul) text ([SKATS](https://en.wikipedia.org/wiki/SKATS))
     TO_KOREAN,
     to_korean,
     // SKATS for Korean

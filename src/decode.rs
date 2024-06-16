@@ -186,13 +186,13 @@ fn decode_buffer_end(
 ///
 /// The second argument selects a local variant of Morse code. It should be one of:
 ///
-/// - [to_standard][crate::to_standard] for International Morse code and Latin extensions;
+/// - [to_standard][crate::to_standard] for [International Morse code and Latin extensions](https://en.wikipedia.org/wiki/Morse_code#Letters,_numbers,_punctuation,_prosigns_for_Morse_code_and_non-Latin_variants);
 /// - [to_arabic][crate::to_arabic] for Arabic;
 /// - [to_greek][crate::to_greek] for Greek;
 /// - [to_hebrew][crate::to_hebrew] for Hebrew;
-/// - [to_japanese][crate::to_japanese] for Japanese (Katakana);
-/// - [to_korean][crate::to_korean] for Korean (Hangul);
-/// - [to_russian][crate::to_russian] for Russian (Cyrillic).
+/// - [to_japanese][crate::to_japanese] for [Japanese](https://en.wikipedia.org/wiki/Wabun_code) (Katakana);
+/// - [to_korean][crate::to_korean] for [Korean](https://en.wikipedia.org/wiki/SKATS) (Hangul);
+/// - [to_russian][crate::to_russian] for [Russian](https://en.wikipedia.org/wiki/Russian_Morse_code) (Cyrillic).
 ///
 /// ```
 /// let morse = "-- --- .-. ... . / -.-. --- -.. .";
@@ -222,13 +222,13 @@ pub fn decode_string(input: &[u8], char_decode: fn(u8) -> char) -> String {
 ///
 /// The third argument selects a local variant of Morse code. It should be one of:
 ///
-/// - [to_standard][crate::to_standard] for International Morse code and Latin extensions;
+/// - [to_standard][crate::to_standard] for [International Morse code and Latin extensions](https://en.wikipedia.org/wiki/Morse_code#Letters,_numbers,_punctuation,_prosigns_for_Morse_code_and_non-Latin_variants);
 /// - [to_arabic][crate::to_arabic] for Arabic;
 /// - [to_greek][crate::to_greek] for Greek;
 /// - [to_hebrew][crate::to_hebrew] for Hebrew;
-/// - [to_japanese][crate::to_japanese] for Japanese (Katakana);
-/// - [to_korean][crate::to_korean] for Korean (Hangul);
-/// - [to_russian][crate::to_russian] for Russian (Cyrillic).
+/// - [to_japanese][crate::to_japanese] for [Japanese](https://en.wikipedia.org/wiki/Wabun_code) (Katakana);
+/// - [to_korean][crate::to_korean] for [Korean](https://en.wikipedia.org/wiki/SKATS) (Hangul);
+/// - [to_russian][crate::to_russian] for [Russian](https://en.wikipedia.org/wiki/Russian_Morse_code) (Cyrillic).
 ///
 /// For example, the program below decodes international Morse code.
 /// ```no_run

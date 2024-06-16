@@ -1,6 +1,6 @@
 # ripmors
 
-ripmors is a Rust library for encoding and decoding international Morse code and several variants.
+ripmors is a Rust library for encoding and decoding [International Morse code](https://en.wikipedia.org/wiki/Morse_code) and several variants.
 
 It is _fast_:
 
@@ -30,9 +30,9 @@ In addition to the standard International Morse Code and its Latin extensions,
 the following variants are supported:
 
 - Greek
-- Russian (Cyrillic)
-- Japanese (Hiragana, Katakana)
-- Korean (Hangul)
+- [Russian](https://en.wikipedia.org/wiki/Russian_Morse_code) (Cyrillic)
+- [Japanese](https://en.wikipedia.org/wiki/Wabun_code) (Hiragana, Katakana)
+- [Korean](https://en.wikipedia.org/wiki/SKATS) (Hangul)
 - Hebrew
 - Arabic
 
