@@ -143,7 +143,7 @@ to_script! {
     "..--.-" => '_', // or '<IQ>'
     ".-..-." => '"', // or '<AF>'
     ".-.-.-" => '.', // or '<AAA>'
-    ".--.-." => '@', // became official after 1985 ARRL handbook was published
+    ".--.-." => '@', // added in 2004
     ".----." => '\'', // or '<WG>'
     "-....-" => '-', // or '<DU>'
     "-.-.-." => ';', // or '<KR>'
