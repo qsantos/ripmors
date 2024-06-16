@@ -273,7 +273,7 @@ fn test_standard_decode() {
     let f = |s| decode_string(s, to_standard);
     assert_eq!(f(b".--. .- .-. .. ..."), "PARIS");
     assert_eq!(
-        f(b".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--."),
+        f(b".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. -.-.--"),
         "HELLO, WORLD!",
     );
 }

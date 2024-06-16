@@ -10,7 +10,7 @@ It is _fast_:
 
 ```shell
 $ echo 'Hello, World!' | ripmors
-.... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--.
+.... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. -.-.--
 $ echo '-- --- .-. ... . / -.-. --- -.. .' | ripmors -d
 MORSE CODE
 ```
@@ -22,7 +22,7 @@ Or, in Rust:
 ```rust
 use ripmors::{decode_string, encode_string, to_standard};
 
-assert_eq!(encode_string("Hello, World!"), ".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--.");
+assert_eq!(encode_string("Hello, World!"), ".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. -.-.--");
 assert_eq!(decode_string(b"-- --- .-. ... . / -.-. --- -.. .", to_standard), "MORSE CODE");
 ```
 

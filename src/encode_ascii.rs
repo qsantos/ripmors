@@ -135,7 +135,7 @@ fn test_ascii_encode_simple() {
     assert_eq!(encode_string_ascii(b"PARIS"), ".--. .- .-. .. ...");
     assert_eq!(
         encode_string_ascii(b"Hello, World!"),
-        ".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. ..--."
+        ".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. -.-.--"
     );
     assert_eq!(
         encode_string_ascii(b"one line\nand  another\tline"),
