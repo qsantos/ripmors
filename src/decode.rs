@@ -169,7 +169,7 @@ fn decode_buffer_end(
     input: &[u8],
     char_decode: fn(u8) -> char,
 ) -> Result<(), std::io::Error> {
-    let mut output_buf = [MaybeUninit::uninit(); 1 << 15];
+    let mut output_buf = vec![MaybeUninit::uninit(); 1 << 15];
     let chunk_start = decode_buffer(output, input, char_decode, &mut output_buf)?;
     let binary = morse_to_binary(&input[chunk_start..], input.len() - chunk_start);
     let decoded = char_decode(binary);
@@ -249,7 +249,7 @@ pub fn decode_string(input: &[u8], char_decode: fn(u8) -> char) -> String {
 pub fn decode_stream(input: &mut impl Read, output: &mut impl Write, char_decode: fn(u8) -> char) {
     let mut input_buf = vec![0u8; 1 << 15];
     let mut bytes_available = 0;
-    let mut output_buf = [MaybeUninit::uninit(); 1 << 15];
+    let mut output_buf = vec![MaybeUninit::uninit(); 1 << 15];
     loop {
         let bytes_read = input.read(&mut input_buf[bytes_available..]).unwrap();
         if bytes_read == 0 {
