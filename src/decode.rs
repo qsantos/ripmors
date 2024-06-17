@@ -92,11 +92,7 @@ fn test_morse_to_binary() {
     assert_eq!(morse_to_binary(b"..-.", 4), 0b10100);
 }
 
-fn decode_buffer(
-    input: &[u8],
-    char_decode: fn(u8) -> char,
-    output_buf: &mut Vec<char>,
-) -> Result<usize, std::io::Error> {
+fn decode_buffer(input: &[u8], char_decode: fn(u8) -> char, output_buf: &mut Vec<char>) -> usize {
     let mut chunk_start = 0;
     let last_seven_bytes = input.len().saturating_sub(7);
     for i in 0..last_seven_bytes {
@@ -134,21 +130,16 @@ fn decode_buffer(
             chunk_start = i + 1;
         }
     }
-    Ok(chunk_start)
+    chunk_start
 }
 
-fn decode_buffer_end(
-    input: &[u8],
-    char_decode: fn(u8) -> char,
-    output_buf: &mut Vec<char>,
-) -> Result<(), std::io::Error> {
-    let chunk_start = decode_buffer(input, char_decode, output_buf)?;
+fn decode_buffer_end(input: &[u8], char_decode: fn(u8) -> char, output_buf: &mut Vec<char>) {
+    let chunk_start = decode_buffer(input, char_decode, output_buf);
     let binary = morse_to_binary(&input[chunk_start..], input.len() - chunk_start);
     let decoded = char_decode(binary);
     if decoded != '\0' {
         output_buf.push(decoded);
     }
-    Ok(())
 }
 
 /// Decode Morse code from a [byte slice][slice] into into a [String].
@@ -180,7 +171,7 @@ fn decode_buffer_end(
 /// ```
 pub fn decode_string(input: &[u8], char_decode: fn(u8) -> char) -> String {
     let mut output_buf = Vec::with_capacity(input.len());
-    decode_buffer_end(input, char_decode, &mut output_buf).unwrap();
+    decode_buffer_end(input, char_decode, &mut output_buf);
     output_buf.iter().collect()
 }
 
@@ -228,8 +219,7 @@ pub fn decode_stream(input: &mut impl Read, output: &mut impl Write, char_decode
         }
         bytes_available += bytes_read;
 
-        let bytes_used =
-            decode_buffer(&input_buf[..bytes_available], char_decode, &mut output_buf).unwrap();
+        let bytes_used = decode_buffer(&input_buf[..bytes_available], char_decode, &mut output_buf);
 
         // flush buffer
         if !output_buf.is_empty() {
@@ -243,7 +233,7 @@ pub fn decode_stream(input: &mut impl Read, output: &mut impl Write, char_decode
     }
 
     if bytes_available != 0 {
-        decode_buffer_end(&input_buf[..bytes_available], char_decode, &mut output_buf).unwrap();
+        decode_buffer_end(&input_buf[..bytes_available], char_decode, &mut output_buf);
         if !output_buf.is_empty() {
             let decoded: String = output_buf.iter().collect();
             output.write_all(decoded.as_bytes()).unwrap();
