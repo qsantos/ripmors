@@ -99,6 +99,7 @@ fn decode_buffer(
     char_decode: fn(u8) -> char,
     output_buf: &mut [MaybeUninit<char>],
 ) -> Result<usize, std::io::Error> {
+    assert!(output_buf.len() >= input.len());
     let mut cur = 0;
     let mut chunk_start = 0;
     let last_seven_bytes = input.len().saturating_sub(7);
@@ -169,7 +170,7 @@ fn decode_buffer_end(
     input: &[u8],
     char_decode: fn(u8) -> char,
 ) -> Result<(), std::io::Error> {
-    let mut output_buf = vec![MaybeUninit::uninit(); 1 << 15];
+    let mut output_buf = vec![MaybeUninit::uninit(); input.len()];
     let chunk_start = decode_buffer(output, input, char_decode, &mut output_buf)?;
     let binary = morse_to_binary(&input[chunk_start..], input.len() - chunk_start);
     let decoded = char_decode(binary);
