@@ -99,6 +99,14 @@ fn decode_buffer(
     char_decode: fn(u8) -> char,
     output_buf: &mut [MaybeUninit<char>],
 ) -> Result<usize, std::io::Error> {
+    // SAFETY: `output_buf[cur]`
+    // Getting the element `cur` of `output_buf` is safe because
+    // - `cur <= input_buf.len()` because we only increment cur in the following cases, which as
+    //   disjoint:
+    //     - reading a valid Morse character, which must be at least one element long
+    //     - reading a byte lower than ' '
+    //     - reading '/'
+    // - `input_buf.len() <= output_buf` as check by the `assert!` below
     assert!(output_buf.len() >= input.len());
     let mut cur = 0;
     let mut chunk_start = 0;
@@ -110,16 +118,19 @@ fn decode_buffer(
                 unsafe { morse_to_binary_fast(input.as_ptr().add(chunk_start), i - chunk_start) };
             let decoded = char_decode(binary);
             if decoded != '\0' {
-                output_buf[cur].write(decoded);
+                // SAFETY: see `output_buf[cur]` above
+                unsafe { output_buf.get_unchecked_mut(cur) }.write(decoded);
                 cur += 1;
             }
             chunk_start = i + 1;
             if c != b' ' {
-                output_buf[cur].write(c as char);
+                // SAFETY: see `output_buf[cur]` above
+                unsafe { output_buf.get_unchecked_mut(cur) }.write(c as char);
                 cur += 1;
             }
         } else if c == b'/' {
-            output_buf[cur].write(' ');
+            // SAFETY: see `output_buf[cur]` above
+            unsafe { output_buf.get_unchecked_mut(cur) }.write(' ');
             cur += 1;
             chunk_start = i + 1;
         }
@@ -140,16 +151,19 @@ fn decode_buffer(
             let binary = morse_to_binary(&input[chunk_start..], i - chunk_start);
             let decoded = char_decode(binary);
             if decoded != '\0' {
-                output_buf[cur].write(decoded);
+                // SAFETY: see `output_buf[cur]` above
+                unsafe { output_buf.get_unchecked_mut(cur) }.write(decoded);
                 cur += 1;
             }
             chunk_start = i + 1;
             if c != b' ' {
-                output_buf[cur].write(c as char);
+                // SAFETY: see `output_buf[cur]` above
+                unsafe { output_buf.get_unchecked_mut(cur) }.write(c as char);
                 cur += 1;
             }
         } else if c == b'/' {
-            output_buf[cur].write(' ');
+            // SAFETY: see `output_buf[cur]` above
+            unsafe { output_buf.get_unchecked_mut(cur) }.write(' ');
             cur += 1;
             chunk_start = i + 1;
         }
