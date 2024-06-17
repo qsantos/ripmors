@@ -1,4 +1,4 @@
-use std::io::{BufWriter, Read, Write};
+use std::io::{Read, Write};
 
 #[inline(always)] // prefer inline to avoid reloading constants in registers
 unsafe fn morse_to_binary_fast(bytes: *const u8, len: usize) -> u8 {
@@ -138,20 +138,15 @@ fn decode_buffer(
 }
 
 fn decode_buffer_end(
-    output: &mut impl Write,
     input: &[u8],
     char_decode: fn(u8) -> char,
+    output_buf: &mut Vec<char>,
 ) -> Result<(), std::io::Error> {
-    let mut output_buf = Vec::with_capacity(input.len());
-    let chunk_start = decode_buffer(input, char_decode, &mut output_buf)?;
+    let chunk_start = decode_buffer(input, char_decode, output_buf)?;
     let binary = morse_to_binary(&input[chunk_start..], input.len() - chunk_start);
     let decoded = char_decode(binary);
     if decoded != '\0' {
         output_buf.push(decoded);
-    }
-    if !output_buf.is_empty() {
-        let decoded: String = output_buf.iter().collect();
-        output.write_all(decoded.as_bytes())?;
     }
     Ok(())
 }
@@ -184,10 +179,9 @@ fn decode_buffer_end(
 /// assert_eq!(string, "MORSE CODE");
 /// ```
 pub fn decode_string(input: &[u8], char_decode: fn(u8) -> char) -> String {
-    let mut writer = BufWriter::new(Vec::new());
-    decode_buffer_end(&mut writer, input, char_decode).unwrap();
-    let vec = writer.into_inner().unwrap();
-    String::from_utf8(vec).unwrap()
+    let mut output_buf = Vec::with_capacity(input.len());
+    decode_buffer_end(input, char_decode, &mut output_buf).unwrap();
+    output_buf.iter().collect()
 }
 
 /// Decode Morse code from a [Read][std::io::Read] object into a [Write][std::io::Write] object.
@@ -249,7 +243,11 @@ pub fn decode_stream(input: &mut impl Read, output: &mut impl Write, char_decode
     }
 
     if bytes_available != 0 {
-        decode_buffer_end(output, &input_buf[..bytes_available], char_decode).unwrap();
+        decode_buffer_end(&input_buf[..bytes_available], char_decode, &mut output_buf).unwrap();
+        if !output_buf.is_empty() {
+            let decoded: String = output_buf.iter().collect();
+            output.write_all(decoded.as_bytes()).unwrap();
+        }
     }
 }
 
