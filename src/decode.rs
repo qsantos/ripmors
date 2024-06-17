@@ -1,5 +1,4 @@
 use std::io::{BufWriter, Read, Write};
-use std::mem::{transmute, MaybeUninit};
 
 #[inline(always)] // prefer inline to avoid reloading constants in registers
 unsafe fn morse_to_binary_fast(bytes: *const u8, len: usize) -> u8 {
@@ -97,18 +96,8 @@ fn decode_buffer(
     output: &mut impl Write,
     input: &[u8],
     char_decode: fn(u8) -> char,
-    output_buf: &mut [MaybeUninit<char>],
+    output_buf: &mut Vec<char>,
 ) -> Result<usize, std::io::Error> {
-    // SAFETY: `output_buf[cur]`
-    // Getting the element `cur` of `output_buf` is safe because
-    // - `cur <= input_buf.len()` because we only increment cur in the following cases, which as
-    //   disjoint:
-    //     - reading a valid Morse character, which must be at least one element long
-    //     - reading a byte lower than ' '
-    //     - reading '/'
-    // - `input_buf.len() <= output_buf` as check by the `assert!` below
-    assert!(output_buf.len() >= input.len());
-    let mut cur = 0;
     let mut chunk_start = 0;
     let last_seven_bytes = input.len().saturating_sub(7);
     for i in 0..last_seven_bytes {
@@ -118,31 +107,15 @@ fn decode_buffer(
                 unsafe { morse_to_binary_fast(input.as_ptr().add(chunk_start), i - chunk_start) };
             let decoded = char_decode(binary);
             if decoded != '\0' {
-                // SAFETY: see `output_buf[cur]` above
-                unsafe { output_buf.get_unchecked_mut(cur) }.write(decoded);
-                cur += 1;
+                output_buf.push(decoded);
             }
             chunk_start = i + 1;
             if c != b' ' {
-                // SAFETY: see `output_buf[cur]` above
-                unsafe { output_buf.get_unchecked_mut(cur) }.write(c as char);
-                cur += 1;
+                output_buf.push(c as char);
             }
         } else if c == b'/' {
-            // SAFETY: see `output_buf[cur]` above
-            unsafe { output_buf.get_unchecked_mut(cur) }.write(' ');
-            cur += 1;
+            output_buf.push(' ');
             chunk_start = i + 1;
-        }
-        // flush buffer
-        // NOTE: we may write up to two character per iteration
-        if cur > output_buf.len() - 2 {
-            // SAFETY: transmuting the `cur` first elements of `MaybeInit<char>` to `char` is safe
-            // since `cur` starts at 0 and we always write an element before increment `cur`
-            let init: &[char] = unsafe { transmute(&output_buf[..cur]) };
-            let decoded: String = init.iter().collect();
-            output.write_all(decoded.as_bytes())?;
-            cur = 0;
         }
     }
     for i in last_seven_bytes..input.len() {
@@ -151,30 +124,22 @@ fn decode_buffer(
             let binary = morse_to_binary(&input[chunk_start..], i - chunk_start);
             let decoded = char_decode(binary);
             if decoded != '\0' {
-                // SAFETY: see `output_buf[cur]` above
-                unsafe { output_buf.get_unchecked_mut(cur) }.write(decoded);
-                cur += 1;
+                output_buf.push(decoded);
             }
             chunk_start = i + 1;
             if c != b' ' {
-                // SAFETY: see `output_buf[cur]` above
-                unsafe { output_buf.get_unchecked_mut(cur) }.write(c as char);
-                cur += 1;
+                output_buf.push(c as char);
             }
         } else if c == b'/' {
-            // SAFETY: see `output_buf[cur]` above
-            unsafe { output_buf.get_unchecked_mut(cur) }.write(' ');
-            cur += 1;
+            output_buf.push(' ');
             chunk_start = i + 1;
         }
     }
     // flush buffer
-    if cur > 0 {
-        // SAFETY: transmuting the `cur` first elements of `MaybeInit<char>` to `char` is safe
-        // since `cur` starts at 0 and we always write an element before increment `cur`
-        let init: &[char] = unsafe { transmute(&output_buf[..cur]) };
-        let decoded: String = init.iter().collect();
+    if !output_buf.is_empty() {
+        let decoded: String = output_buf.iter().collect();
         output.write_all(decoded.as_bytes())?;
+        output_buf.clear();
     }
     Ok(chunk_start)
 }
@@ -184,7 +149,7 @@ fn decode_buffer_end(
     input: &[u8],
     char_decode: fn(u8) -> char,
 ) -> Result<(), std::io::Error> {
-    let mut output_buf = vec![MaybeUninit::uninit(); input.len()];
+    let mut output_buf = Vec::with_capacity(input.len());
     let chunk_start = decode_buffer(output, input, char_decode, &mut output_buf)?;
     let binary = morse_to_binary(&input[chunk_start..], input.len() - chunk_start);
     let decoded = char_decode(binary);
@@ -264,7 +229,7 @@ pub fn decode_string(input: &[u8], char_decode: fn(u8) -> char) -> String {
 pub fn decode_stream(input: &mut impl Read, output: &mut impl Write, char_decode: fn(u8) -> char) {
     let mut input_buf = vec![0u8; 1 << 15];
     let mut bytes_available = 0;
-    let mut output_buf = vec![MaybeUninit::uninit(); 1 << 15];
+    let mut output_buf = Vec::with_capacity(1 << 15);
     loop {
         let bytes_read = input.read(&mut input_buf[bytes_available..]).unwrap();
         if bytes_read == 0 {
