@@ -93,7 +93,6 @@ fn test_morse_to_binary() {
 }
 
 fn decode_buffer(
-    output: &mut impl Write,
     input: &[u8],
     char_decode: fn(u8) -> char,
     output_buf: &mut Vec<char>,
@@ -135,12 +134,6 @@ fn decode_buffer(
             chunk_start = i + 1;
         }
     }
-    // flush buffer
-    if !output_buf.is_empty() {
-        let decoded: String = output_buf.iter().collect();
-        output.write_all(decoded.as_bytes())?;
-        output_buf.clear();
-    }
     Ok(chunk_start)
 }
 
@@ -150,11 +143,15 @@ fn decode_buffer_end(
     char_decode: fn(u8) -> char,
 ) -> Result<(), std::io::Error> {
     let mut output_buf = Vec::with_capacity(input.len());
-    let chunk_start = decode_buffer(output, input, char_decode, &mut output_buf)?;
+    let chunk_start = decode_buffer(input, char_decode, &mut output_buf)?;
     let binary = morse_to_binary(&input[chunk_start..], input.len() - chunk_start);
     let decoded = char_decode(binary);
     if decoded != '\0' {
-        output.write_all(decoded.to_string().as_bytes())?;
+        output_buf.push(decoded);
+    }
+    if !output_buf.is_empty() {
+        let decoded: String = output_buf.iter().collect();
+        output.write_all(decoded.as_bytes())?;
     }
     Ok(())
 }
@@ -237,13 +234,15 @@ pub fn decode_stream(input: &mut impl Read, output: &mut impl Write, char_decode
         }
         bytes_available += bytes_read;
 
-        let bytes_used = decode_buffer(
-            output,
-            &input_buf[..bytes_available],
-            char_decode,
-            &mut output_buf,
-        )
-        .unwrap();
+        let bytes_used =
+            decode_buffer(&input_buf[..bytes_available], char_decode, &mut output_buf).unwrap();
+
+        // flush buffer
+        if !output_buf.is_empty() {
+            let decoded: String = output_buf.iter().collect();
+            output.write_all(decoded.as_bytes()).unwrap();
+            output_buf.clear();
+        }
 
         input_buf.copy_within(bytes_used..bytes_available, 0);
         bytes_available -= bytes_used;
