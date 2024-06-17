@@ -97,7 +97,7 @@ fn decode_buffer(
     output: &mut impl Write,
     input: &[u8],
     char_decode: fn(u8) -> char,
-    output_buf: &mut [MaybeUninit<char>; 1 << 15],
+    output_buf: &mut [MaybeUninit<char>],
 ) -> Result<usize, std::io::Error> {
     let mut cur = 0;
     let mut chunk_start = 0;
