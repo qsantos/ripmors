@@ -3,6 +3,8 @@ use std::io::{Read, Write};
 #[inline(always)] // prefer inline to avoid reloading constants in registers
 unsafe fn morse_to_binary_fast(bytes: *const u8, len: usize) -> u8 {
     // Interpret next 8 bytes as u64
+    // SAFETY: the caller need to ensure that `bytes` is valid for read and points to 8 initialized
+    // bytes (the cast itself is safe)
     let a = unsafe { (bytes as *const u64).read_unaligned() };
     // Only keep the LSB of each byte
     let b = 0x0101010101010101;
@@ -21,6 +23,7 @@ unsafe fn morse_to_binary_fast(bytes: *const u8, len: usize) -> u8 {
 
 #[test]
 fn test_morse_to_binary_fast() {
+    // SAFETY: the first argument is always a pointer for read to an initialized [u8; 8]
     unsafe {
         // zero length
         assert_eq!(morse_to_binary_fast(b"________".as_ptr(), 0), 1);
@@ -58,6 +61,8 @@ fn test_morse_to_binary_safe() {
 
 fn morse_to_binary(bytes: &[u8], len: usize) -> u8 {
     if len + 8 <= bytes.len() {
+        // SAFETY: the above condition ensures that the pointer is valid and points to 8
+        // initialized bytes
         unsafe { morse_to_binary_fast(bytes.as_ptr(), len) }
     } else {
         morse_to_binary_safe(bytes, len)
@@ -98,6 +103,8 @@ fn decode_buffer(input: &[u8], char_decode: fn(u8) -> char, output_buf: &mut Vec
     for i in 0..last_seven_bytes {
         let c = input[i];
         if c <= b' ' {
+            // SAFETY: `chunk_start < i < input.len() - 7` so the first argument is always a valid
+            // pointer to eight initialized bytes
             let binary =
                 unsafe { morse_to_binary_fast(input.as_ptr().add(chunk_start), i - chunk_start) };
             let decoded = char_decode(binary);
