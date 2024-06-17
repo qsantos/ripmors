@@ -1,4 +1,5 @@
 use std::io::{BufWriter, Read, Write};
+use std::mem::{transmute, MaybeUninit};
 
 #[inline(always)] // prefer inline to avoid reloading constants in registers
 unsafe fn morse_to_binary_fast(bytes: *const u8, len: usize) -> u8 {
@@ -96,7 +97,7 @@ fn decode_buffer(
     output: &mut impl Write,
     input: &[u8],
     char_decode: fn(u8) -> char,
-    output_buf: &mut [char; 1 << 15],
+    output_buf: &mut [MaybeUninit<char>; 1 << 15],
 ) -> Result<usize, std::io::Error> {
     let mut cur = 0;
     let mut chunk_start = 0;
@@ -108,23 +109,26 @@ fn decode_buffer(
                 unsafe { morse_to_binary_fast(input.as_ptr().add(chunk_start), i - chunk_start) };
             let decoded = char_decode(binary);
             if decoded != '\0' {
-                output_buf[cur] = decoded;
+                output_buf[cur].write(decoded);
                 cur += 1;
             }
             chunk_start = i + 1;
             if c != b' ' {
-                output_buf[cur] = c as char;
+                output_buf[cur].write(c as char);
                 cur += 1;
             }
         } else if c == b'/' {
-            output_buf[cur] = ' ';
+            output_buf[cur].write(' ');
             cur += 1;
             chunk_start = i + 1;
         }
         // flush buffer
         // NOTE: we may write up to two character per iteration
         if cur > output_buf.len() - 2 {
-            let decoded: String = output_buf[..cur].iter().collect();
+            // SAFETY: transmuting the `cur` first elements of `MaybeInit<char>` to `char` is safe
+            // since `cur` starts at 0 and we always write an element before increment `cur`
+            let init: &[char] = unsafe { transmute(&output_buf[..cur]) };
+            let decoded: String = init.iter().collect();
             output.write_all(decoded.as_bytes())?;
             cur = 0;
         }
@@ -135,23 +139,26 @@ fn decode_buffer(
             let binary = morse_to_binary(&input[chunk_start..], i - chunk_start);
             let decoded = char_decode(binary);
             if decoded != '\0' {
-                output_buf[cur] = decoded;
+                output_buf[cur].write(decoded);
                 cur += 1;
             }
             chunk_start = i + 1;
             if c != b' ' {
-                output_buf[cur] = c as char;
+                output_buf[cur].write(c as char);
                 cur += 1;
             }
         } else if c == b'/' {
-            output_buf[cur] = ' ';
+            output_buf[cur].write(' ');
             cur += 1;
             chunk_start = i + 1;
         }
     }
     // flush buffer
     if cur > 0 {
-        let decoded: String = output_buf[..cur].iter().collect();
+        // SAFETY: transmuting the `cur` first elements of `MaybeInit<char>` to `char` is safe
+        // since `cur` starts at 0 and we always write an element before increment `cur`
+        let init: &[char] = unsafe { transmute(&output_buf[..cur]) };
+        let decoded: String = init.iter().collect();
         output.write_all(decoded.as_bytes())?;
     }
     Ok(chunk_start)
@@ -162,7 +169,7 @@ fn decode_buffer_end(
     input: &[u8],
     char_decode: fn(u8) -> char,
 ) -> Result<(), std::io::Error> {
-    let mut output_buf = ['\0'; 1 << 15];
+    let mut output_buf = [MaybeUninit::uninit(); 1 << 15];
     let chunk_start = decode_buffer(output, input, char_decode, &mut output_buf)?;
     let binary = morse_to_binary(&input[chunk_start..], input.len() - chunk_start);
     let decoded = char_decode(binary);
@@ -242,7 +249,7 @@ pub fn decode_string(input: &[u8], char_decode: fn(u8) -> char) -> String {
 pub fn decode_stream(input: &mut impl Read, output: &mut impl Write, char_decode: fn(u8) -> char) {
     let mut input_buf = vec![0u8; 1 << 15];
     let mut bytes_available = 0;
-    let mut output_buf = ['\0'; 1 << 15];
+    let mut output_buf = [MaybeUninit::uninit(); 1 << 15];
     loop {
         let bytes_read = input.read(&mut input_buf[bytes_available..]).unwrap();
         if bytes_read == 0 {
