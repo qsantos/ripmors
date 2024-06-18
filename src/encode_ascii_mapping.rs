@@ -1,8 +1,5 @@
 // International Morse code, as per ITU-R M.1677-1
 
-#[repr(align(64))]
-struct AlignedBytes([u8; 8]);
-
 macro_rules! from_ascii {
     ($($letter:expr => $elements:literal),+ $(,)? ) => {
         pub const ASCII_TO_BYTES: [(&'static [u8], usize); 256] = {
@@ -41,16 +38,10 @@ macro_rules! from_ascii {
                     7 => (concat!($elements, " "), 8),
                     _ => ("\0\0\0\0\0\0\0\0", 18)
                 };
-                // NOTE: `concat!` works with string slices and `concat_bytes!` is still
-                // experimental; but `&str` does not retain the size information; so, we need to
-                // cast back the `&str`  into a `&[u8; 8]` to fill AlignedBytes
-                // SAFETY: `elements` always points to a string literal of exactly eight ASCII
-                // bytes
-                let eight_bytes = unsafe { &*(elements.as_ptr() as *const [u8; 8]) };
-                let aligned_bytes = AlignedBytes(*eight_bytes);
-                // SAFETY: AlignedBytes ensures the right alignment for u64 is used
-                let one_qword = unsafe { *(aligned_bytes.0.as_ptr() as *const u64) };
-                x[$letter as usize] = (one_qword, len);
+                let qword_ptr = elements.as_ptr() as *const u64;
+                // SAFETY: `qword_ptr` always points to a string literal of exactly 8 ASCII bytes
+                let qword = unsafe { qword_ptr.read_unaligned() };
+                x[$letter as usize] = (qword, len);
             )+
             // TODO: this assumes little endian
             x[b'\t' as usize] = (b'\t' as u64, 1);
