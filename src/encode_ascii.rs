@@ -9,10 +9,15 @@ fn encode_buffer_ascii(
     need_separator: &mut bool,
     output_buf: &mut [MaybeUninit<u8>],
 ) -> Result<(), std::io::Error> {
+    // SAFETY: `output_buf[cur]`
+    // Accessing the element `cur` of `output_buf` is safe because
+    // - `cur <= 18 * input_buf.len()` because we increment `cur` by at most 18 for each byte read
+    // - `18 * input_buf.len() <= output_buf` as check by the `assert!` below
     assert!(output_buf.len() >= input.len() * 18);
     let mut cur = 0;
     if *need_separator {
-        output_buf[cur].write(b' ');
+        // SAFETY: see `output_buf[cur]` above
+        unsafe { output_buf.get_unchecked_mut(cur) }.write(b' ');
         cur += 1;
     }
     let chunk_size = input.len().min(1 << 10);
@@ -25,7 +30,8 @@ fn encode_buffer_ascii(
                     && cur > 0
                     // SAFETY: transmuting `output_buf[cur - 1]` from `MaybeInit<u8>` to `u8` is safe
                     // since `cur` starts at 0 and we always write an element before increment `cur`
-                    && unsafe { transmute::<MaybeUninit<u8>, u8>(output_buf[cur - 1]) } == b' '
+                    // and see `output_buf[cur]` above
+                    && unsafe { transmute::<MaybeUninit<u8>, u8>(*output_buf.get_unchecked_mut(cur - 1)) } == b' '
                 {
                     cur -= 1;
                 }
@@ -41,9 +47,12 @@ fn encode_buffer_ascii(
                 // handle only ASCII character encoded as more than 7 elements + space
                 assert_eq!(*c, b'%');
                 // SAFETY: source and destination derived from references, slices are of the
-                // correct length (replace with `MaybeUninit::copy_from_slice()` once stabilized).
+                // correct length (replace with `MaybeUninit::copy_from_slice()` once stabilized)
+                // and see `output_buf[cur]` above
                 unsafe {
-                    transmute::<&mut [MaybeUninit<u8>], &mut [u8]>(&mut output_buf[cur..cur + 18])
+                    transmute::<&mut [MaybeUninit<u8>], &mut [u8]>(
+                        output_buf.get_unchecked_mut(cur..cur + 18),
+                    )
                 }
                 .copy_from_slice(b"----- -..-. ----- ");
             }
@@ -53,7 +62,10 @@ fn encode_buffer_ascii(
         if cur >= output_buf.len() - chunk_size * 18 {
             // SAFETY: transmuting `output_buf[cur - 1]` from `MaybeInit<u8>` to `u8` is safe
             // since `cur` starts at 0 and we always write an element before increment `cur`
-            if unsafe { transmute::<MaybeUninit<u8>, u8>(output_buf[cur - 1]) } == b' ' {
+            // and see `output_buf[cur]` above
+            if unsafe { transmute::<MaybeUninit<u8>, u8>(*output_buf.get_unchecked(cur - 1)) }
+                == b' '
+            {
                 cur -= 1;
                 // SAFETY: transmuting the `cur` first elements of `output_buf` from
                 // `MaybeInit<u8>` to `u8` is safe since `cur` starts at 0 and we always write an
@@ -76,7 +88,8 @@ fn encode_buffer_ascii(
     if cur != 0 {
         // SAFETY: transmuting `output_buf[cur - 1]` from `MaybeInit<u8>` to `u8` is safe
         // since `cur` starts at 0 and we always write an element before increment `cur`
-        if unsafe { transmute::<MaybeUninit<u8>, u8>(output_buf[cur - 1]) } == b' ' {
+        // and see `output_buf[cur]` above
+        if unsafe { transmute::<MaybeUninit<u8>, u8>(*output_buf.get_unchecked(cur - 1)) } == b' ' {
             cur -= 1;
             *need_separator = true;
         } else {
