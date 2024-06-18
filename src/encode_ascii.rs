@@ -20,42 +20,39 @@ fn encode_buffer_ascii(
         unsafe { output_buf.get_unchecked_mut(cur) }.write(b' ');
         cur += 1;
     }
-    let chunk_size = input.len().min(1 << 10);
-    for chunk in input.chunks(chunk_size) {
-        for c in chunk {
-            let (bytes, len) = ASCII_TO_QWORD[*c as usize];
-            if len == 0 {
-            } else if len <= 8 {
-                if (*c == b'\t' || *c == b'\n' || *c == b'\r')
-                    && cur > 0
-                    // SAFETY: transmuting `output_buf[cur - 1]` from `MaybeInit<u8>` to `u8` is safe
-                    // since `cur` starts at 0 and we always write an element before increment `cur`
-                    // and see `output_buf[cur]` above
-                    && unsafe { transmute::<MaybeUninit<u8>, u8>(*output_buf.get_unchecked_mut(cur - 1)) } == b' '
-                {
-                    cur -= 1;
-                }
-                // SAFETY: each byte of the chunk might advance `cur` by up to 18; the `assert!` at
-                // the top of the function ensures we can write up to 18 bytes for each input byte
-                unsafe {
-                    let dst = output_buf.as_mut_ptr().add(cur) as *mut u64;
-                    dst.write_unaligned(bytes);
-                }
-            } else {
-                // handle only ASCII character encoded as more than 7 elements + space
-                assert_eq!(*c, b'%');
-                // SAFETY: source and destination derived from references, slices are of the
-                // correct length (replace with `MaybeUninit::copy_from_slice()` once stabilized)
+    for c in input {
+        let (bytes, len) = ASCII_TO_QWORD[*c as usize];
+        if len == 0 {
+        } else if len <= 8 {
+            if (*c == b'\t' || *c == b'\n' || *c == b'\r')
+                && cur > 0
+                // SAFETY: transmuting `output_buf[cur - 1]` from `MaybeInit<u8>` to `u8` is safe
+                // since `cur` starts at 0 and we always write an element before increment `cur`
                 // and see `output_buf[cur]` above
-                unsafe {
-                    transmute::<&mut [MaybeUninit<u8>], &mut [u8]>(
-                        output_buf.get_unchecked_mut(cur..cur + 18),
-                    )
-                }
-                .copy_from_slice(b"----- -..-. ----- ");
+                && unsafe { transmute::<MaybeUninit<u8>, u8>(*output_buf.get_unchecked_mut(cur - 1)) } == b' '
+            {
+                cur -= 1;
             }
-            cur += len;
+            // SAFETY: each byte of the chunk might advance `cur` by up to 18; the `assert!` at
+            // the top of the function ensures we can write up to 18 bytes for each input byte
+            unsafe {
+                let dst = output_buf.as_mut_ptr().add(cur) as *mut u64;
+                dst.write_unaligned(bytes);
+            }
+        } else {
+            // handle only ASCII character encoded as more than 7 elements + space
+            assert_eq!(*c, b'%');
+            // SAFETY: source and destination derived from references, slices are of the
+            // correct length (replace with `MaybeUninit::copy_from_slice()` once stabilized)
+            // and see `output_buf[cur]` above
+            unsafe {
+                transmute::<&mut [MaybeUninit<u8>], &mut [u8]>(
+                    output_buf.get_unchecked_mut(cur..cur + 18),
+                )
+            }
+            .copy_from_slice(b"----- -..-. ----- ");
         }
+        cur += len;
     }
     // flush buffer
     if cur != 0 {
