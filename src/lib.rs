@@ -6,6 +6,10 @@
 // Do not consider the body of unsafe functions to be an unsafe block by default. This forces one
 // to explicitly mark what parts of an unsafe functions are actually unsafe.
 #![warn(unsafe_op_in_unsafe_fn)]
+// Enforce "SAFETY:" comments before unsafe blocks
+#![warn(clippy::undocumented_unsafe_blocks)]
+// Enforce "# Safety" section in documentation of unsafe functions
+#![warn(clippy::missing_safety_doc)]
 
 mod decode;
 mod decode_mapping;
