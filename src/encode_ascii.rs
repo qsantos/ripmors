@@ -7,7 +7,7 @@ fn encode_buffer_ascii(
     output: &mut impl Write,
     input: &[u8],
     need_separator: &mut bool,
-    output_buf: &mut [MaybeUninit<u8>; 1 << 15],
+    output_buf: &mut [MaybeUninit<u8>],
 ) -> Result<(), std::io::Error> {
     let mut cur = 0;
     if *need_separator {
