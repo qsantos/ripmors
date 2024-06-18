@@ -24,6 +24,10 @@ fn encode_buffer_ascii(
                 {
                     cur -= 1;
                 }
+                // SAFETY: each byte of the chunk might advance `cur` by up to 18; we flush the
+                // buffer after each chunk if we cannot guarantee 18 bytes per input byte for the
+                // next chunk; thus, there is at least 8 available bytes for writing after
+                // `output_buf + cur`.
                 unsafe {
                     let dst = output_buf.as_mut_ptr().add(cur) as *mut u64;
                     dst.write_unaligned(bytes);
