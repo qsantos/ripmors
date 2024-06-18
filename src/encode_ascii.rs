@@ -9,12 +9,14 @@ fn encode_buffer_ascii(
     need_separator: &mut bool,
     output_buf: &mut [MaybeUninit<u8>],
 ) -> Result<(), std::io::Error> {
+    assert!(output_buf.len() >= input.len() * 18);
     let mut cur = 0;
     if *need_separator {
         output_buf[cur].write(b' ');
         cur += 1;
     }
-    for chunk in input.chunks(1 << 10) {
+    let chunk_size = input.len().min(1 << 10);
+    for chunk in input.chunks(chunk_size) {
         for c in chunk {
             let (bytes, len) = ASCII_TO_QWORD[*c as usize];
             if len == 0 {
@@ -48,7 +50,7 @@ fn encode_buffer_ascii(
             cur += len;
         }
         // flush buffer
-        if cur >= output_buf.len() - (1 << 10) * 18 {
+        if cur >= output_buf.len() - chunk_size * 18 {
             // SAFETY: transmuting `output_buf[cur - 1]` from `MaybeInit<u8>` to `u8` is safe
             // since `cur` starts at 0 and we always write an element before increment `cur`
             if unsafe { transmute::<MaybeUninit<u8>, u8>(output_buf[cur - 1]) } == b' ' {
@@ -109,7 +111,7 @@ fn encode_buffer_ascii(
 /// ```
 pub fn encode_string_ascii(input: &[u8]) -> String {
     let mut writer = BufWriter::new(Vec::new());
-    let mut output_buf = vec![MaybeUninit::uninit(); 1 << 15];
+    let mut output_buf = vec![MaybeUninit::uninit(); input.len() * 18];
     encode_buffer_ascii(&mut writer, input, &mut false, &mut output_buf).unwrap();
     let vec = writer.into_inner().unwrap();
     String::from_utf8(vec).unwrap()
@@ -142,7 +144,7 @@ pub fn encode_string_ascii(input: &[u8]) -> String {
 pub fn encode_stream_ascii(input: &mut impl Read, output: &mut impl Write) {
     let mut input_buf = vec![0u8; 1 << 15];
     let mut need_separator = false;
-    let mut output_buf = vec![MaybeUninit::uninit(); 1 << 15];
+    let mut output_buf = vec![MaybeUninit::uninit(); 18 << 15];
     loop {
         let bytes_read = input.read(&mut input_buf).unwrap();
         if bytes_read == 0 {
