@@ -22,6 +22,9 @@ fn encode_buffer(
                 if (c == '\t' || c == '\n' || c == '\r') && cur > 0 && output_buf[cur - 1] == b' ' {
                     cur -= 1;
                 }
+                // SAFETY: we flush the buffer after each byte when we are below 18 free bytes
+                // next chunk; thus, there is at least 8 available bytes for writing after
+                // `output_buf + cur`.
                 unsafe {
                     let dst = output_buf.as_mut_ptr().add(cur) as *mut u64;
                     dst.write_unaligned(bytes);
@@ -36,7 +39,11 @@ fn encode_buffer(
             let (bytes, len) = from_unicode(c);
             if len == 0 {
             } else if len <= 8 {
+                // SAFETY: we flush the buffer after each byte when we are below 18 free bytes
+                // next chunk; thus, there is at least 8 available bytes for writing after
+                // `output_buf + cur`.
                 let buf8 = unsafe { output_buf.get_unchecked_mut(cur..cur + 8) };
+                // SAFETY: the slice is exactly 8 bytes long per construction
                 let bytes8 = unsafe { &*(bytes.as_ptr() as *const [u8; 8]) };
                 buf8.copy_from_slice(bytes8);
             } else {
@@ -45,7 +52,7 @@ fn encode_buffer(
             cur += len;
         }
         // flush buffer
-        if cur >= output_buf.len() - 25 {
+        if cur >= output_buf.len() - 18 {
             if output_buf[cur - 1] == b' ' {
                 cur -= 1;
                 output.write_all(&output_buf[..cur])?;
@@ -135,6 +142,8 @@ pub fn encode_stream(input: &mut impl Read, output: &mut impl Write) {
                 Ok(decoded) => (decoded, bytes_available),
                 Err(e) => {
                     let bytes_decoded = e.valid_up_to();
+                    // SAFETY: we already checked that the string was valid UTF-8 up to
+                    // `bytes_decoded`
                     let decoded =
                         unsafe { core::str::from_utf8_unchecked(&input_buf[..bytes_decoded]) };
                     (decoded, bytes_decoded)
