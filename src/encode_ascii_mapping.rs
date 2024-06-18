@@ -41,8 +41,14 @@ macro_rules! from_ascii {
                     7 => (concat!($elements, " "), 8),
                     _ => ("\0\0\0\0\0\0\0\0", 18)
                 };
+                // NOTE: `concat!` works with string slices and `concat_bytes!` is still
+                // experimental; but `&str` does not retain the size information; so, we need to
+                // cast back the `&str`  into a `&[u8; 8]` to fill AlignedBytes
+                // SAFETY: `elements` always points to a string literal of exactly eight ASCII
+                // bytes
                 let eight_bytes = unsafe { &*(elements.as_ptr() as *const [u8; 8]) };
                 let aligned_bytes = AlignedBytes(*eight_bytes);
+                // SAFETY: AlignedBytes ensures the right alignment for u64 is used
                 let one_qword = unsafe { *(aligned_bytes.0.as_ptr() as *const u64) };
                 x[$letter as usize] = (one_qword, len);
             )+
