@@ -35,10 +35,8 @@ fn encode_buffer_ascii(
                 {
                     cur -= 1;
                 }
-                // SAFETY: each byte of the chunk might advance `cur` by up to 18; we flush the
-                // buffer after each chunk if we cannot guarantee 18 bytes per input byte for the
-                // next chunk; thus, there is at least 8 available bytes for writing after
-                // `output_buf + cur`.
+                // SAFETY: each byte of the chunk might advance `cur` by up to 18; the `assert!` at
+                // the top of the function ensures we can write up to 18 bytes for each input byte
                 unsafe {
                     let dst = output_buf.as_mut_ptr().add(cur) as *mut u64;
                     dst.write_unaligned(bytes);
@@ -57,31 +55,6 @@ fn encode_buffer_ascii(
                 .copy_from_slice(b"----- -..-. ----- ");
             }
             cur += len;
-        }
-        // flush buffer
-        if cur >= output_buf.len() - chunk_size * 18 {
-            // SAFETY: transmuting `output_buf[cur - 1]` from `MaybeInit<u8>` to `u8` is safe
-            // since `cur` starts at 0 and we always write an element before increment `cur`
-            // and see `output_buf[cur]` above
-            if unsafe { transmute::<MaybeUninit<u8>, u8>(*output_buf.get_unchecked(cur - 1)) }
-                == b' '
-            {
-                cur -= 1;
-                // SAFETY: transmuting the `cur` first elements of `output_buf` from
-                // `MaybeInit<u8>` to `u8` is safe since `cur` starts at 0 and we always write an
-                // element before increment `cur`
-                let init: &[u8] = unsafe { transmute(&output_buf[..cur]) };
-                output.write_all(init)?;
-                output_buf[0].write(b' ');
-                cur = 1;
-            } else {
-                // SAFETY: transmuting the `cur` first elements of `output_buf` from
-                // `MaybeInit<u8>` to `u8` is safe since `cur` starts at 0 and we always write an
-                // element before increment `cur`
-                let init: &[u8] = unsafe { transmute(&output_buf[..cur]) };
-                output.write_all(init)?;
-                cur = 0;
-            }
         }
     }
     // flush buffer
