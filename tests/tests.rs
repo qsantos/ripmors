@@ -46,6 +46,6 @@ fn test_encode_stream_unicode() {
 fn test_decode_stream() {
     let mut f = std::fs::File::open("2-encoded.txt").unwrap();
     let mut writer = BufWriter::new(Vec::new());
-    decode_stream(&mut f, &mut writer, to_standard);
+    decode_stream(&mut f, &mut writer, to_standard).unwrap();
     compare_output_to_oracle(writer, "3-decoded.txt");
 }

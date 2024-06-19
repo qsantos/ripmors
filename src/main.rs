@@ -48,7 +48,7 @@ fn main() {
             DecodeVariant::Hebrew => to_hebrew,
             DecodeVariant::Arabic => to_arabic,
         };
-        decode_stream(&mut stdin, &mut stdout, char_decode);
+        decode_stream(&mut stdin, &mut stdout, char_decode).unwrap();
     } else if args.encode == Some(EncodeVariant::Ascii) {
         encode_stream_ascii(&mut stdin, &mut stdout).unwrap();
     } else {

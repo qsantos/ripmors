@@ -212,12 +212,16 @@ pub fn decode_string(input: &[u8], char_decode: fn(u8) -> char) -> String {
 ///     ripmors::decode_stream(&mut stdin, &mut stdout, ripmors::to_standard);
 /// }
 /// ```
-pub fn decode_stream(input: &mut impl Read, output: &mut impl Write, char_decode: fn(u8) -> char) {
+pub fn decode_stream(
+    input: &mut impl Read,
+    output: &mut impl Write,
+    char_decode: fn(u8) -> char,
+) -> Result<(), std::io::Error> {
     let mut input_buf = vec![0u8; 1 << 15];
     let mut bytes_available = 0;
     let mut output_buf = Vec::with_capacity(1 << 15);
     loop {
-        let bytes_read = input.read(&mut input_buf[bytes_available..]).unwrap();
+        let bytes_read = input.read(&mut input_buf[bytes_available..])?;
         if bytes_read == 0 {
             break;
         }
@@ -228,7 +232,7 @@ pub fn decode_stream(input: &mut impl Read, output: &mut impl Write, char_decode
         // flush buffer
         if !output_buf.is_empty() {
             let decoded: String = output_buf.iter().collect();
-            output.write_all(decoded.as_bytes()).unwrap();
+            output.write_all(decoded.as_bytes())?;
             output_buf.clear();
         }
 
@@ -240,9 +244,11 @@ pub fn decode_stream(input: &mut impl Read, output: &mut impl Write, char_decode
         decode_buffer_end(&input_buf[..bytes_available], char_decode, &mut output_buf);
         if !output_buf.is_empty() {
             let decoded: String = output_buf.iter().collect();
-            output.write_all(decoded.as_bytes()).unwrap();
+            output.write_all(decoded.as_bytes())?;
         }
     }
+
+    Ok(())
 }
 
 #[test]

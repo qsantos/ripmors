@@ -59,7 +59,7 @@ fn decode_benchmark(c: &mut Criterion) {
     group.bench_function("stream", |b| {
         b.iter(|| {
             f.rewind().unwrap();
-            decode_stream(&mut f, &mut devnull, to_standard);
+            decode_stream(&mut f, &mut devnull, to_standard).unwrap();
         })
     });
 
