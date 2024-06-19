@@ -1,14 +1,13 @@
-use std::io::{BufWriter, Read, Write};
+use std::io::{Read, Write};
 use std::mem::{transmute, MaybeUninit};
 
 use crate::encode_ascii_mapping::ASCII_TO_QWORD;
 
 fn encode_buffer_ascii(
-    output: &mut impl Write,
     input: &[u8],
     need_separator: &mut bool,
     output_buf: &mut [MaybeUninit<u8>],
-) -> Result<(), std::io::Error> {
+) -> Result<usize, std::io::Error> {
     // SAFETY: `output_buf[cur]`
     // Accessing the element `cur` of `output_buf` is safe because
     // - `cur <= 18 * input_buf.len()` because we increment `cur` by at most 18 for each byte read
@@ -54,24 +53,7 @@ fn encode_buffer_ascii(
         }
         cur += len;
     }
-    // flush buffer
-    if cur != 0 {
-        // SAFETY: transmuting `output_buf[cur - 1]` from `MaybeInit<u8>` to `u8` is safe
-        // since `cur` starts at 0 and we always write an element before increment `cur`
-        // and see `output_buf[cur]` above
-        if unsafe { transmute::<MaybeUninit<u8>, u8>(*output_buf.get_unchecked(cur - 1)) } == b' ' {
-            cur -= 1;
-            *need_separator = true;
-        } else {
-            *need_separator = false;
-        }
-        // SAFETY: transmuting the `cur` first elements of `output_buf` from `MaybeInit<u8>` to
-        // `u8` is safe since `cur` starts at 0 and we always write an element before increment
-        // `cur`
-        let init: &[u8] = unsafe { transmute(&output_buf[..cur]) };
-        output.write_all(init)?;
-    }
-    Ok(())
+    Ok(cur)
 }
 
 /// Encode ASCII characters from a [byte slice][slice] into a [String].
@@ -93,11 +75,17 @@ fn encode_buffer_ascii(
 /// assert_eq!(morse, "-- --- .-. ... . / -.-. --- -.. .");
 /// ```
 pub fn encode_string_ascii(input: &[u8]) -> String {
-    let mut writer = BufWriter::new(Vec::new());
     let mut output_buf = vec![MaybeUninit::uninit(); input.len() * 18];
-    encode_buffer_ascii(&mut writer, input, &mut false, &mut output_buf).unwrap();
-    let vec = writer.into_inner().unwrap();
-    String::from_utf8(vec).unwrap()
+    let cur = encode_buffer_ascii(input, &mut false, &mut output_buf).unwrap();
+    output_buf.truncate(cur);
+    // SAFETY: transmuting the `cur` first elements of `output_buf` from `MaybeInit<u8>` to
+    // `u8` is safe since `cur` starts at 0 and we always write an element before increment
+    // `cur`
+    let mut output_buf: Vec<u8> = unsafe { transmute(output_buf) };
+    if output_buf.last() == Some(&b' ') {
+        output_buf.pop().unwrap();
+    }
+    String::from_utf8(output_buf).unwrap()
 }
 
 /// Encode ASCII characters from a [Read][std::io::Read] object into a [Write][std::io::Write] object.
@@ -133,13 +121,31 @@ pub fn encode_stream_ascii(input: &mut impl Read, output: &mut impl Write) {
         if bytes_read == 0 {
             break;
         }
-        encode_buffer_ascii(
-            output,
+        let mut cur = encode_buffer_ascii(
             &input_buf[..bytes_read],
             &mut need_separator,
             &mut output_buf,
         )
         .unwrap();
+        // flush buffer
+        if cur != 0 {
+            // SAFETY: transmuting `output_buf[cur - 1]` from `MaybeInit<u8>` to `u8` is safe
+            // since `cur` starts at 0 and we always write an element before increment `cur`
+            // and see `output_buf[cur]` above
+            if unsafe { transmute::<MaybeUninit<u8>, u8>(*output_buf.get_unchecked(cur - 1)) }
+                == b' '
+            {
+                cur -= 1;
+                need_separator = true;
+            } else {
+                need_separator = false;
+            }
+            // SAFETY: transmuting the `cur` first elements of `output_buf` from `MaybeInit<u8>` to
+            // `u8` is safe since `cur` starts at 0 and we always write an element before increment
+            // `cur`
+            let init: &[u8] = unsafe { transmute(&output_buf[..cur]) };
+            output.write_all(init).unwrap();
+        }
     }
 }
 
