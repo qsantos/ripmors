@@ -8,7 +8,7 @@ fn encode_buffer(
     output: &mut impl Write,
     input: &str,
     need_separator: &mut bool,
-    output_buf: &mut [MaybeUninit<u8>; 1 << 15],
+    output_buf: &mut [MaybeUninit<u8>],
 ) -> Result<(), std::io::Error> {
     let mut cur = 0;
     if *need_separator {
