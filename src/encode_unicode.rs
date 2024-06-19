@@ -83,28 +83,6 @@ fn encode_buffer(
             }
             cur += len;
         }
-        // flush buffer
-        if cur >= output_buf.len() - 18 {
-            // SAFETY: transmuting `output_buf[cur - 1]` from `MaybeInit<u8>` to `u8` is safe
-            // since `cur` starts at 0 and we always write an element before increment `cur`
-            if unsafe { transmute::<MaybeUninit<u8>, u8>(output_buf[cur - 1]) } == b' ' {
-                cur -= 1;
-                // SAFETY: transmuting the `cur` first elements of `output_buf` from
-                // `MaybeInit<u8>` to `u8` is safe since `cur` starts at 0 and we always write an
-                // element before increment `cur`
-                let init: &[u8] = unsafe { transmute(&output_buf[..cur]) };
-                output.write_all(init)?;
-                output_buf[0].write(b' ');
-                cur = 1;
-            } else {
-                // SAFETY: transmuting the `cur` first elements of `output_buf` from
-                // `MaybeInit<u8>` to `u8` is safe since `cur` starts at 0 and we always write an
-                // element before increment `cur`
-                let init: &[u8] = unsafe { transmute(&output_buf[..cur]) };
-                output.write_all(init)?;
-                cur = 0;
-            }
-        }
     }
     // flush buffer
     if cur != 0 {
