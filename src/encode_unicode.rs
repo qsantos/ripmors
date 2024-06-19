@@ -131,7 +131,7 @@ fn encode_buffer(
 /// ```
 pub fn encode_string(input: &str) -> String {
     let mut writer = BufWriter::new(Vec::new());
-    let mut output_buf = [MaybeUninit::uninit(); 1 << 15];
+    let mut output_buf = vec![MaybeUninit::uninit(); 1 << 15];
     encode_buffer(&mut writer, input, &mut false, &mut output_buf).unwrap();
     let vec = writer.into_inner().unwrap();
     String::from_utf8(vec).unwrap()
@@ -165,7 +165,7 @@ pub fn encode_stream(input: &mut impl Read, output: &mut impl Write) {
     let mut input_buf = vec![0u8; 1 << 15];
     let mut bytes_available = 0;
     let mut need_separator = false;
-    let mut output_buf = [MaybeUninit::uninit(); 1 << 15];
+    let mut output_buf = vec![MaybeUninit::uninit(); 1 << 15];
     loop {
         let bytes_read = input.read(&mut input_buf[bytes_available..]).unwrap();
         if bytes_read == 0 {
