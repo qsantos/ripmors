@@ -87,11 +87,14 @@ pub fn encode_string_ascii(input: &[u8]) -> String {
 ///     ripmors::encode_stream_ascii(&mut stdin, &mut stdout);
 /// }
 /// ```
-pub fn encode_stream_ascii(input: &mut impl Read, output: &mut impl Write) {
+pub fn encode_stream_ascii(
+    input: &mut impl Read,
+    output: &mut impl Write,
+) -> Result<(), std::io::Error> {
     let mut input_buf = vec![0u8; 1 << 15];
     let mut output_buf = Vec::new();
     loop {
-        let bytes_read = input.read(&mut input_buf).unwrap();
+        let bytes_read = input.read(&mut input_buf)?;
         if bytes_read == 0 {
             break;
         }
@@ -99,14 +102,15 @@ pub fn encode_stream_ascii(input: &mut impl Read, output: &mut impl Write) {
         if output_buf.is_empty() {
         } else if output_buf.last() == Some(&b' ') {
             output_buf.pop();
-            output.write_all(&output_buf).unwrap();
+            output.write_all(&output_buf)?;
             output_buf.clear();
             output_buf.push(b' ');
         } else {
-            output.write_all(&output_buf).unwrap();
+            output.write_all(&output_buf)?;
             output_buf.clear();
         }
     }
+    Ok(())
 }
 
 #[test]

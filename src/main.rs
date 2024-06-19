@@ -50,7 +50,7 @@ fn main() {
         };
         decode_stream(&mut stdin, &mut stdout, char_decode);
     } else if args.encode == Some(EncodeVariant::Ascii) {
-        encode_stream_ascii(&mut stdin, &mut stdout);
+        encode_stream_ascii(&mut stdin, &mut stdout).unwrap();
     } else {
         encode_stream(&mut stdin, &mut stdout);
     }
