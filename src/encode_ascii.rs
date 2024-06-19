@@ -60,7 +60,8 @@ pub fn encode_string_ascii(input: &[u8]) -> String {
     if output_buf.last() == Some(&b' ') {
         output_buf.pop();
     }
-    String::from_utf8(output_buf).unwrap()
+    // SAFETY: encode_buffer_ascii only outputs ASCII, so it is valid UTF-8
+    unsafe { String::from_utf8_unchecked(output_buf) }
 }
 
 /// Encode ASCII characters from a [Read][std::io::Read] object into a [Write][std::io::Write] object.
