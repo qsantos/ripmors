@@ -10,10 +10,15 @@ fn encode_buffer(
     need_separator: &mut bool,
     output_buf: &mut [MaybeUninit<u8>],
 ) -> Result<(), std::io::Error> {
+    // SAFETY: `output_buf[cur]`
+    // Accessing the element `cur` of `output_buf` is safe because
+    // - `cur <= 18 * input_buf.len() + 1` because we increment `cur` by at most 18 for each byte read
+    // - `18 * input_buf.len() + 1 <= output_buf` as check by the `assert!` below
     assert!(output_buf.len() > input.len() * 18);
     let mut cur = 0;
     if *need_separator {
-        output_buf[cur].write(b' ');
+        // SAFETY: see `output_buf[cur]` above
+        unsafe { output_buf.get_unchecked_mut(cur) }.write(b' ');
         cur += 1;
     }
     for c in input.chars() {
@@ -25,7 +30,8 @@ fn encode_buffer(
                     && cur > 0
                     // SAFETY: transmuting `output_buf[cur - 1]` from `MaybeInit<u8>` to `u8` is safe
                     // since `cur` starts at 0 and we always write an element before increment `cur`
-                    && unsafe { transmute::<MaybeUninit<u8>, u8>(output_buf[cur - 1]) } == b' '
+                    // and see `output_buf[cur]` above
+                    && unsafe { transmute::<MaybeUninit<u8>, u8>(*output_buf.get_unchecked(cur - 1)) } == b' '
                 {
                     cur -= 1;
                 }
@@ -41,8 +47,11 @@ fn encode_buffer(
                 assert_eq!(c, '%');
                 // SAFETY: source and destination derived from references, slices are of the
                 // correct length (replace with `MaybeUninit::copy_from_slice()` once stabilized).
+                // and see `output_buf[cur]` above
                 unsafe {
-                    transmute::<&mut [MaybeUninit<u8>], &mut [u8]>(&mut output_buf[cur..cur + 18])
+                    transmute::<&mut [MaybeUninit<u8>], &mut [u8]>(
+                        &mut output_buf.get_unchecked_mut(cur..cur + 18),
+                    )
                 }
                 .copy_from_slice(b"----- -..-. ----- ");
             }
@@ -64,8 +73,11 @@ fn encode_buffer(
             } else {
                 // SAFETY: source and destination derived from references, slices are of the
                 // correct length (replace with `MaybeUninit::copy_from_slice()` once stabilized).
+                // and see `output_buf[cur]` above
                 unsafe {
-                    transmute::<&mut [MaybeUninit<u8>], &mut [u8]>(&mut output_buf[cur..cur + len])
+                    transmute::<&mut [MaybeUninit<u8>], &mut [u8]>(
+                        &mut output_buf.get_unchecked_mut(cur..cur + len),
+                    )
                 }
                 .copy_from_slice(bytes);
             }
