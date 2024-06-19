@@ -37,7 +37,7 @@ fn test_encode_stream_ascii() {
 fn test_encode_stream_unicode() {
     let mut f = std::fs::File::open("1-original.txt").unwrap();
     let mut writer = BufWriter::new(Vec::new());
-    encode_stream(&mut f, &mut writer);
+    encode_stream(&mut f, &mut writer).unwrap();
     compare_output_to_oracle(writer, "2-encoded.txt");
 }
 

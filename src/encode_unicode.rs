@@ -141,13 +141,13 @@ pub fn encode_string(input: &str) -> String {
 ///     ripmors::encode_stream(&mut stdin, &mut stdout);
 /// }
 /// ```
-pub fn encode_stream(input: &mut impl Read, output: &mut impl Write) {
+pub fn encode_stream(input: &mut impl Read, output: &mut impl Write) -> Result<(), std::io::Error> {
     let mut input_buf = vec![0u8; 1 << 15];
     let mut bytes_available = 0;
     let mut need_separator = false;
     let mut output_buf = vec![MaybeUninit::uninit(); (18 << 15) + 1];
     loop {
-        let bytes_read = input.read(&mut input_buf[bytes_available..]).unwrap();
+        let bytes_read = input.read(&mut input_buf[bytes_available..])?;
         if bytes_read == 0 {
             break;
         }
@@ -179,11 +179,12 @@ pub fn encode_stream(input: &mut impl Read, output: &mut impl Write) {
             // `u8` is safe since `cur` starts at 0 and we always write an element before increment
             // `cur`
             let init: &[u8] = unsafe { transmute(&output_buf[..cur]) };
-            output.write_all(init).unwrap();
+            output.write_all(init)?;
         }
         input_buf.copy_within(bytes_decoded..bytes_available, 0);
         bytes_available -= bytes_decoded;
     }
+    Ok(())
 }
 
 #[test]

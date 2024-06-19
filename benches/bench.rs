@@ -38,7 +38,7 @@ fn standard_benchmark(c: &mut Criterion) {
     group.bench_function("stream", |b| {
         b.iter(|| {
             f.rewind().unwrap();
-            encode_stream(&mut f, &mut devnull);
+            encode_stream(&mut f, &mut devnull).unwrap();
         })
     });
 
