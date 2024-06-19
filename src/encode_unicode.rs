@@ -8,7 +8,7 @@ fn encode_buffer(
     input: &str,
     need_separator: &mut bool,
     output_buf: &mut [MaybeUninit<u8>],
-) -> Result<usize, std::io::Error> {
+) -> usize {
     // SAFETY: `output_buf[cur]`
     // Accessing the element `cur` of `output_buf` is safe because
     // - `cur <= 18 * input_buf.len() + 1` because we increment `cur` by at most 18 for each byte read
@@ -83,7 +83,7 @@ fn encode_buffer(
             cur += len;
         }
     }
-    Ok(cur)
+    cur
 }
 
 /// Encode characters from a [string slice][&str] into a [String].
@@ -105,7 +105,7 @@ fn encode_buffer(
 /// ```
 pub fn encode_string(input: &str) -> String {
     let mut output_buf = vec![MaybeUninit::uninit(); input.len() * 18 + 1];
-    let cur = encode_buffer(input, &mut false, &mut output_buf).unwrap();
+    let cur = encode_buffer(input, &mut false, &mut output_buf);
     output_buf.truncate(cur);
     // SAFETY: transmuting the `cur` first elements of `output_buf` from `MaybeInit<u8>` to
     // `u8` is safe since `cur` starts at 0 and we always write an element before increment
@@ -164,7 +164,7 @@ pub fn encode_stream(input: &mut impl Read, output: &mut impl Write) {
                     (decoded, bytes_decoded)
                 }
             };
-        let mut cur = encode_buffer(decoded, &mut need_separator, &mut output_buf).unwrap();
+        let mut cur = encode_buffer(decoded, &mut need_separator, &mut output_buf);
         // flush buffer
         if cur != 0 {
             // SAFETY: transmuting `output_buf[cur - 1]` from `MaybeInit<u8>` to `u8` is safe
