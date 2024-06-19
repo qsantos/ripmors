@@ -2,7 +2,7 @@ use std::io::{Read, Write};
 
 use crate::encode_ascii_mapping::ASCII_TO_QWORD;
 
-fn encode_buffer_ascii(input: &[u8], output_buf: &mut Vec<u8>) -> Result<(), std::io::Error> {
+fn encode_buffer_ascii(input: &[u8], output_buf: &mut Vec<u8>) {
     let mut cur = output_buf.len();
     output_buf.reserve(input.len() * 18 + cur);
     for c in input {
@@ -34,7 +34,6 @@ fn encode_buffer_ascii(input: &[u8], output_buf: &mut Vec<u8>) -> Result<(), std
     // SAFETY: the first `cur` bytes of `output_buf` are initialized because we only increase cur
     // after writing to `output_buf`
     unsafe { output_buf.set_len(cur) };
-    Ok(())
 }
 
 /// Encode ASCII characters from a [byte slice][slice] into a [String].
@@ -57,7 +56,7 @@ fn encode_buffer_ascii(input: &[u8], output_buf: &mut Vec<u8>) -> Result<(), std
 /// ```
 pub fn encode_string_ascii(input: &[u8]) -> String {
     let mut output_buf = Vec::new();
-    encode_buffer_ascii(input, &mut output_buf).unwrap();
+    encode_buffer_ascii(input, &mut output_buf);
     if output_buf.last() == Some(&b' ') {
         output_buf.pop();
     }
@@ -96,7 +95,7 @@ pub fn encode_stream_ascii(input: &mut impl Read, output: &mut impl Write) {
         if bytes_read == 0 {
             break;
         }
-        encode_buffer_ascii(&input_buf[..bytes_read], &mut output_buf).unwrap();
+        encode_buffer_ascii(&input_buf[..bytes_read], &mut output_buf);
         if output_buf.is_empty() {
         } else if output_buf.last() == Some(&b' ') {
             output_buf.pop();
