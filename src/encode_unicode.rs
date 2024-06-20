@@ -1,15 +1,15 @@
 use std::io::{Read, Write};
-use std::mem::{transmute, MaybeUninit};
 
 use crate::encode_ascii_mapping::ASCII_TO_QWORD;
 use crate::encode_unicode_mapping::from_unicode;
 
-fn encode_buffer(input: &str, output_buf: &mut [MaybeUninit<u8>], mut cur: usize) -> usize {
+fn encode_buffer(input: &str, output_buf: &mut Vec<u8>) {
     // SAFETY: `output_buf[cur]`
     // Accessing the element `cur` of `output_buf` is safe because
     // - `cur <= 18 * input_buf.len() + 1` because we increment `cur` by at most 18 for each byte read
     // - `18 * input_buf.len() + 1 <= output_buf` as check by the `assert!` below
-    assert!(output_buf.len() > input.len() * 18);
+    let mut cur = output_buf.len();
+    output_buf.reserve(input.len() * 18 + cur);
     for c in input.chars() {
         if c.is_ascii() {
             let (bytes, len) = ASCII_TO_QWORD[c as usize];
@@ -17,10 +17,8 @@ fn encode_buffer(input: &str, output_buf: &mut [MaybeUninit<u8>], mut cur: usize
             } else if len <= 8 {
                 if (c == '\t' || c == '\n' || c == '\r')
                     && cur > 0
-                    // SAFETY: transmuting `output_buf[cur - 1]` from `MaybeInit<u8>` to `u8` is safe
-                    // since `cur` starts at 0 and we always write an element before increment `cur`
-                    // and see `output_buf[cur]` above
-                    && unsafe { transmute::<MaybeUninit<u8>, u8>(*output_buf.get_unchecked(cur - 1)) } == b' '
+                    // SAFETY: see `output_buf[cur]` above
+                    && unsafe { *output_buf.as_ptr().add(cur - 1) } == b' '
                 {
                     cur -= 1;
                 }
@@ -34,15 +32,9 @@ fn encode_buffer(input: &str, output_buf: &mut [MaybeUninit<u8>], mut cur: usize
             } else {
                 // handle only ASCII character encoded as more than 7 elements + space
                 assert_eq!(c, '%');
-                // SAFETY: source and destination derived from references, slices are of the
-                // correct length (replace with `MaybeUninit::copy_from_slice()` once stabilized).
-                // and see `output_buf[cur]` above
-                unsafe {
-                    transmute::<&mut [MaybeUninit<u8>], &mut [u8]>(
-                        &mut output_buf.get_unchecked_mut(cur..cur + 18),
-                    )
-                }
-                .copy_from_slice(b"----- -..-. ----- ");
+                // SAFETY: `output_buf[cur]` above
+                unsafe { std::slice::from_raw_parts_mut(output_buf.as_mut_ptr().add(cur), 18) }
+                    .copy_from_slice(b"----- -..-. ----- ");
             }
             cur += len;
         } else {
@@ -52,28 +44,22 @@ fn encode_buffer(input: &str, output_buf: &mut [MaybeUninit<u8>], mut cur: usize
                 // SAFETY: we flush the buffer after each byte when we are below 18 free bytes
                 // next chunk; thus, there is at least 8 available bytes for writing after
                 // `output_buf + cur`.
-                let buf8 = unsafe { output_buf.get_unchecked_mut(cur..cur + 8) };
+                let buf8 =
+                    unsafe { std::slice::from_raw_parts_mut(output_buf.as_mut_ptr().add(cur), 8) };
                 // SAFETY: the slice is exactly 8 bytes long per construction
                 let bytes8 = unsafe { &*(bytes.as_ptr() as *const [u8; 8]) };
-                // SAFETY: source and destination derived from references, slices are of the
-                // correct length (replace with `MaybeUninit::copy_from_slice()` once stabilized).
-                unsafe { transmute::<&mut [MaybeUninit<u8>], &mut [u8]>(buf8) }
-                    .copy_from_slice(bytes8);
+                buf8.copy_from_slice(bytes8);
             } else {
-                // SAFETY: source and destination derived from references, slices are of the
-                // correct length (replace with `MaybeUninit::copy_from_slice()` once stabilized).
-                // and see `output_buf[cur]` above
-                unsafe {
-                    transmute::<&mut [MaybeUninit<u8>], &mut [u8]>(
-                        &mut output_buf.get_unchecked_mut(cur..cur + len),
-                    )
-                }
-                .copy_from_slice(bytes);
+                // SAFETY: `output_buf[cur]` above
+                unsafe { std::slice::from_raw_parts_mut(output_buf.as_mut_ptr().add(cur), len) }
+                    .copy_from_slice(bytes);
             }
             cur += len;
         }
     }
-    cur
+    // SAFETY: the first `cur` bytes of `output_buf` are initialized because we only increase cur
+    // after writing to `output_buf`
+    unsafe { output_buf.set_len(cur) };
 }
 
 /// Encode characters from a [string slice][&str] into a [String].
@@ -94,13 +80,8 @@ fn encode_buffer(input: &str, output_buf: &mut [MaybeUninit<u8>], mut cur: usize
 /// assert_eq!(morse, "- ..-.. .-.. ..-.. --. .-. .- .--. .... .. .");
 /// ```
 pub fn encode_string(input: &str) -> String {
-    let mut output_buf = vec![MaybeUninit::uninit(); input.len() * 18 + 1];
-    let cur = encode_buffer(input, &mut output_buf, 0);
-    output_buf.truncate(cur);
-    // SAFETY: transmuting the `cur` first elements of `output_buf` from `MaybeInit<u8>` to
-    // `u8` is safe since `cur` starts at 0 and we always write an element before increment
-    // `cur`
-    let mut output_buf: Vec<u8> = unsafe { transmute(output_buf) };
+    let mut output_buf = Vec::new();
+    encode_buffer(input, &mut output_buf);
     if output_buf.last() == Some(&b' ') {
         output_buf.pop();
     }
@@ -135,8 +116,7 @@ pub fn encode_string(input: &str) -> String {
 pub fn encode_stream(input: &mut impl Read, output: &mut impl Write) -> Result<(), std::io::Error> {
     let mut input_buf = vec![0u8; 1 << 15];
     let mut bytes_available = 0;
-    let mut output_buf = vec![MaybeUninit::uninit(); (18 << 15) + 1];
-    let mut cur = 0;
+    let mut output_buf = Vec::new();
     loop {
         let bytes_read = input.read(&mut input_buf[bytes_available..])?;
         if bytes_read == 0 {
@@ -155,26 +135,16 @@ pub fn encode_stream(input: &mut impl Read, output: &mut impl Write) -> Result<(
                     (decoded, bytes_decoded)
                 }
             };
-        cur = encode_buffer(decoded, &mut output_buf, cur);
-        if cur != 0 {
-            // SAFETY: transmuting `output_buf[cur - 1]` from `MaybeInit<u8>` to `u8` is safe
-            // since `cur` starts at 0 and we always write an element before increment `cur`
-            if unsafe { transmute::<MaybeUninit<u8>, u8>(output_buf[cur - 1]) } == b' ' {
-                cur -= 1;
-                // SAFETY: transmuting the `cur` first elements of `output_buf` from `MaybeInit<u8>` to
-                // `u8` is safe since `cur` starts at 0 and we always write an element before increment
-                // `cur`
-                let init: &[u8] = unsafe { transmute(&output_buf[..cur]) };
-                output.write_all(init)?;
-                output_buf[0].write(b' ');
-                cur = 1;
+        encode_buffer(decoded, &mut output_buf);
+        if !output_buf.is_empty() {
+            if output_buf.last() == Some(&b' ') {
+                output_buf.pop();
+                output.write_all(&output_buf)?;
+                output_buf.clear();
+                output_buf.push(b' ');
             } else {
-                // SAFETY: transmuting the `cur` first elements of `output_buf` from `MaybeInit<u8>` to
-                // `u8` is safe since `cur` starts at 0 and we always write an element before increment
-                // `cur`
-                let init: &[u8] = unsafe { transmute(&output_buf[..cur]) };
-                output.write_all(init)?;
-                cur = 0;
+                output.write_all(&output_buf)?;
+                output_buf.clear();
             }
         }
         input_buf.copy_within(bytes_decoded..bytes_available, 0);
