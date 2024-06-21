@@ -4,11 +4,7 @@ cargo build --release
 repeat() {
     local count=$1
     local file=$2
-    local args8=($file $file $file $file $file $file $file $file)
-    local args64=("${args8[@]}" "${args8[@]}" "${args8[@]}" "${args8[@]}" "${args8[@]}" "${args8[@]}" "${args8[@]}" "${args8[@]}")
-    for (( i = 0; i < $count; i++ )); do
-        cat "${args64[@]}"
-    done
+    yes "$file" | head -n $(( $count * 64 )) | xargs cat
 }
 echo "No-op"
 repeat 1000 4-unicode.txt | pv >/dev/null
