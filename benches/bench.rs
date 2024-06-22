@@ -26,7 +26,7 @@ fn ascii_benchmark(c: &mut Criterion) {
     group.finish();
 }
 
-fn standard_benchmark(c: &mut Criterion) {
+fn unicode_benchmark(c: &mut Criterion) {
     let data = std::fs::read_to_string("4-unicode.txt").unwrap();
     let mut f = std::fs::File::open("4-unicode.txt").unwrap();
     let mut devnull = std::fs::File::create("/dev/null").unwrap();
