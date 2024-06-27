@@ -4,7 +4,10 @@ cargo build --release
 repeat() {
     local count=$1
     local file=$2
-    yes "$file" | head -n $(( $count * 64 )) | xargs cat
+    # NOTE: head closes the pipe after reading enough lines, which causes yes
+    # to exit with EPIPE; since we set -o pipefail, we need to explicitly
+    # ignore it
+    { yes "$file" || true; } | head -n $(( $count * 64 )) | xargs cat
 }
 echo "No-op"
 repeat 1000 4-unicode.txt | pv >/dev/null
