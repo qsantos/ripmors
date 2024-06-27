@@ -4,15 +4,16 @@ if [ "$(cat /proc/sys/kernel/perf_event_paranoid)" != "1" ]; then
     echo 1 | sudo tee /proc/sys/kernel/perf_event_paranoid >/dev/null
 fi
 cargo build --profile=profiling
+{ read CPU1; read CPU2; } < <(./cores | tail -n2 | cut -d' ' -f2)
 repeat() {
     local count=$1
     local file=$2
-    local args8=($file $file $file $file $file $file $file $file)
-    local args64=("${args8[@]}" "${args8[@]}" "${args8[@]}" "${args8[@]}" "${args8[@]}" "${args8[@]}" "${args8[@]}" "${args8[@]}")
-    for (( i = 0; i < $count; i++ )); do
-        cat "${args64[@]}"
-    done
+    # NOTE: head closes the pipe after reading enough lines, which causes yes
+    # to exit with EPIPE; since we set -o pipefail, we need to explicitly
+    # ignore it
+    { yes "$file" || true; } | head -n $(( $count * 64 )) | xargs taskset -c $CPU2 pv -q
 }
-repeat 5 1-original.txt | taskset -c 0 samply record ./target/profiling/ripmors -e ascii >/dev/null
-repeat 30 4-unicode.txt | taskset -c 0 samply record ./target/release/ripmors -e unicode >/dev/null
-repeat 1 2-encoded.txt | taskset -c 0 samply record ./target/profiling/ripmors -d >/dev/null
+# NOTE: taskset -c $CPU1 interferes with samply recording
+repeat 10 1-original.txt | samply record ./target/profiling/ripmors -e ascii >/dev/null
+repeat 50 4-unicode.txt | samply record ./target/release/ripmors -e unicode >/dev/null
+repeat 2 2-encoded.txt | samply record ./target/profiling/ripmors -d >/dev/null
