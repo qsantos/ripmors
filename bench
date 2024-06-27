@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 cargo build --release
+{ read CPU1; read CPU2; } < <(./cores | tail -n2 | cut -d' ' -f2)
 repeat() {
     local count=$1
     local file=$2
     # NOTE: head closes the pipe after reading enough lines, which causes yes
     # to exit with EPIPE; since we set -o pipefail, we need to explicitly
     # ignore it
-    { yes "$file" || true; } | head -n $(( $count * 64 )) | xargs pv -q
+    { yes "$file" || true; } | head -n $(( $count * 64 )) | xargs taskset -c $CPU2 pv -q
 }
 echo "No-op"
-repeat 1000 4-unicode.txt | pv >/dev/null
+repeat 1000 4-unicode.txt | taskset -c $CPU1 pv >/dev/null
 echo "Encoding ASCII"
-repeat 10 1-original.txt | pv | taskset -c 0 ./target/release/ripmors -e ascii >/dev/null
+repeat 10 1-original.txt | pv | taskset -c $CPU1 ./target/release/ripmors -e ascii >/dev/null
 echo "Encoding Unicode"
-repeat 50 4-unicode.txt | pv | taskset -c 0 ./target/release/ripmors -e unicode >/dev/null
+repeat 50 4-unicode.txt | pv | taskset -c $CPU1 ./target/release/ripmors -e unicode >/dev/null
 echo "Decoding"
-repeat 2 2-encoded.txt | pv | taskset -c 0 ./target/release/ripmors -d >/dev/null
+repeat 2 2-encoded.txt | pv | taskset -c $CPU1 ./target/release/ripmors -d >/dev/null
