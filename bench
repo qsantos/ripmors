@@ -8,13 +8,13 @@ repeat() {
     # NOTE: head closes the pipe after reading enough lines, which causes yes
     # to exit with EPIPE; since we set -o pipefail, we need to explicitly
     # ignore it
-    { yes "$file" || true; } | head -n $(( $count * 64 )) | xargs taskset -c $CPU2 pv -q
+    { yes "$file" || true; } | head -n $(( $count * 64 )) | xargs taskset -c $CPU2 pv
 }
 echo "No-op"
-repeat 1000 4-unicode.txt | taskset -c $CPU1 pv >/dev/null
+repeat 100 4-unicode.txt >/dev/null
 echo "Encoding ASCII"
-repeat 10 1-original.txt | pv | taskset -c $CPU1 ./target/release/ripmors -e ascii >/dev/null
+repeat 10 1-original.txt | taskset -c $CPU1 ./target/release/ripmors -e ascii >/dev/null
 echo "Encoding Unicode"
-repeat 50 4-unicode.txt | pv | taskset -c $CPU1 ./target/release/ripmors -e unicode >/dev/null
+repeat 50 4-unicode.txt | taskset -c $CPU1 ./target/release/ripmors -e unicode >/dev/null
 echo "Decoding"
-repeat 2 2-encoded.txt | pv | taskset -c $CPU1 ./target/release/ripmors -d >/dev/null
+repeat 2 2-encoded.txt | taskset -c $CPU1 ./target/release/ripmors -d >/dev/null
