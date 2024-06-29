@@ -69,7 +69,7 @@ fn decode_benchmark(c: &mut Criterion) {
 criterion_group!(
     benches,
     ascii_benchmark,
-    standard_benchmark,
+    unicode_benchmark,
     decode_benchmark
 );
 criterion_main!(benches);
