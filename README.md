@@ -17,6 +17,8 @@ MORSE CODE
 
 [Documentation](https://docs.rs/ripmors/latest/ripmors/)
 
+If you want to uwu-encode instead, use [this project instead](https://github.com/Daniel-Liu-c0deb0t/uwu).
+
 ## Usage
 
 Or, in Rust:
