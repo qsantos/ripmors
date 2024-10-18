@@ -15,7 +15,7 @@ criterion = { version = "0.5.1", features = ["html_reports"] }
 rand = "0.8.5"
 
 [[bench]]
-name = "bench"
+name = "criterion"
 harness = false
 
 [profile.profiling]
