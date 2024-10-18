@@ -13,9 +13,14 @@ rust-version = "1.74.1"
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["html_reports"] }
 rand = "0.8.5"
+tango-bench = "0.6.0"
 
 [[bench]]
 name = "criterion"
+harness = false
+
+[[bench]]
+name = "tango"
 harness = false
 
 [profile.profiling]
