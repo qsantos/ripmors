@@ -2,4 +2,6 @@
 extend-ignore-identifiers-re = [
     # reading of ば/バ; typos thinks it should be "by" or be"
     "ba",
+    # reading of ث; typos thinks it should be "than"
+    "thah"
 ]
