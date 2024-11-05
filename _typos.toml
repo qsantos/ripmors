@@ -1,5 +1,5 @@
 [default]
 extend-ignore-identifiers-re = [
-    # reading of ば/バ; typos thinksit should be "by" or be"
+    # reading of ば/バ; typos thinks it should be "by" or be"
     "ba",
 ]
