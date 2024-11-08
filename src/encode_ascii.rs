@@ -64,16 +64,16 @@ pub fn encode_string_ascii(input: &[u8]) -> String {
     unsafe { String::from_utf8_unchecked(output_buf) }
 }
 
-/// Encode ASCII characters from a [Read][std::io::Read] object into a [Write][std::io::Write] object.
+/// Encode ASCII characters from a [`Read`][std::io::Read] object into a [`Write`][std::io::Write] object.
 ///
 /// Bytes from `input` are interpreted as ASCII characters. The following ASCII characters are used to
 /// represent Morse code:
 ///
-/// - Full stop (.) represents the Morse dot;
-/// - Hyphen (-) represents the Morse dash;
-/// - Space ( ) represents the letter space;
-/// - Slash (/) represents the word space;
-/// - Tab (\t), line feed (\n) and carriage return (\r) are kept as-is.
+/// - Full stop (`.`) represents the Morse dot;
+/// - Hyphen (`-`) represents the Morse dash;
+/// - Space (` `) represents the letter space;
+/// - Slash (`/`) represents the word space;
+/// - Tab (`\t`), line feed (`\n`) and carriage return (`\r`) are kept as-is.
 ///
 /// ASCII characters that cannot be converted to Morse and non-ASCII bytes, such as UTF-8 encodings, are ignored.
 ///
