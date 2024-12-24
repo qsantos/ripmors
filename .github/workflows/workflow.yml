@@ -33,6 +33,8 @@ jobs:
         run: cargo test
       - name: Build
         run: cargo build --verbose
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
       - name: Audit
         run: cargo audit -D warnings
       - name: Install Miri
