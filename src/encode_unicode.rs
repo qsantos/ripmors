@@ -136,16 +136,18 @@ pub fn encode_stream(input: &mut impl Read, output: &mut impl Write) -> Result<(
                 }
             };
         encode_buffer(decoded, &mut output_buf);
-        if !output_buf.is_empty() {
-            if output_buf.last() == Some(&b' ') {
+        match output_buf.last() {
+            Some(&b' ') => {
                 output_buf.pop();
                 output.write_all(&output_buf)?;
                 output_buf.clear();
                 output_buf.push(b' ');
-            } else {
+            }
+            None => {
                 output.write_all(&output_buf)?;
                 output_buf.clear();
             }
+            _ => (),
         }
         input_buf.copy_within(bytes_decoded..bytes_available, 0);
         bytes_available -= bytes_decoded;
