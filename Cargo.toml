@@ -5,8 +5,7 @@ authors = ["Quentin Santos <qsantos@qsantos.fr>"]
 description = "ripmors is a library for encoding and decoding international Morse code and several variants"
 repository = "https://github.com/qsantos/ripmors/"
 license = "Apache-2.0 AND MIT"
-edition = "2021"
-rust-version = "1.74.1"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

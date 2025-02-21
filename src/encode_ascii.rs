@@ -130,7 +130,7 @@ fn test_ascii_encode_simple() {
 // short enough to run with Miri
 #[test]
 fn test_ascii_encode_random_short() {
-    use rand::{distributions::Standard, Rng};
+    use rand::{Rng, distributions::Standard};
     let data: Vec<u8> = rand::thread_rng()
         .sample_iter::<u8, _>(Standard)
         .take(1024)
@@ -141,7 +141,7 @@ fn test_ascii_encode_random_short() {
 #[test]
 #[cfg_attr(miri, ignore)]
 fn test_ascii_encode_random_large() {
-    use rand::{distributions::Standard, Rng};
+    use rand::{Rng, distributions::Standard};
     let data: Vec<u8> = rand::thread_rng()
         .sample_iter::<u8, _>(Standard)
         .take(1048576)

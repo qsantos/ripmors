@@ -180,7 +180,7 @@ fn test_unicode_encode() {
 // short enough to run with Miri
 #[test]
 fn test_unicode_encode_random_short() {
-    use rand::{distributions::Standard, Rng};
+    use rand::{Rng, distributions::Standard};
     let data: String = rand::thread_rng()
         .sample_iter::<u8, _>(Standard)
         .take(1024)
@@ -192,7 +192,7 @@ fn test_unicode_encode_random_short() {
 #[test]
 #[cfg_attr(miri, ignore)]
 fn test_unicode_encode_random_large() {
-    use rand::{distributions::Standard, Rng};
+    use rand::{Rng, distributions::Standard};
     let data: String = rand::thread_rng()
         .sample_iter::<u8, _>(Standard)
         .take(1048576)
