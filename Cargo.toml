@@ -27,8 +27,8 @@ inherits = "release"
 debug = true
 
 [dependencies]
-clap = { version = "4.5.4", features = ["derive"], optional = true }
-simdutf8 = "0.1.4"
+clap = { version = "4.5.30", features = ["derive"], optional = true }
+simdutf8 = "0.1.5"
 
 [features]
 default = ["clap"]
