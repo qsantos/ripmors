@@ -82,9 +82,7 @@ fn encode_buffer(input: &str, output_buf: &mut Vec<u8>) {
 pub fn encode_string(input: &str) -> String {
     let mut output_buf = Vec::new();
     encode_buffer(input, &mut output_buf);
-    if output_buf.last() == Some(&b' ') {
-        output_buf.pop();
-    }
+    output_buf.pop_if(|c| *c == b' ');
     // SAFETY: encode_buffer_ascii only outputs ASCII, so it is valid UTF-8
     unsafe { String::from_utf8_unchecked(output_buf) }
 }
