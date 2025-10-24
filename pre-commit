@@ -1,19 +1,16 @@
 #!/usr/bin/env bash
-# Usage: copy this file to .git/hooks/
+# Usage: ln -sf ../../pre-commit .git/hooks
 
 # Exit at first error
 set -Eeu
 
-# To handle partially committed files, we must copy the staged changes to a
-# separate location
+# To handle partially committed files, we must copy the staged changes to a separate location
 # See also https://stackoverflow.com/a/36793330
 TEMPDIR=$(mktemp -d)
-trap 'rm -rf "$TEMPDIR"' EXIT SIGHUP SIGINT SIGQUIT SIGTERM
+trap "rm -Rf $TEMPDIR" EXIT SIGHUP SIGINT SIGQUIT SIGTERM
 git checkout-index --prefix="$TEMPDIR/" -af
 
-# keep using the same target/ directory, not a new one in the temporary
-# directory this avoids re-parsing everything from scratch every time we run
-# the script
+# Useful to reuse build directories
 GIT_ROOT=$(git rev-parse --show-toplevel)
 
 # prevent committing any file with a "NOCOMMIT" marker
