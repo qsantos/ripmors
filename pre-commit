@@ -16,6 +16,12 @@ git checkout-index --prefix="$TEMPDIR/" -af
 # the script
 GIT_ROOT=$(git rev-parse --show-toplevel)
 
+# prevent committing any file with a "NOCOMMIT" marker
+if git diff --cached --diff-filter=AM -- ':!pre-commit' | grep -C3 'NOCOMMIT' --color; then
+    echo "Commit contains NOCOMMIT markers. Aborting commit."
+    exit 1
+fi
+
 # lint Rust
 if ! git diff --cached --name-only --diff-filter=AM --quiet -- src Cargo.toml Cargo.lock; then
     pushd $TEMPDIR >/dev/null
