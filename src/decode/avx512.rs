@@ -4,10 +4,12 @@
 //! bytes before it, so that every Morse sequence of up to 7 elements ending in the block is fully
 //! visible. Then:
 //!
-//! 1. we compute the bitmask of separators, and the "code" bitmask, where bit `k` is the least
-//!    significant bit of byte `k` (1 for `-`, 0 for `.`), or 1 for separators;
-//! 2. for each byte, we compute the start of the sequence it ends (one past the previous
-//!    separator) with a running maximum over the 8 previous bytes;
+//! 1. we classify bytes into elements, separators and invalid bytes, and compute the "code"
+//!    bitmask, where bit `k` is the least significant bit of byte `k` (1 for `-`, 0 for `.`), or 1
+//!    for separators;
+//! 2. for each byte, we find the last separator or invalid byte in the 8 previous bytes with a
+//!    running maximum; when it is a separator, the sequence ending at this byte starts right
+//!    after it, and is valid; otherwise, the sequence is invalid or too long, and is dropped;
 //! 3. with `vpmultishiftqb`, we extract the 8 bits of the code bitmask from this start, and mask
 //!    them according to the length of the sequence; for separators, this is the same value as
 //!    `morse_to_binary_fast`, since the separator itself provides the leading one;
@@ -15,8 +17,7 @@
 //! 5. we interleave decoded characters and separators with `vpermt2b`, and pack the ones we keep
 //!    with `vpcompressb`.
 //!
-//! Blocks with sequences of more than 7 elements, or decoding to non-ASCII characters, are
-//! handled by the scalar code.
+//! Blocks with sequences decoding to non-ASCII characters are handled by the scalar code.
 
 use std::arch::x86_64::*;
 
@@ -93,8 +94,37 @@ const MASK_BY_LEN: [u8; 64] = {
     x
 };
 
+/// Class of each byte below 64, indexed by its 6 lower bits (bytes from 64 are invalid).
+const CLASS: [u8; 64] = {
+    let mut x = [0; 64];
+    x[b' ' as usize] = SEPARATOR;
+    x[b'/' as usize] = SEPARATOR;
+    x[b'\t' as usize] = SEPARATOR;
+    x[b'\n' as usize] = SEPARATOR;
+    x[b'\r' as usize] = SEPARATOR;
+    x[b'.' as usize] = ELEMENT;
+    x[b'-' as usize] = ELEMENT;
+    x
+};
+const SEPARATOR: u8 = 1;
+const ELEMENT: u8 = 2;
+
+/// For each position `k`, a value that increases with `k`, with the low bit set for separators.
+const fn boundary(separator: bool) -> [u8; 64] {
+    let mut x = [0; 64];
+    let mut k = 0;
+    while k < 64 {
+        x[k] = (k as u8 + 1) * 2 + separator as u8;
+        k += 1;
+    }
+    x
+}
+
+static CLASS_TABLE: [u8; 64] = CLASS;
 static IOTA: [u8; 64] = iota(0);
 static IOTA_PLUS_ONE: [u8; 64] = iota(1);
+static BOUNDARY_INVALID: [u8; 64] = boundary(false);
+static BOUNDARY_SEPARATOR: [u8; 64] = boundary(true);
 static SHIFT_UP_1: [u8; 64] = shift_up(1);
 static SHIFT_UP_2: [u8; 64] = shift_up(2);
 static SHIFT_UP_4: [u8; 64] = shift_up(4);
@@ -131,14 +161,13 @@ pub(super) unsafe fn decode_blocks(
     debug_assert!(i >= LOOK_BACK);
     let ptr = input.as_ptr();
     // SAFETY: all these arrays have at least 64 bytes
-    let (lut0, lut1, lut2, lut3, iota, iota_plus_one, shift1, shift2, shift4, inter_lo, inter_hi) = unsafe {
+    let (lut0, lut1, lut2, lut3, iota, shift1, shift2, shift4, inter_lo, inter_hi) = unsafe {
         (
             load(table.ascii.as_ptr()),
             load(table.ascii.as_ptr().add(64)),
             load(table.ascii.as_ptr().add(128)),
             load(table.ascii.as_ptr().add(192)),
             load(IOTA.as_ptr()),
-            load(IOTA_PLUS_ONE.as_ptr()),
             load(SHIFT_UP_1.as_ptr()),
             load(SHIFT_UP_2.as_ptr()),
             load(SHIFT_UP_4.as_ptr()),
@@ -146,8 +175,19 @@ pub(super) unsafe fn decode_blocks(
             load(INTERLEAVE_HI.as_ptr()),
         )
     };
-    // SAFETY: `MASK_BY_LEN` has 64 bytes
-    let mask_by_len = unsafe { load(MASK_BY_LEN.as_ptr()) };
+    // SAFETY: all these arrays have 64 bytes
+    let (mask_by_len, class, boundary_invalid, boundary_separator, iota_plus_one) = unsafe {
+        (
+            load(MASK_BY_LEN.as_ptr()),
+            load(CLASS_TABLE.as_ptr()),
+            load(BOUNDARY_INVALID.as_ptr()),
+            load(BOUNDARY_SEPARATOR.as_ptr()),
+            load(IOTA_PLUS_ONE.as_ptr()),
+        )
+    };
+    let below_64 = _mm512_set1_epi8(64);
+    let element = _mm512_set1_epi8(ELEMENT as i8);
+    let low_7_bits = _mm512_set1_epi8(0x7f);
     let space = _mm512_set1_epi8(b' ' as i8);
     let slash = _mm512_set1_epi8(b'/' as i8);
     let one = _mm512_set1_epi8(1);
@@ -164,7 +204,11 @@ pub(super) unsafe fn decode_blocks(
             // SAFETY: `base + 64 = i + STEP <= input.len()`
             let v = unsafe { load(ptr.add(base)) };
             let slash_mask = _mm512_cmpeq_epi8_mask(v, slash);
-            let separators = _mm512_cmple_epu8_mask(v, space) | slash_mask;
+            let low = _mm512_cmplt_epu8_mask(v, below_64);
+            let classes = _mm512_permutexvar_epi8(v, class);
+            let separators = _mm512_mask_test_epi8_mask(low, classes, one);
+            let elements = _mm512_mask_test_epi8_mask(low, classes, element);
+            let invalid = !(separators | elements);
             // separators in the look-back bytes were already processed
             let own = separators & !((1 << LOOK_BACK) - 1);
             if own == 0 {
@@ -173,14 +217,33 @@ pub(super) unsafe fn decode_blocks(
             }
             let code = _mm512_test_epi8_mask(v, one) | separators;
 
-            // start of the sequence ending at each byte (one past the previous separator) when
-            // there is a separator in the 8 previous bytes, zero otherwise
-            let x = _mm512_maskz_mov_epi8(separators, iota_plus_one);
+            // last separator or invalid byte in the 8 previous bytes, encoded as
+            // `(position + 1) * 2 + is_separator`, or 0 when there is none; in the common case
+            // where there are no invalid bytes, we simply use `position + 1` for separators
+            let clean = invalid == 0;
+            let x = if clean {
+                _mm512_maskz_mov_epi8(separators, iota_plus_one)
+            } else {
+                _mm512_mask_mov_epi8(
+                    _mm512_maskz_mov_epi8(invalid, boundary_invalid),
+                    separators,
+                    boundary_separator,
+                )
+            };
             let y = _mm512_maskz_permutexvar_epi8(!1, shift1, x);
             let y = _mm512_max_epu8(y, _mm512_maskz_permutexvar_epi8(!1, shift1, y));
             let y = _mm512_max_epu8(y, _mm512_maskz_permutexvar_epi8(!3, shift2, y));
-            let start = _mm512_max_epu8(y, _mm512_maskz_permutexvar_epi8(!0xf, shift4, y));
-            let short = _mm512_test_epi8_mask(start, start);
+            let y = _mm512_max_epu8(y, _mm512_maskz_permutexvar_epi8(!0xf, shift4, y));
+            // the sequence ending at each byte is valid when the previous boundary is a
+            // separator; then, it starts right after it, and has at most 7 elements
+            let (valid, start) = if clean {
+                (_mm512_test_epi8_mask(y, y), y)
+            } else {
+                (
+                    _mm512_test_epi8_mask(y, one),
+                    _mm512_and_si512(_mm512_srli_epi16(y, 1), low_7_bits),
+                )
+            };
 
             // decode
             let bits = _mm512_multishift_epi64_epi8(start, _mm512_set1_epi64(code as i64));
@@ -191,9 +254,9 @@ pub(super) unsafe fn decode_blocks(
                 _mm512_permutex2var_epi8(lut0, binary, lut1),
                 _mm512_permutex2var_epi8(lut2, binary, lut3),
             );
-            let decoding = own & !slash_mask;
+            let decoding = own & valid;
 
-            if own & !short != 0 || _mm512_mask_cmpeq_epi8_mask(decoding, decoded, non_ascii) != 0 {
+            if _mm512_mask_cmpeq_epi8_mask(decoding, decoded, non_ascii) != 0 {
                 // SAFETY: the bits of `own` are separators after `chunk_start`,
                 // `base + 64 + 7 <= input.len()`, and we reserved `OUTPUT_PER_BLOCK` bytes for
                 // each block

@@ -1,5 +1,3 @@
-use std::io::{Read, Write};
-
 use crate::encode_ascii::{ENCODE_CHUNK, MAX_OUTPUT_PER_INPUT_BYTE, encode_ascii_byte};
 use crate::encode_unicode_mapping::from_unicode;
 
@@ -24,7 +22,9 @@ unsafe fn encode_non_ascii_char(c: char, out: *mut u8, cur: usize) -> usize {
     cur + len
 }
 
-fn encode_buffer(input: &str, output_buf: &mut Vec<u8>) {
+/// Encode valid UTF-8 and append the result to `output_buf`; see
+/// [`encode_ascii_byte`][crate::encode_ascii::encode_ascii_byte] for `floor`.
+fn encode_buffer(input: &str, output_buf: &mut Vec<u8>, floor: usize) {
     let bytes = input.as_bytes();
     let mut i = 0;
     while i < bytes.len() {
@@ -43,7 +43,7 @@ fn encode_buffer(input: &str, output_buf: &mut Vec<u8>) {
                     // SAFETY: we reserved `MAX_OUTPUT_PER_INPUT_BYTE` bytes for each byte of the
                     // chunk plus 3, and the first `cur` bytes are initialized since we only
                     // increase `cur` after writing
-                    cur = unsafe { encode_ascii_byte(c, out, cur) };
+                    cur = unsafe { encode_ascii_byte(c, out, cur, floor) };
                 }
                 i += 4;
                 continue;
@@ -53,7 +53,7 @@ fn encode_buffer(input: &str, output_buf: &mut Vec<u8>) {
                 // SAFETY: we reserved `MAX_OUTPUT_PER_INPUT_BYTE` bytes for each byte of the
                 // chunk, and the first `cur` bytes are initialized since we only increase `cur`
                 // after writing
-                cur = unsafe { encode_ascii_byte(c, out, cur) };
+                cur = unsafe { encode_ascii_byte(c, out, cur, floor) };
                 i += 1;
             } else {
                 // SAFETY: `i` is always on a character boundary since we advance by whole
@@ -71,139 +71,31 @@ fn encode_buffer(input: &str, output_buf: &mut Vec<u8>) {
     }
 }
 
-/// Encode characters from a [string slice][&str] into a [String].
+/// Encode UTF-8 and append the result to `output_buf`, skipping invalid bytes; see
+/// [`encode_ascii_byte`][crate::encode_ascii::encode_ascii_byte] for `floor`.
 ///
-/// The following ASCII characters are used to represent Morse code:
-///
-/// - Full stop (.) represents the Morse dot;
-/// - Hyphen (-) represents the Morse dash;
-/// - Space ( ) represents the letter space;
-/// - Slash (/) represents the word space;
-/// - Tab (\t), line feed (\n) and carriage return (\r) are kept as-is.
-///
-/// Characters that cannot be converted to Morse are ignored.
-///
-/// For example, the program below encodes a string slice.
-/// ```
-/// let morse = ripmors::encode_string("télégraphie");
-/// assert_eq!(morse, "- ..-.. .-.. ..-.. --. .-. .- .--. .... .. .");
-/// ```
-pub fn encode_string(input: &str) -> String {
-    let mut output_buf = Vec::new();
-    encode_buffer(input, &mut output_buf);
-    output_buf.pop_if(|c| *c == b' ');
-    // SAFETY: encode_buffer_ascii only outputs ASCII, so it is valid UTF-8
-    unsafe { String::from_utf8_unchecked(output_buf) }
-}
-
-/// Encode Unicode characters from a [Read][std::io::Read] object into a [Write][std::io::Write] object.
-///
-/// Bytes from `input` are interpreted as Unicode characters encoded in UTF-8. The following ASCII
-/// characters are used to represent Morse code:
-///
-/// - Full stop (.) represents the Morse dot;
-/// - Hyphen (-) represents the Morse dash;
-/// - Space ( ) represents the letter space;
-/// - Slash (/) represents the word space;
-/// - Tab (\t), line feed (\n) and carriage return (\r) are kept as-is.
-///
-/// Unicode characters that cannot be converted to Morse are ignored.
-///
-/// **Note:** This will read data from `input` until exhaustion.
-///
-/// For example, the program below encodes an UTF-8 input.
-/// ```no_run
-/// # #[allow(clippy::needless_doctest_main)]
-/// fn main() {
-///     let mut stdin = std::io::stdin();
-///     let mut stdout = std::io::stdout();
-///     ripmors::encode_stream(&mut stdin, &mut stdout);
-/// }
-/// ```
-pub fn encode_stream(input: &mut impl Read, output: &mut impl Write) -> Result<(), std::io::Error> {
-    let mut input_buf = vec![0u8; 1 << 15];
-    let mut bytes_available = 0;
-    let mut output_buf = Vec::new();
+/// Return the position of the first byte not processed: a truncated character at the end of
+/// `input`, which may be completed by the next input.
+pub(crate) fn encode_buffer_utf8(input: &[u8], output_buf: &mut Vec<u8>, floor: usize) -> usize {
+    let mut pos = 0;
     loop {
-        let bytes_read = input.read(&mut input_buf[bytes_available..])?;
-        if bytes_read == 0 {
-            break;
-        }
-        bytes_available += bytes_read;
-        let (decoded, bytes_decoded) =
-            match simdutf8::compat::from_utf8(&input_buf[..bytes_available]) {
-                Ok(decoded) => (decoded, bytes_available),
-                Err(e) => {
-                    let bytes_decoded = e.valid_up_to();
-                    // SAFETY: we already checked that the string was valid UTF-8 up to
-                    // `bytes_decoded`
-                    let decoded =
-                        unsafe { core::str::from_utf8_unchecked(&input_buf[..bytes_decoded]) };
-                    (decoded, bytes_decoded)
+        match simdutf8::compat::from_utf8(&input[pos..]) {
+            Ok(valid) => {
+                encode_buffer(valid, output_buf, floor);
+                return input.len();
+            }
+            Err(e) => {
+                let valid_up_to = pos + e.valid_up_to();
+                // SAFETY: the input is valid UTF-8 up to `valid_up_to`
+                let valid = unsafe { std::str::from_utf8_unchecked(&input[pos..valid_up_to]) };
+                encode_buffer(valid, output_buf, floor);
+                match e.error_len() {
+                    // skip the invalid bytes
+                    Some(n) => pos = valid_up_to + n,
+                    // truncated character
+                    None => return valid_up_to,
                 }
-            };
-        encode_buffer(decoded, &mut output_buf);
-        match output_buf.last() {
-            Some(&b' ') => {
-                output_buf.pop();
-                output.write_all(&output_buf)?;
-                output_buf.clear();
-                output_buf.push(b' ');
             }
-            None => {
-                output.write_all(&output_buf)?;
-                output_buf.clear();
-            }
-            _ => (),
         }
-        input_buf.copy_within(bytes_decoded..bytes_available, 0);
-        bytes_available -= bytes_decoded;
     }
-    Ok(())
-}
-
-#[test]
-fn test_unicode_encode() {
-    assert_eq!(
-        encode_string("télégraphie"),
-        "- ..-.. .-.. ..-.. --. .-. .- .--. .... .. ."
-    );
-    assert_eq!(encode_string("でんしん"), ".-.-- .. .-.-. --.-. .-.-.");
-    assert_eq!(encode_string("تلغراف"), "- .-.. --. .-. .- ..-.");
-    assert_eq!(
-        encode_string("телеграфия"),
-        "- . .-.. . --. .-. .- ..-. .. .-.-"
-    );
-    assert_eq!(
-        encode_string("τηλεγραφία"),
-        "- .... .-.. . --. .-. .- ..-. .. .-"
-    );
-    assert_eq!(
-        encode_string("one line\nand  another\tline"),
-        "--- -. . / .-.. .. -. .\n.- -. -.. / / .- -. --- - .... . .-.\t.-.. .. -. ."
-    );
-}
-
-// short enough to run with Miri
-#[test]
-fn test_unicode_encode_random_short() {
-    use rand::{Rng, distributions::Standard};
-    let data: String = rand::thread_rng()
-        .sample_iter::<u8, _>(Standard)
-        .take(1024)
-        .map(|c| c as char)
-        .collect();
-    encode_string(&data);
-}
-
-#[test]
-#[cfg_attr(miri, ignore)]
-fn test_unicode_encode_random_large() {
-    use rand::{Rng, distributions::Standard};
-    let data: String = rand::thread_rng()
-        .sample_iter::<u8, _>(Standard)
-        .take(1048576)
-        .map(|c| c as char)
-        .collect();
-    encode_string(&data);
 }

@@ -24,11 +24,18 @@ If you want to uwu-encode instead, use [this project instead](https://github.com
 Or, in Rust:
 
 ```rust
-use ripmors::{decode_string, encode_string, to_standard};
+use ripmors::{Alphabet, Decoder, Encoder};
 
-assert_eq!(encode_string("Hello, World!"), ".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. -.-.--");
-assert_eq!(decode_string(b"-- --- .-. ... . / -.-. --- -.. .", to_standard), "MORSE CODE");
+let encoder = Encoder::default();
+assert_eq!(encoder.encode(b"Hello, World!"), ".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. -.-.--");
+
+let decoder = Decoder::new(Alphabet::Standard);
+assert_eq!(decoder.decode(b"-- --- .-. ... . / -.-. --- -.. ."), "MORSE CODE");
 ```
+
+To avoid allocations, use `encode_into` and `decode_into` with a reused `String`. To bring your own
+I/O, feed input in pieces to `Encoder::stream` and `Decoder::stream`. To detect characters that
+cannot be encoded and invalid Morse code, use `encode_strict` and `decode_strict`.
 
 In addition to the standard International Morse Code and its Latin extensions,
 the following variants are supported:
@@ -50,8 +57,8 @@ $ echo '-..-. .--.- -.--. ---.- --.. ---- .. ..-' | ripmors -d japanese
 Or, in Rust:
 
 ```rust
-use ripmors::{decode_string, encode_string, to_japanese};
+use ripmors::{Alphabet, Decoder, Encoder};
 
-assert_eq!(encode_string("モールスふごう"), "-..-. .--.- -.--. ---.- --.. ---- .. ..-");
-assert_eq!(decode_string(b"-..-. .--.- -.--. ---.- --.. ---- .. ..-", to_japanese), "モールスフコ゛ウ");
+assert_eq!(Encoder::default().encode("モールスふごう".as_bytes()), "-..-. .--.- -.--. ---.- --.. ---- .. ..-");
+assert_eq!(Decoder::new(Alphabet::Japanese).decode(b"-..-. .--.- -.--. ---.- --.. ---- .. ..-"), "モールスフコ゛ウ");
 ```

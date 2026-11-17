@@ -1,4 +1,32 @@
+//! Decoding of Morse code.
+//!
+//! The input is a sequence of bytes:
+//!
+//! - `.` and `-` are Morse elements (dot and dash);
+//! - separators end the current Morse sequence (which is decoded) and are output as follows:
+//!   - ` ` (letter space) produces nothing,
+//!   - `/` (word space) produces a space,
+//!   - `\t`, `\n` and `\r` are copied as-is.
+//!
+//! A Morse sequence is dropped (it produces nothing) when it contains a byte that is neither an
+//! element nor a separator, when it has more than 7 elements, or when it does not correspond to a
+//! character of the selected alphabet.
+
+use std::borrow::Cow;
 use std::io::{Read, Write};
+
+use crate::decode_mapping::{
+    TO_ARABIC, TO_GREEK, TO_HEBREW, TO_JAPANESE, TO_KOREAN, TO_RUSSIAN, TO_STANDARD,
+};
+
+#[cfg(target_arch = "x86_64")]
+mod avx512;
+
+/// Maximum number of elements in a Morse sequence.
+const MAX_ELEMENTS: usize = 7;
+
+/// Size of the input buffer used by [`Decoder::decode_stream`].
+const STREAM_BUFFER_SIZE: usize = 1 << 17;
 
 #[inline(always)] // prefer inline to avoid reloading constants in registers
 fn morse_to_binary_fast(bytes: &[u8; 8], len: usize) -> u8 {
@@ -33,74 +61,112 @@ fn test_morse_to_binary_fast() {
     assert_eq!(morse_to_binary_fast(b"..-.____", 4), 0b10100);
 }
 
-fn morse_to_binary_safe(bytes: &[u8], len: usize) -> u8 {
-    let mut ret = 1;
-    for byte in bytes[..len].iter().rev() {
-        ret *= 2;
-        ret |= byte & 1;
+/// Offset added to an index in [`DecodeTable`] for sequences that must be dropped; the entries
+/// from this offset are empty.
+const DROP: usize = 256;
+
+/// Index in [`DecodeTable`] of the Morse sequence made of the first `len` bytes of `bytes`, or
+/// [`DROP`] or more when the sequence must be dropped. This has no branches.
+#[inline(always)]
+fn sequence_index_fast(bytes: &[u8; 8], len: usize) -> usize {
+    let too_long = len > MAX_ELEMENTS;
+    let len = len.min(MAX_ELEMENTS);
+    // SAFETY: `bytes` is a reference to 8 initialized bytes
+    let a = unsafe { (bytes.as_ptr() as *const u64).read_unaligned() };
+    // each byte becomes 0x00 for `-` and 0x03 for `.`: any other value is an invalid byte
+    let t = a ^ 0x2d2d_2d2d_2d2d_2d2d;
+    let invalid = (t & 0xfcfc_fcfc_fcfc_fcfc) | ((t ^ (t >> 1)) & 0x0101_0101_0101_0101);
+    let invalid = invalid & ((1 << (8 * len)) - 1);
+    let drop = too_long | (invalid != 0);
+    morse_to_binary_fast(bytes, len) as usize | ((drop as usize) << 8)
+}
+
+/// Same as [`sequence_index_fast`], for a sequence of any length.
+fn sequence_index(sequence: &[u8]) -> usize {
+    if sequence.len() > MAX_ELEMENTS || !sequence.iter().all(|&c| c == b'.' || c == b'-') {
+        return DROP;
     }
-    ret
+    let mut binary = 1;
+    for c in sequence.iter().rev() {
+        binary = binary * 2 + (c & 1) as usize;
+    }
+    binary
 }
 
 #[test]
-fn test_morse_to_binary_safe() {
-    // zero length
-    assert_eq!(morse_to_binary_safe(b"", 0), 1);
-    assert_eq!(morse_to_binary_safe(b"...", 0), 1);
-    assert_eq!(morse_to_binary_safe(b"---", 0), 1);
-
-    // non-zero length
-    assert_eq!(morse_to_binary_safe(b".", 1), 0b10);
-    assert_eq!(morse_to_binary_safe(b"-", 1), 0b11);
-    assert_eq!(morse_to_binary_safe(b"..-.", 4), 0b10100);
-}
-
-fn morse_to_binary(bytes: &[u8], len: usize) -> u8 {
-    if len + 8 <= bytes.len() {
-        // SAFETY: the above condition ensures that the pointer is valid and points to 8
-        // initialized bytes
-        let eight_bytes: &[u8; 8] = unsafe { &*bytes.as_ptr().cast() };
-        morse_to_binary_fast(eight_bytes, len)
-    } else {
-        morse_to_binary_safe(bytes, len)
+fn test_sequence_index() {
+    fn fast(s: &[u8]) -> usize {
+        let mut bytes = [b'x'; 8];
+        bytes[..s.len().min(8)].copy_from_slice(&s[..s.len().min(8)]);
+        sequence_index_fast(&bytes, s.len())
     }
+    for s in [
+        &b""[..],
+        b".",
+        b"-",
+        b"..-.",
+        b"-------",
+        b".......",
+        b"--.--.-",
+    ] {
+        assert!(sequence_index(s) < DROP, "{s:?}");
+        assert_eq!(fast(s), sequence_index(s), "{s:?}");
+    }
+    for s in [
+        &b"........"[..],
+        b"x",
+        b".x",
+        b"-.-.-.x",
+        b"..,",
+        b"\x01",
+        b"--------------",
+    ] {
+        assert!(sequence_index(s) >= DROP, "{s:?}");
+        assert!(fast(s) >= DROP, "{s:?}");
+    }
+    assert_eq!(sequence_index(b"..-."), 0b10100);
 }
 
-#[test]
-fn test_morse_to_binary() {
-    // this is just the same tests as for test_morse_to_binary_fast and test_morse_to_binary_safe;
-    // not very imaginative, but it's fast and we'll have covered everything
-
-    // fast-friendly
-    // zero length
-    assert_eq!(morse_to_binary(b"________", 0), 1);
-    assert_eq!(morse_to_binary(b"..._____", 0), 1);
-    assert_eq!(morse_to_binary(b"---_____", 0), 1);
-
-    // non-zero length
-    assert_eq!(morse_to_binary(b"._______", 1), 0b10);
-    assert_eq!(morse_to_binary(b"-_______", 1), 0b11);
-    assert_eq!(morse_to_binary(b"..-.____", 4), 0b10100);
-
-    // fast-unfriendly
-    // zero length
-    assert_eq!(morse_to_binary(b"", 0), 1);
-    assert_eq!(morse_to_binary(b"...", 0), 1);
-    assert_eq!(morse_to_binary(b"---", 0), 1);
-
-    // non-zero length
-    assert_eq!(morse_to_binary(b".", 1), 0b10);
-    assert_eq!(morse_to_binary(b"-", 1), 0b11);
-    assert_eq!(morse_to_binary(b"..-.", 4), 0b10100);
+/// Bytes ending a Morse sequence.
+#[inline(always)]
+fn is_separator(c: u8) -> bool {
+    matches!(c, b' ' | b'/' | b'\t' | b'\n' | b'\r')
 }
 
-/// Offset added to the index in [`DecodeTable`] for word spaces (`/`), which discard the pending
-/// Morse sequence; the entries from this offset are empty.
-const DISCARD: usize = 256;
+/// The output of each separator: nothing for a letter space, a space for a word space, the
+/// separator itself otherwise; returns the byte to write and whether to keep it. This has no
+/// branches.
+#[inline(always)]
+fn separator_output(c: u8) -> (u8, bool) {
+    let is_slash = c == b'/';
+    (c ^ (is_slash as u8 * (b'/' ^ b' ')), c != b' ')
+}
 
-/// The output of `char_decode` for each binary value, encoded in UTF-8, padded to four bytes, and
-/// with its length (zero for `'\0'`), followed by 256 empty entries for [`DISCARD`]. Tabulating it
-/// avoids an indirect call and a conversion to UTF-8 for each decoded character.
+/// An alphabet for decoding Morse code.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum Alphabet {
+    /// [International Morse code and Latin extensions](https://en.wikipedia.org/wiki/Morse_code#Letters,_numbers,_punctuation,_prosigns_for_Morse_code_and_non-Latin_variants)
+    #[default]
+    Standard,
+    /// Greek
+    Greek,
+    /// [Russian](https://en.wikipedia.org/wiki/Russian_Morse_code) (Cyrillic)
+    Russian,
+    /// [Japanese](https://en.wikipedia.org/wiki/Wabun_code) (Katakana)
+    Japanese,
+    /// [Korean](https://en.wikipedia.org/wiki/SKATS) (Hangul)
+    Korean,
+    /// Hebrew
+    Hebrew,
+    /// Arabic
+    Arabic,
+}
+
+/// The decoded character for each binary value (see [`morse_to_binary_fast`]), encoded in UTF-8,
+/// padded to four bytes, and with its length (zero when there is none), followed by 256 empty
+/// entries for [`DROP`].
+#[derive(Clone)]
 struct DecodeTable {
     utf8: [[u8; 4]; 512],
     len: [u8; 512],
@@ -108,40 +174,61 @@ struct DecodeTable {
     ascii: [u8; 256],
 }
 
+impl std::fmt::Debug for DecodeTable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DecodeTable").finish_non_exhaustive()
+    }
+}
+
 /// Value of [`DecodeTable::ascii`] for characters that are not ASCII.
 const NON_ASCII: u8 = 0x80;
 
 impl DecodeTable {
-    fn new(char_decode: fn(u8) -> char) -> Self {
+    const fn from_chars(chars: &[char; 256]) -> Self {
         let mut table = DecodeTable {
             utf8: [[0; 4]; 512],
             len: [0; 512],
             ascii: [0; 256],
         };
-        for binary in 0..256 {
-            let decoded = char_decode(binary as u8);
-            if decoded != '\0' {
-                table.len[binary] = decoded.encode_utf8(&mut table.utf8[binary]).len() as u8;
-                table.ascii[binary] = if decoded.is_ascii() {
-                    decoded as u8
-                } else {
-                    NON_ASCII
-                };
+        // binary values 0 and 1 do not correspond to sequences with at least one element
+        let mut binary = 2;
+        while binary < 256 {
+            let c = chars[binary];
+            if c != '\0' {
+                table.len[binary] = c.encode_utf8(&mut table.utf8[binary]).len() as u8;
+                table.ascii[binary] = if c.is_ascii() { c as u8 } else { NON_ASCII };
             }
+            binary += 1;
         }
         table
     }
+
+    fn from_fn(char_decode: fn(u8) -> char) -> Self {
+        let mut chars = ['\0'; 256];
+        for (binary, c) in chars.iter_mut().enumerate() {
+            *c = char_decode(binary as u8);
+        }
+        Self::from_chars(&chars)
+    }
+
+    /// Append the character of entry `index` to `output_buf`.
+    #[inline(always)]
+    fn push(&self, index: usize, output_buf: &mut Vec<u8>) {
+        output_buf.extend_from_slice(&self.utf8[index][..self.len[index] as usize]);
+    }
 }
+
+static STANDARD_TABLE: DecodeTable = DecodeTable::from_chars(&TO_STANDARD);
+static GREEK_TABLE: DecodeTable = DecodeTable::from_chars(&TO_GREEK);
+static RUSSIAN_TABLE: DecodeTable = DecodeTable::from_chars(&TO_RUSSIAN);
+static JAPANESE_TABLE: DecodeTable = DecodeTable::from_chars(&TO_JAPANESE);
+static KOREAN_TABLE: DecodeTable = DecodeTable::from_chars(&TO_KOREAN);
+static HEBREW_TABLE: DecodeTable = DecodeTable::from_chars(&TO_HEBREW);
+static ARABIC_TABLE: DecodeTable = DecodeTable::from_chars(&TO_ARABIC);
 
 /// Maximum number of bytes written to the output for each byte of input: a decoded character
 /// (written as four bytes) followed by the separator.
 const MAX_OUTPUT_PER_INPUT_BYTE: usize = 5;
-
-/// Bytes ending a Morse sequence: whitespace and control characters (`<= b' '`), and `/`.
-#[inline(always)]
-fn is_separator(c: u8) -> bool {
-    c <= b' ' || c == b'/'
-}
 
 /// Bitmask of the separators in a 64-byte block (bit `j` is set when `block[j]` is a separator).
 #[inline(always)]
@@ -155,9 +242,12 @@ fn separator_mask(block: &[u8; 64]) -> u64 {
             // 16-byte load at `16 * k` is in bounds
             let bits = unsafe {
                 let v = _mm_loadu_si128(block.as_ptr().add(16 * k).cast());
-                let le_space = _mm_cmpeq_epi8(_mm_min_epu8(v, _mm_set1_epi8(b' ' as i8)), v);
-                let slash = _mm_cmpeq_epi8(v, _mm_set1_epi8(b'/' as i8));
-                _mm_movemask_epi8(_mm_or_si128(le_space, slash)) as u16
+                let eq = |c: u8| _mm_cmpeq_epi8(v, _mm_set1_epi8(c as i8));
+                let separators = _mm_or_si128(
+                    _mm_or_si128(eq(b' '), eq(b'/')),
+                    _mm_or_si128(_mm_or_si128(eq(b'\t'), eq(b'\n')), eq(b'\r')),
+                );
+                _mm_movemask_epi8(separators) as u16
             };
             mask |= (bits as u64) << (16 * k);
         }
@@ -194,13 +284,10 @@ unsafe fn decode_separator(
     let c = unsafe { *input.get_unchecked(i) };
     // SAFETY: see above; this points to eight initialized bytes
     let eight_bytes: &[u8; 8] = unsafe { &*input.as_ptr().add(chunk_start).cast() };
-    let binary = morse_to_binary_fast(eight_bytes, i - chunk_start) as usize;
-    // NOTE: written with arithmetic rather than conditions, since separators are not predictable
-    // and the compiler would otherwise emit a branch
-    let is_slash = (c == b'/') as usize;
-    let index = binary | (is_slash * DISCARD);
-    let separator = c ^ (is_slash as u8 * (b'/' ^ b' '));
-    // SAFETY: `index < 512` since `binary < 256`, and the caller guarantees there is room for five bytes at `out + cur`
+    let index = sequence_index_fast(eight_bytes, i - chunk_start);
+    let (separator, keep) = separator_output(c);
+    // SAFETY: `index < 512` since `sequence_index_fast` returns a byte value plus at most `DROP`,
+    // and the caller guarantees there is room for five bytes at `out + cur`
     unsafe {
         out.add(cur)
             .cast::<[u8; 4]>()
@@ -208,7 +295,7 @@ unsafe fn decode_separator(
         cur += *table.len.get_unchecked(index) as usize;
         out.add(cur).write(separator);
     }
-    cur + (c != b' ') as usize
+    cur + keep as usize
 }
 
 /// Decode the separators at `base + j` for each bit `j` set in `mask`, writing to `out + cur`;
@@ -250,20 +337,18 @@ fn decode_byte_checked(
 ) {
     let c = input[i];
     if is_separator(c) {
-        if c == b'/' {
-            output_buf.push(b' ');
-        } else {
-            let binary = morse_to_binary(&input[*chunk_start..], i - *chunk_start);
-            let len = table.len[binary as usize] as usize;
-            output_buf.extend_from_slice(&table.utf8[binary as usize][..len]);
-            if c != b' ' {
-                output_buf.push(c);
-            }
+        table.push(sequence_index(&input[*chunk_start..i]), output_buf);
+        let (separator, keep) = separator_output(c);
+        if keep {
+            output_buf.push(separator);
         }
         *chunk_start = i + 1;
     }
 }
 
+/// Decode `input`, which must start with a new Morse sequence, and append the result to
+/// `output_buf`; return the start of the last Morse sequence, which is not decoded since it may
+/// continue after `input`.
 fn decode_buffer(input: &[u8], table: &DecodeTable, output_buf: &mut Vec<u8>) -> usize {
     let mut chunk_start = 0;
     let mut i = 0;
@@ -280,7 +365,7 @@ fn decode_buffer(input: &[u8], table: &DecodeTable, output_buf: &mut Vec<u8>) ->
             unsafe { avx512::decode_blocks(input, i, chunk_start, table, output_buf) };
     }
     // process 64-byte blocks, as long as there are 7 bytes after the block for
-    // `morse_to_binary_fast`
+    // `sequence_index_fast`
     while i + 64 + 7 <= input.len() {
         // reserve output space for up to 64 blocks at a time
         let blocks = ((input.len() - 7 - i) / 64).min(64);
@@ -308,130 +393,454 @@ fn decode_buffer(input: &[u8], table: &DecodeTable, output_buf: &mut Vec<u8>) ->
     chunk_start
 }
 
-#[cfg(target_arch = "x86_64")]
-mod avx512;
-
-fn decode_buffer_end(input: &[u8], table: &DecodeTable, output_buf: &mut Vec<u8>) {
-    let chunk_start = decode_buffer(input, table, output_buf);
-    let binary = morse_to_binary(&input[chunk_start..], input.len() - chunk_start);
-    let len = table.len[binary as usize] as usize;
-    output_buf.extend_from_slice(&table.utf8[binary as usize][..len]);
+/// Decodes Morse code in a given [`Alphabet`].
+///
+/// See the [module documentation](self) for the format of Morse code.
+///
+/// ```
+/// use ripmors::{Alphabet, Decoder};
+///
+/// let decoder = Decoder::new(Alphabet::Standard);
+/// assert_eq!(decoder.decode(b"-- --- .-. ... . / -.-. --- -.. ."), "MORSE CODE");
+/// ```
+#[derive(Clone)]
+pub struct Decoder {
+    table: Cow<'static, DecodeTable>,
 }
 
-/// Decode Morse code from a [byte slice][slice] into into a [String].
-///
-/// Bytes from `input` are interpreted as ASCII characters.
-///
-/// - Full stop (.) is interpreted as Morse dot;
-/// - Hyphen (-) is interpreted as Morse dash;
-/// - Space ( ) is interpreted as letter space;
-/// - Slash (/) is interpreted as word space;
-/// - Tab (\t), line feed (\n) and carriage return (\r) are kept as-is.
-///
-/// Other ASCII characters, and non-ASCII bytes, such as UTF-8 encodings, are ignored.
-///
-/// The second argument selects a local variant of Morse code. It should be one of:
-///
-/// - [to_standard][crate::to_standard] for [International Morse code and Latin extensions](https://en.wikipedia.org/wiki/Morse_code#Letters,_numbers,_punctuation,_prosigns_for_Morse_code_and_non-Latin_variants);
-/// - [to_arabic][crate::to_arabic] for Arabic;
-/// - [to_greek][crate::to_greek] for Greek;
-/// - [to_hebrew][crate::to_hebrew] for Hebrew;
-/// - [to_japanese][crate::to_japanese] for [Japanese](https://en.wikipedia.org/wiki/Wabun_code) (Katakana);
-/// - [to_korean][crate::to_korean] for [Korean](https://en.wikipedia.org/wiki/SKATS) (Hangul);
-/// - [to_russian][crate::to_russian] for [Russian](https://en.wikipedia.org/wiki/Russian_Morse_code) (Cyrillic).
-///
-/// ```
-/// let morse = "-- --- .-. ... . / -.-. --- -.. .";
-/// let string = ripmors::decode_string(morse.as_bytes(), ripmors::to_standard);
-/// assert_eq!(string, "MORSE CODE");
-/// ```
-pub fn decode_string(input: &[u8], char_decode: fn(u8) -> char) -> String {
-    let table = DecodeTable::new(char_decode);
-    let mut output_buf = Vec::new();
-    decode_buffer_end(input, &table, &mut output_buf);
-    // SAFETY: the output only contains UTF-8 encodings of characters from `table`, and bytes up to
-    // `b' '`, which are ASCII
-    unsafe { String::from_utf8_unchecked(output_buf) }
+impl std::fmt::Debug for Decoder {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Decoder").finish_non_exhaustive()
+    }
 }
 
-/// Decode Morse code from a [Read][std::io::Read] object into a [Write][std::io::Write] object.
-///
-/// Bytes from `input` are interpreted as ASCII characters.
-///
-/// - Full stop (.) is interpreted as Morse dot;
-/// - Hyphen (-) is interpreted as Morse dash;
-/// - Space ( ) is interpreted as letter space;
-/// - Slash (/) is interpreted as word space;
-/// - Tab (\t), line feed (\n) and carriage return (\r) are kept as-is.
-///
-/// Other ASCII characters, and non-ASCII bytes, such as UTF-8 encodings, are ignored.
-///
-/// **Note:** This will read data from `input` until exhaustion.
-///
-/// The third argument selects a local variant of Morse code. It should be one of:
-///
-/// - [to_standard][crate::to_standard] for [International Morse code and Latin extensions](https://en.wikipedia.org/wiki/Morse_code#Letters,_numbers,_punctuation,_prosigns_for_Morse_code_and_non-Latin_variants);
-/// - [to_arabic][crate::to_arabic] for Arabic;
-/// - [to_greek][crate::to_greek] for Greek;
-/// - [to_hebrew][crate::to_hebrew] for Hebrew;
-/// - [to_japanese][crate::to_japanese] for [Japanese](https://en.wikipedia.org/wiki/Wabun_code) (Katakana);
-/// - [to_korean][crate::to_korean] for [Korean](https://en.wikipedia.org/wiki/SKATS) (Hangul);
-/// - [to_russian][crate::to_russian] for [Russian](https://en.wikipedia.org/wiki/Russian_Morse_code) (Cyrillic).
-///
-/// For example, the program below decodes international Morse code.
-/// ```no_run
-/// # #[allow(clippy::needless_doctest_main)]
-/// fn main() {
-///     let mut stdin = std::io::stdin();
-///     let mut stdout = std::io::stdout();
-///     ripmors::decode_stream(&mut stdin, &mut stdout, ripmors::to_standard);
-/// }
-/// ```
-pub fn decode_stream(
-    input: &mut impl Read,
-    output: &mut impl Write,
-    char_decode: fn(u8) -> char,
-) -> Result<(), std::io::Error> {
-    let table = DecodeTable::new(char_decode);
-    let mut input_buf = vec![0u8; 1 << 17];
-    let mut bytes_available = 0;
-    let mut output_buf = Vec::new();
-    loop {
-        let bytes_read = input.read(&mut input_buf[bytes_available..])?;
-        if bytes_read == 0 {
-            break;
+impl Default for Decoder {
+    fn default() -> Self {
+        Self::new(Alphabet::default())
+    }
+}
+
+impl Decoder {
+    /// Create a decoder for the given alphabet. This is free: the decoding tables are built at
+    /// compile time.
+    pub const fn new(alphabet: Alphabet) -> Self {
+        let table = match alphabet {
+            Alphabet::Standard => &STANDARD_TABLE,
+            Alphabet::Greek => &GREEK_TABLE,
+            Alphabet::Russian => &RUSSIAN_TABLE,
+            Alphabet::Japanese => &JAPANESE_TABLE,
+            Alphabet::Korean => &KOREAN_TABLE,
+            Alphabet::Hebrew => &HEBREW_TABLE,
+            Alphabet::Arabic => &ARABIC_TABLE,
+        };
+        Decoder {
+            table: Cow::Borrowed(table),
         }
-        bytes_available += bytes_read;
+    }
 
-        let bytes_used = decode_buffer(&input_buf[..bytes_available], &table, &mut output_buf);
+    /// Create a decoder for a custom alphabet.
+    ///
+    /// `char_decode` maps a Morse sequence to a character, or to `'\0'` when there is none. A
+    /// sequence of `n` elements (at most 7) is represented by `n` bits (0 for a dot, 1 for a
+    /// dash, the first element being the least significant bit), plus a leading 1 bit at
+    /// position `n`. For instance, `.-` (A) is represented as `0b110`. It is called once for each
+    /// possible value when creating the decoder.
+    ///
+    /// ```
+    /// use ripmors::Decoder;
+    ///
+    /// let decoder = Decoder::from_fn(|binary| if binary == 0b110 { 'α' } else { '\0' });
+    /// assert_eq!(decoder.decode(b".- .- -"), "αα");
+    /// ```
+    pub fn from_fn(char_decode: fn(u8) -> char) -> Self {
+        Decoder {
+            table: Cow::Owned(DecodeTable::from_fn(char_decode)),
+        }
+    }
 
-        // flush buffer
-        if !output_buf.is_empty() {
-            output.write_all(&output_buf)?;
+    /// Decode Morse code from a byte slice into a new [`String`].
+    pub fn decode(&self, input: &[u8]) -> String {
+        let mut output = String::new();
+        self.decode_into(input, &mut output);
+        output
+    }
+
+    /// Decode Morse code from a byte slice, appending the result to `output`.
+    ///
+    /// Reusing the same `output` across calls avoids allocations.
+    ///
+    /// ```
+    /// use ripmors::Decoder;
+    ///
+    /// let decoder = Decoder::default();
+    /// let mut output = String::new();
+    /// for morse in [&b"... --- ..."[..], b".--. .- .-. .. ..."] {
+    ///     output.clear();
+    ///     decoder.decode_into(morse, &mut output);
+    ///     println!("{output}");
+    /// }
+    /// ```
+    pub fn decode_into(&self, input: &[u8], output: &mut String) {
+        let mut stream = self.stream();
+        stream.feed(input, output);
+        stream.finish(output);
+    }
+
+    /// Decode Morse code from a byte slice into a new [`String`], failing on the first invalid
+    /// byte, too long sequence, or sequence that does not correspond to a character of the
+    /// alphabet.
+    ///
+    /// ```
+    /// use ripmors::{DecodeErrorKind, Decoder};
+    ///
+    /// let decoder = Decoder::default();
+    /// assert_eq!(decoder.decode_strict(b"... --- ...").unwrap(), "SOS");
+    /// let error = decoder.decode_strict(b"... -x- ...").unwrap_err();
+    /// assert_eq!(error.position(), 5);
+    /// assert_eq!(error.kind(), DecodeErrorKind::InvalidByte(b'x'));
+    /// ```
+    pub fn decode_strict(&self, input: &[u8]) -> Result<String, DecodeError> {
+        let mut start = 0;
+        for i in 0..=input.len() {
+            if i < input.len() && !is_separator(input[i]) {
+                continue;
+            }
+            let sequence = &input[start..i];
+            if let Some(j) = sequence.iter().position(|&c| c != b'.' && c != b'-') {
+                return Err(DecodeError {
+                    position: start + j,
+                    kind: DecodeErrorKind::InvalidByte(sequence[j]),
+                });
+            }
+            if sequence.len() > MAX_ELEMENTS {
+                return Err(DecodeError {
+                    position: start,
+                    kind: DecodeErrorKind::TooManyElements,
+                });
+            }
+            if !sequence.is_empty() && self.table.len[sequence_index(sequence)] == 0 {
+                return Err(DecodeError {
+                    position: start,
+                    kind: DecodeErrorKind::UnknownSequence,
+                });
+            }
+            start = i + 1;
+        }
+        Ok(self.decode(input))
+    }
+
+    /// Decode Morse code from a [`Read`] object into a [`Write`] object, until the end of the
+    /// input.
+    ///
+    /// ```no_run
+    /// let mut stdin = std::io::stdin().lock();
+    /// let mut stdout = std::io::stdout().lock();
+    /// ripmors::Decoder::default().decode_stream(&mut stdin, &mut stdout).unwrap();
+    /// ```
+    pub fn decode_stream(
+        &self,
+        input: &mut impl Read,
+        output: &mut impl Write,
+    ) -> std::io::Result<()> {
+        let mut input_buf = vec![0u8; STREAM_BUFFER_SIZE];
+        let mut output_buf = String::new();
+        let mut stream = self.stream();
+        loop {
+            let bytes_read = match input.read(&mut input_buf) {
+                Ok(0) => break,
+                Ok(n) => n,
+                Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+                Err(e) => return Err(e),
+            };
+            stream.feed(&input_buf[..bytes_read], &mut output_buf);
+            output.write_all(output_buf.as_bytes())?;
             output_buf.clear();
         }
-
-        input_buf.copy_within(bytes_used..bytes_available, 0);
-        bytes_available -= bytes_used;
+        stream.finish(&mut output_buf);
+        output.write_all(output_buf.as_bytes())
     }
 
-    if bytes_available != 0 {
-        decode_buffer_end(&input_buf[..bytes_available], &table, &mut output_buf);
-        if !output_buf.is_empty() {
-            output.write_all(&output_buf)?;
+    /// Start decoding Morse code incrementally, see [`DecodeStream`].
+    pub fn stream(&self) -> DecodeStream<'_> {
+        DecodeStream {
+            table: &self.table,
+            pending: [0; 8],
+            pending_len: 0,
+        }
+    }
+}
+
+/// Incremental decoding of Morse code, created by [`Decoder::stream`].
+///
+/// The input can be fed in arbitrary pieces; the output is the same as decoding the
+/// concatenation of all the pieces at once.
+///
+/// ```
+/// use ripmors::Decoder;
+///
+/// let decoder = Decoder::default();
+/// let mut stream = decoder.stream();
+/// let mut output = String::new();
+/// stream.feed(b"... -", &mut output);
+/// stream.feed(b"-- ..", &mut output);
+/// stream.feed(b".", &mut output);
+/// stream.finish(&mut output);
+/// assert_eq!(output, "SOS");
+/// ```
+#[derive(Clone, Debug)]
+pub struct DecodeStream<'a> {
+    table: &'a DecodeTable,
+    /// The beginning of the last Morse sequence, which may continue in the next input
+    pending: [u8; 8],
+    /// Length of the last Morse sequence, capped to `pending.len()`; since this is more than
+    /// [`MAX_ELEMENTS`], longer sequences are still dropped
+    pending_len: usize,
+}
+
+impl DecodeStream<'_> {
+    fn extend_pending(&mut self, bytes: &[u8]) {
+        let n = bytes.len().min(self.pending.len() - self.pending_len);
+        self.pending[self.pending_len..self.pending_len + n].copy_from_slice(&bytes[..n]);
+        // NOTE: keep counting past capacity, so that too long sequences are dropped
+        self.pending_len = (self.pending_len + bytes.len()).min(self.pending.len());
+    }
+
+    fn pending_index(&self) -> usize {
+        sequence_index(&self.pending[..self.pending_len])
+    }
+
+    /// Decode the next part of the input, appending the result to `output`.
+    ///
+    /// The last Morse sequence of `input` is only decoded when it is followed by a separator,
+    /// either in `input` or in the next call to [`feed`][Self::feed], or on
+    /// [`finish`][Self::finish].
+    pub fn feed(&mut self, mut input: &[u8], output: &mut String) {
+        // SAFETY: we only append valid UTF-8 to `output`: UTF-8 encodings of characters from
+        // `self.table`, and ASCII separators
+        let output_buf = unsafe { output.as_mut_vec() };
+        if self.pending_len != 0 {
+            // complete the pending sequence
+            let Some(k) = input.iter().position(|&c| is_separator(c)) else {
+                self.extend_pending(input);
+                return;
+            };
+            self.extend_pending(&input[..k]);
+            self.table.push(self.pending_index(), output_buf);
+            let (separator, keep) = separator_output(input[k]);
+            if keep {
+                output_buf.push(separator);
+            }
+            self.pending_len = 0;
+            input = &input[k + 1..];
+        }
+        let chunk_start = decode_buffer(input, self.table, output_buf);
+        self.extend_pending(&input[chunk_start..]);
+    }
+
+    /// Decode the last Morse sequence (if any), appending the result to `output`.
+    pub fn finish(self, output: &mut String) {
+        // SAFETY: we only append the UTF-8 encoding of a character from `self.table`
+        let output_buf = unsafe { output.as_mut_vec() };
+        self.table.push(self.pending_index(), output_buf);
+    }
+}
+
+/// The reason of a [`DecodeError`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum DecodeErrorKind {
+    /// A byte that is neither a Morse element nor a separator
+    InvalidByte(u8),
+    /// A Morse sequence with more than 7 elements
+    TooManyElements,
+    /// A Morse sequence that does not correspond to any character in the alphabet
+    UnknownSequence,
+}
+
+/// Error returned by [`Decoder::decode_strict`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct DecodeError {
+    position: usize,
+    kind: DecodeErrorKind,
+}
+
+impl DecodeError {
+    /// Position in the input of the invalid byte, or of the start of the invalid sequence.
+    pub fn position(&self) -> usize {
+        self.position
+    }
+
+    /// The reason of the error.
+    pub fn kind(&self) -> DecodeErrorKind {
+        self.kind
+    }
+}
+
+impl std::fmt::Display for DecodeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.kind {
+            DecodeErrorKind::InvalidByte(c) => {
+                write!(f, "invalid byte {c:#04x} at position {}", self.position)
+            }
+            DecodeErrorKind::TooManyElements => write!(
+                f,
+                "Morse sequence with more than {MAX_ELEMENTS} elements at position {}",
+                self.position
+            ),
+            DecodeErrorKind::UnknownSequence => {
+                write!(f, "unknown Morse sequence at position {}", self.position)
+            }
+        }
+    }
+}
+
+impl std::error::Error for DecodeError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Straightforward implementation of the decoding rules.
+    fn reference(input: &[u8], alphabet: Alphabet) -> String {
+        let table = Decoder::new(alphabet).table;
+        let mut output = Vec::new();
+        let mut start = 0;
+        for i in 0..=input.len() {
+            if i < input.len() && !is_separator(input[i]) {
+                continue;
+            }
+            table.push(sequence_index(&input[start..i]), &mut output);
+            match input.get(i) {
+                Some(b'/') => output.push(b' '),
+                Some(b' ') | None => (),
+                Some(&c) => output.push(c),
+            }
+            start = i + 1;
+        }
+        String::from_utf8(output).unwrap()
+    }
+
+    const ALPHABETS: [Alphabet; 7] = [
+        Alphabet::Standard,
+        Alphabet::Greek,
+        Alphabet::Russian,
+        Alphabet::Japanese,
+        Alphabet::Korean,
+        Alphabet::Hebrew,
+        Alphabet::Arabic,
+    ];
+
+    /// Random Morse code with occasional invalid bytes and long sequences.
+    fn random_morse(rng: &mut impl rand::Rng, len: usize, noise: f64) -> Vec<u8> {
+        const BYTES: &[u8] = b"..........----------      //\n\t\r";
+        (0..len)
+            .map(|_| {
+                if rng.gen_bool(noise) {
+                    rng.r#gen()
+                } else {
+                    BYTES[rng.gen_range(0..BYTES.len())]
+                }
+            })
+            .collect()
+    }
+
+    #[test]
+    fn test_standard_decode() {
+        let f = |s| Decoder::new(Alphabet::Standard).decode(s);
+        assert_eq!(f(b".--. .- .-. .. ..."), "PARIS");
+        assert_eq!(
+            f(b".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. -.-.--"),
+            "HELLO, WORLD!",
+        );
+        // the word space decodes the pending sequence
+        assert_eq!(f(b"-/-"), "T T");
+        // invalid and too long sequences are dropped
+        assert_eq!(f(b"-x- ........ . -.-.-.-.-"), "E");
+        assert_eq!(f(b"\0.-\x01"), "");
+        assert_eq!(f(b"... \n--- \r\t..."), "S\nO\r\tS");
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn test_decode_matches_reference() {
+        let mut rng = rand::thread_rng();
+        for &alphabet in &ALPHABETS {
+            let decoder = Decoder::new(alphabet);
+            for &noise in &[0.0, 0.001, 0.05, 0.5] {
+                for len in (0..300).chain([1000, 4096, 70_000]) {
+                    let input = random_morse(&mut rng, len, noise);
+                    assert_eq!(
+                        decoder.decode(&input),
+                        reference(&input, alphabet),
+                        "{alphabet:?} {noise} {:?}",
+                        String::from_utf8_lossy(&input)
+                    );
+                }
+            }
         }
     }
 
-    Ok(())
-}
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    fn test_stream_matches_reference() {
+        use rand::Rng;
+        let mut rng = rand::thread_rng();
+        for &alphabet in &ALPHABETS {
+            let decoder = Decoder::new(alphabet);
+            for &noise in &[0.0, 0.01] {
+                let input = random_morse(&mut rng, 20_000, noise);
+                let expected = reference(&input, alphabet);
+                for max_piece in [1, 2, 7, 9, 100, 5000] {
+                    let mut stream = decoder.stream();
+                    let mut output = String::new();
+                    let mut rest = &input[..];
+                    while !rest.is_empty() {
+                        let n = rng.gen_range(0..=max_piece.min(rest.len()));
+                        stream.feed(&rest[..n], &mut output);
+                        rest = &rest[n..];
+                    }
+                    stream.finish(&mut output);
+                    assert_eq!(output, expected, "{alphabet:?} {noise} {max_piece}");
+                }
+            }
+        }
+    }
 
-#[test]
-fn test_standard_decode() {
-    use crate::decode_mapping::to_standard;
-    let f = |s| decode_string(s, to_standard);
-    assert_eq!(f(b".--. .- .-. .. ..."), "PARIS");
-    assert_eq!(
-        f(b".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. -.-.--"),
-        "HELLO, WORLD!",
-    );
+    #[test]
+    fn test_decode_strict() {
+        let decoder = Decoder::default();
+        assert_eq!(decoder.decode_strict(b"").unwrap(), "");
+        assert_eq!(decoder.decode_strict(b"... / ...\n").unwrap(), "S S\n");
+        let error = |s| decoder.decode_strict(s).unwrap_err();
+        assert_eq!(
+            error(b"... ..x"),
+            DecodeError {
+                position: 6,
+                kind: DecodeErrorKind::InvalidByte(b'x')
+            }
+        );
+        assert_eq!(
+            error(b"... ........"),
+            DecodeError {
+                position: 4,
+                kind: DecodeErrorKind::TooManyElements
+            }
+        );
+        assert_eq!(
+            error(b"... ......."),
+            DecodeError {
+                position: 4,
+                kind: DecodeErrorKind::UnknownSequence
+            }
+        );
+    }
+
+    #[test]
+    fn test_from_fn() {
+        let decoder = Decoder::from_fn(crate::to_russian);
+        assert_eq!(
+            decoder.decode(b"- . .-.. . --. .-. .- ..-. .. .-.-"),
+            "ТЕЛЕГРАФИЯ"
+        );
+    }
 }

@@ -13,13 +13,15 @@ fn ascii_benchmark(c: &mut Criterion) {
     group.throughput(Throughput::Bytes(data.len() as u64));
 
     group.bench_function("string", |b| {
-        b.iter(|| encode_string_ascii(black_box(&data)))
+        b.iter(|| Encoder::new(Charset::Ascii).encode(black_box(data)))
     });
 
     group.bench_function("stream", |b| {
         b.iter(|| {
             f.rewind().unwrap();
-            encode_stream_ascii(&mut f, &mut devnull).unwrap();
+            Encoder::new(Charset::Ascii)
+                .encode_stream(&mut f, &mut devnull)
+                .unwrap();
         })
     });
 
@@ -33,12 +35,16 @@ fn unicode_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("Encode Unicode");
     group.throughput(Throughput::Bytes(data.len() as u64));
 
-    group.bench_function("string", |b| b.iter(|| encode_string(black_box(&data))));
+    group.bench_function("string", |b| {
+        b.iter(|| Encoder::new(Charset::Utf8).encode(black_box(data.as_bytes())))
+    });
 
     group.bench_function("stream", |b| {
         b.iter(|| {
             f.rewind().unwrap();
-            encode_stream(&mut f, &mut devnull).unwrap();
+            Encoder::new(Charset::Utf8)
+                .encode_stream(&mut f, &mut devnull)
+                .unwrap();
         })
     });
 
@@ -53,13 +59,15 @@ fn decode_benchmark(c: &mut Criterion) {
     group.throughput(Throughput::Bytes(data.len() as u64));
 
     group.bench_function("string", |b| {
-        b.iter(|| decode_string(black_box(&data.as_bytes()), to_standard))
+        b.iter(|| Decoder::new(Alphabet::Standard).decode(black_box(data.as_bytes())))
     });
 
     group.bench_function("stream", |b| {
         b.iter(|| {
             f.rewind().unwrap();
-            decode_stream(&mut f, &mut devnull, to_standard).unwrap();
+            Decoder::new(Alphabet::Standard)
+                .decode_stream(&mut f, &mut devnull)
+                .unwrap();
         })
     });
 

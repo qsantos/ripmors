@@ -1,5 +1,3 @@
-use std::io::{Read, Write};
-
 use crate::encode_ascii_mapping::ASCII_TO_QWORD;
 
 /// Maximum number of bytes written to the output for any input byte (`%` is encoded as 18 bytes).
@@ -27,7 +25,7 @@ static ENCODE_QWORD: [u64; 256] = {
 /// qword and advancing by the length, which are set to [`SPECIAL`]: whitespace (which replaces a
 /// preceding letter space) and characters encoded as more than 8 bytes. This lets the common path
 /// use a single, well-predicted branch.
-static ENCODE_LEN: [u8; 256] = {
+pub(crate) static ENCODE_LEN: [u8; 256] = {
     let mut table = [0; 256];
     let mut c = 0;
     while c < 256 {
@@ -44,12 +42,15 @@ static ENCODE_LEN: [u8; 256] = {
 
 /// Encode a single ASCII byte at `out + cur`, and return the new value of `cur`.
 ///
+/// Whitespace replaces a preceding letter space, but only after position `floor`, which protects
+/// output that does not belong to the current encoding.
+///
 /// # Safety
 ///
 /// - `out` must be valid for writes of `cur + MAX_OUTPUT_PER_INPUT_BYTE` bytes;
 /// - the first `cur` bytes of `out` must be initialized.
 #[inline(always)]
-pub(crate) unsafe fn encode_ascii_byte(c: u8, out: *mut u8, cur: usize) -> usize {
+pub(crate) unsafe fn encode_ascii_byte(c: u8, out: *mut u8, cur: usize, floor: usize) -> usize {
     let len = ENCODE_LEN[c as usize];
     if len != SPECIAL {
         // NOTE: unknown characters have length zero; writing their (zero) qword is harmless since
@@ -63,7 +64,7 @@ pub(crate) unsafe fn encode_ascii_byte(c: u8, out: *mut u8, cur: usize) -> usize
         cur + len as usize
     } else {
         // SAFETY: forwarded from the caller
-        unsafe { encode_ascii_special(c, out, cur) }
+        unsafe { encode_ascii_special(c, out, cur, floor) }
     }
 }
 
@@ -74,7 +75,7 @@ pub(crate) unsafe fn encode_ascii_byte(c: u8, out: *mut u8, cur: usize) -> usize
 /// See [`encode_ascii_byte`].
 #[cold]
 #[inline(never)]
-unsafe fn encode_ascii_special(c: u8, out: *mut u8, mut cur: usize) -> usize {
+unsafe fn encode_ascii_special(c: u8, out: *mut u8, mut cur: usize, floor: usize) -> usize {
     if c == b'%' {
         // handle only ASCII character encoded as more than 7 elements + space
         // SAFETY: the caller guarantees there is room for 18 bytes at `out + cur`
@@ -83,9 +84,9 @@ unsafe fn encode_ascii_special(c: u8, out: *mut u8, mut cur: usize) -> usize {
         cur + 18
     } else {
         // whitespace replaces the preceding letter space, if any
-        // SAFETY: `cur > 0` is checked first and the caller guarantees the first `cur` bytes are
-        // initialized
-        if cur > 0 && unsafe { *out.add(cur - 1) } == b' ' {
+        // SAFETY: `cur > floor >= 0` is checked first and the caller guarantees the first `cur`
+        // bytes are initialized
+        if cur > floor && unsafe { *out.add(cur - 1) } == b' ' {
             cur -= 1;
         }
         // SAFETY: the caller guarantees there is room for 18 bytes at `out + cur`
@@ -94,7 +95,9 @@ unsafe fn encode_ascii_special(c: u8, out: *mut u8, mut cur: usize) -> usize {
     }
 }
 
-fn encode_buffer_ascii(input: &[u8], output_buf: &mut Vec<u8>) {
+/// Encode `input` as ASCII and append the result to `output_buf`; see [`encode_ascii_byte`] for
+/// `floor`.
+pub(crate) fn encode_buffer_ascii(input: &[u8], output_buf: &mut Vec<u8>, floor: usize) {
     for chunk in input.chunks(ENCODE_CHUNK) {
         output_buf.reserve(chunk.len() * MAX_OUTPUT_PER_INPUT_BYTE);
         let out = output_buf.as_mut_ptr();
@@ -106,126 +109,15 @@ fn encode_buffer_ascii(input: &[u8], output_buf: &mut Vec<u8>) {
                 // SAFETY: we reserved `MAX_OUTPUT_PER_INPUT_BYTE` bytes for each byte of the
                 // chunk, and the first `cur` bytes are initialized since we only increase `cur`
                 // after writing
-                cur = unsafe { encode_ascii_byte(c, out, cur) };
+                cur = unsafe { encode_ascii_byte(c, out, cur, floor) };
             }
         }
         for &c in rest {
             // SAFETY: see above
-            cur = unsafe { encode_ascii_byte(c, out, cur) };
+            cur = unsafe { encode_ascii_byte(c, out, cur, floor) };
         }
         // SAFETY: the first `cur` bytes of `output_buf` are initialized because we only increase
         // `cur` after writing to `output_buf`
         unsafe { output_buf.set_len(cur) };
     }
-}
-
-/// Encode ASCII characters from a [byte slice][slice] into a [String].
-///
-/// Bytes from `input` are interpreted as ASCII characters. The following ASCII characters are used to
-/// represent Morse code:
-///
-/// - Full stop (.) represents the Morse dot;
-/// - Hyphen (-) represents the Morse dash;
-/// - Space ( ) represents the letter space;
-/// - Slash (/) represents the word space;
-/// - Tab (\t), line feed (\n) and carriage return (\r) are kept as-is.
-///
-/// ASCII characters that cannot be converted to Morse and non-ASCII bytes, such as UTF-8 encodings, are ignored.
-///
-/// For example, the program below encodes ASCII input.
-/// ```
-/// let morse = ripmors::encode_string_ascii(b"Morse code");
-/// assert_eq!(morse, "-- --- .-. ... . / -.-. --- -.. .");
-/// ```
-pub fn encode_string_ascii(input: &[u8]) -> String {
-    let mut output_buf = Vec::with_capacity(input.len() * MAX_OUTPUT_PER_INPUT_BYTE);
-    encode_buffer_ascii(input, &mut output_buf);
-    output_buf.pop_if(|c| *c == b' ');
-    // SAFETY: encode_buffer_ascii only outputs ASCII, so it is valid UTF-8
-    unsafe { String::from_utf8_unchecked(output_buf) }
-}
-
-/// Encode ASCII characters from a [`Read`][std::io::Read] object into a [`Write`][std::io::Write] object.
-///
-/// Bytes from `input` are interpreted as ASCII characters. The following ASCII characters are used to
-/// represent Morse code:
-///
-/// - Full stop (`.`) represents the Morse dot;
-/// - Hyphen (`-`) represents the Morse dash;
-/// - Space (` `) represents the letter space;
-/// - Slash (`/`) represents the word space;
-/// - Tab (`\t`), line feed (`\n`) and carriage return (`\r`) are kept as-is.
-///
-/// ASCII characters that cannot be converted to Morse and non-ASCII bytes, such as UTF-8 encodings, are ignored.
-///
-/// **Note:** This will read data from `input` until exhaustion.
-///
-/// For example, the program below encodes ASCII input.
-/// ```no_run
-/// # #[allow(clippy::needless_doctest_main)]
-/// fn main() {
-///     let mut stdin = std::io::stdin();
-///     let mut stdout = std::io::stdout();
-///     ripmors::encode_stream_ascii(&mut stdin, &mut stdout);
-/// }
-/// ```
-pub fn encode_stream_ascii(
-    input: &mut impl Read,
-    output: &mut impl Write,
-) -> Result<(), std::io::Error> {
-    let mut input_buf = vec![0u8; 1 << 15];
-    let mut output_buf = Vec::new();
-    loop {
-        let bytes_read = input.read(&mut input_buf)?;
-        if bytes_read == 0 {
-            break;
-        }
-        encode_buffer_ascii(&input_buf[..bytes_read], &mut output_buf);
-        if output_buf.is_empty() {
-        } else if output_buf.last() == Some(&b' ') {
-            output_buf.pop();
-            output.write_all(&output_buf)?;
-            output_buf.clear();
-            output_buf.push(b' ');
-        } else {
-            output.write_all(&output_buf)?;
-            output_buf.clear();
-        }
-    }
-    Ok(())
-}
-
-#[test]
-fn test_ascii_encode_simple() {
-    assert_eq!(encode_string_ascii(b"PARIS"), ".--. .- .-. .. ...");
-    assert_eq!(
-        encode_string_ascii(b"Hello, World!"),
-        ".... . .-.. .-.. --- --..-- / .-- --- .-. .-.. -.. -.-.--"
-    );
-    assert_eq!(
-        encode_string_ascii(b"one line\nand  another\tline"),
-        "--- -. . / .-.. .. -. .\n.- -. -.. / / .- -. --- - .... . .-.\t.-.. .. -. ."
-    );
-}
-
-// short enough to run with Miri
-#[test]
-fn test_ascii_encode_random_short() {
-    use rand::{Rng, distributions::Standard};
-    let data: Vec<u8> = rand::thread_rng()
-        .sample_iter::<u8, _>(Standard)
-        .take(1024)
-        .collect();
-    encode_string_ascii(&data);
-}
-
-#[test]
-#[cfg_attr(miri, ignore)]
-fn test_ascii_encode_random_large() {
-    use rand::{Rng, distributions::Standard};
-    let data: Vec<u8> = rand::thread_rng()
-        .sample_iter::<u8, _>(Standard)
-        .take(1048576)
-        .collect();
-    encode_string_ascii(&data);
 }

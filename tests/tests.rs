@@ -1,6 +1,6 @@
 use std::io::BufWriter;
 
-use ripmors::{decode_stream, encode_stream, encode_stream_ascii, to_standard};
+use ripmors::{Alphabet, Charset, Decoder, Encoder};
 
 fn compare_output_to_oracle(writer: BufWriter<Vec<u8>>, expected_filename: &str) {
     let output = String::from_utf8(writer.into_inner().unwrap()).unwrap();
@@ -28,7 +28,9 @@ fn compare_output_to_oracle(writer: BufWriter<Vec<u8>>, expected_filename: &str)
 fn test_encode_stream_ascii() {
     let mut f = std::fs::File::open("1-original.txt").unwrap();
     let mut writer = BufWriter::new(Vec::new());
-    encode_stream_ascii(&mut f, &mut writer).unwrap();
+    Encoder::new(Charset::Ascii)
+        .encode_stream(&mut f, &mut writer)
+        .unwrap();
     compare_output_to_oracle(writer, "2-encoded.txt");
 }
 
@@ -37,7 +39,9 @@ fn test_encode_stream_ascii() {
 fn test_encode_stream_unicode() {
     let mut f = std::fs::File::open("1-original.txt").unwrap();
     let mut writer = BufWriter::new(Vec::new());
-    encode_stream(&mut f, &mut writer).unwrap();
+    Encoder::new(Charset::Utf8)
+        .encode_stream(&mut f, &mut writer)
+        .unwrap();
     compare_output_to_oracle(writer, "2-encoded.txt");
 }
 
@@ -46,6 +50,8 @@ fn test_encode_stream_unicode() {
 fn test_decode_stream() {
     let mut f = std::fs::File::open("2-encoded.txt").unwrap();
     let mut writer = BufWriter::new(Vec::new());
-    decode_stream(&mut f, &mut writer, to_standard).unwrap();
+    Decoder::new(Alphabet::Standard)
+        .decode_stream(&mut f, &mut writer)
+        .unwrap();
     compare_output_to_oracle(writer, "3-decoded.txt");
 }

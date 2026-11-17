@@ -1,4 +1,4 @@
-use ripmors::*;
+use ripmors::{Alphabet, Charset, Decoder, Encoder};
 
 use clap::{Parser, ValueEnum};
 
@@ -35,23 +35,34 @@ struct Args {
 fn main() {
     let args = Args::parse();
 
-    let mut stdin = std::io::stdin();
-    let mut stdout = std::io::stdout();
+    let mut stdin = std::io::stdin().lock();
+    let mut stdout = std::io::stdout().lock();
 
-    if let Some(variant) = args.decode {
-        let char_decode = match variant {
-            DecodeVariant::Standard => to_standard,
-            DecodeVariant::Greek => to_greek,
-            DecodeVariant::Russian => to_russian,
-            DecodeVariant::Japanese => to_japanese,
-            DecodeVariant::Korean => to_korean,
-            DecodeVariant::Hebrew => to_hebrew,
-            DecodeVariant::Arabic => to_arabic,
+    let result = if let Some(variant) = args.decode {
+        let alphabet = match variant {
+            DecodeVariant::Standard => Alphabet::Standard,
+            DecodeVariant::Greek => Alphabet::Greek,
+            DecodeVariant::Russian => Alphabet::Russian,
+            DecodeVariant::Japanese => Alphabet::Japanese,
+            DecodeVariant::Korean => Alphabet::Korean,
+            DecodeVariant::Hebrew => Alphabet::Hebrew,
+            DecodeVariant::Arabic => Alphabet::Arabic,
         };
-        decode_stream(&mut stdin, &mut stdout, char_decode).unwrap();
-    } else if args.encode == Some(EncodeVariant::Ascii) {
-        encode_stream_ascii(&mut stdin, &mut stdout).unwrap();
+        Decoder::new(alphabet).decode_stream(&mut stdin, &mut stdout)
     } else {
-        encode_stream(&mut stdin, &mut stdout).unwrap();
+        let charset = match args.encode.unwrap_or_default() {
+            EncodeVariant::Unicode => Charset::Utf8,
+            EncodeVariant::Ascii => Charset::Ascii,
+        };
+        Encoder::new(charset).encode_stream(&mut stdin, &mut stdout)
+    };
+    match result {
+        Ok(()) => (),
+        // the reader went away (e.g. `ripmors | head`): this is not an error
+        Err(e) if e.kind() == std::io::ErrorKind::BrokenPipe => (),
+        Err(e) => {
+            eprintln!("ripmors: {e}");
+            std::process::exit(1);
+        }
     }
 }

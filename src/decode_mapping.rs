@@ -17,7 +17,7 @@ macro_rules! element_to_binary_digit {
 
 macro_rules! to_script {
     ($(#[$outer:meta])* $array_name:ident, $function_name:ident, $($elements:expr => $character:expr),+ $(,)? ) => {
-        const $array_name: [char; 256] = {
+        pub(crate) const $array_name: [char; 256] = {
             let mut x = ['\0'; 256];
             $(
                 let elements = $elements.as_bytes();
