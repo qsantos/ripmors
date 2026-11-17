@@ -94,23 +94,23 @@ fn test_morse_to_binary() {
     assert_eq!(morse_to_binary(b"..-.", 4), 0b10100);
 }
 
-/// Index in [`DecodeTable`] of the entry that outputs nothing, used for word spaces (`/`), which
-/// discard the pending Morse sequence.
+/// Offset added to the index in [`DecodeTable`] for word spaces (`/`), which discard the pending
+/// Morse sequence; the entries from this offset are empty.
 const DISCARD: usize = 256;
 
 /// The output of `char_decode` for each binary value, encoded in UTF-8, padded to four bytes, and
-/// with its length (zero for `'\0'`), plus an empty entry at [`DISCARD`]. Tabulating it avoids an
-/// indirect call and a conversion to UTF-8 for each decoded character.
+/// with its length (zero for `'\0'`), followed by 256 empty entries for [`DISCARD`]. Tabulating it
+/// avoids an indirect call and a conversion to UTF-8 for each decoded character.
 struct DecodeTable {
-    utf8: [[u8; 4]; 257],
-    len: [u8; 257],
+    utf8: [[u8; 4]; 512],
+    len: [u8; 512],
 }
 
 impl DecodeTable {
     fn new(char_decode: fn(u8) -> char) -> Self {
         let mut table = DecodeTable {
-            utf8: [[0; 4]; 257],
-            len: [0; 257],
+            utf8: [[0; 4]; 512],
+            len: [0; 512],
         };
         for binary in 0..256 {
             let decoded = char_decode(binary as u8);
@@ -184,12 +184,12 @@ unsafe fn decode_separator(
     // SAFETY: see above; this points to eight initialized bytes
     let eight_bytes: &[u8; 8] = unsafe { &*input.as_ptr().add(chunk_start).cast() };
     let binary = morse_to_binary_fast(eight_bytes, i - chunk_start) as usize;
-    // NOTE: written so as to be compiled into conditional moves rather than branches, since
-    // separators are not predictable
-    let is_slash = c == b'/';
-    let index = if is_slash { DISCARD } else { binary };
-    let separator = if is_slash { b' ' } else { c };
-    // SAFETY: `index <= 256`, and the caller guarantees there is room for five bytes at `out + cur`
+    // NOTE: written with arithmetic rather than conditions, since separators are not predictable
+    // and the compiler would otherwise emit a branch
+    let is_slash = (c == b'/') as usize;
+    let index = binary | (is_slash * DISCARD);
+    let separator = c ^ (is_slash as u8 * (b'/' ^ b' '));
+    // SAFETY: `index < 512` since `binary < 256`, and the caller guarantees there is room for five bytes at `out + cur`
     unsafe {
         out.add(cur)
             .cast::<[u8; 4]>()
@@ -332,7 +332,7 @@ pub fn decode_stream(
     char_decode: fn(u8) -> char,
 ) -> Result<(), std::io::Error> {
     let table = DecodeTable::new(char_decode);
-    let mut input_buf = vec![0u8; 1 << 15];
+    let mut input_buf = vec![0u8; 1 << 17];
     let mut bytes_available = 0;
     let mut output_buf = Vec::new();
     loop {
