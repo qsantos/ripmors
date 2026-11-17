@@ -615,7 +615,7 @@ mod tests {
     use super::*;
     use crate::Alphabet;
     use rand::rngs::StdRng;
-    use rand::{Rng, SeedableRng};
+    use rand::{RngExt, SeedableRng};
     use std::sync::Arc;
 
     const THREADS: [usize; 4] = [1, 2, 3, 8];
@@ -629,7 +629,7 @@ mod tests {
 
     impl Read for ShortReads<'_> {
         fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-            let n = self.rng.gen_range(1..=self.max);
+            let n = self.rng.random_range(1..=self.max);
             let n = buf.len().min(self.data.len()).min(n);
             buf[..n].copy_from_slice(&self.data[..n]);
             self.data = &self.data[n..];
@@ -645,7 +645,7 @@ mod tests {
     fn random_input(rng: &mut StdRng, tokens: &[&[u8]], len: usize) -> Vec<u8> {
         let mut data = Vec::with_capacity(len + 64);
         while data.len() < len {
-            data.extend_from_slice(tokens[rng.gen_range(0..tokens.len())]);
+            data.extend_from_slice(tokens[rng.random_range(0..tokens.len())]);
         }
         data
     }
@@ -736,7 +736,7 @@ mod tests {
         for len in [0, 1, 5, 1000, 5000, 20_000, 100_000] {
             check_encode(&random_input(&mut rng, TEXT_TOKENS, len));
         }
-        let input: Vec<u8> = (0..50_000).map(|_| rng.r#gen()).collect();
+        let input: Vec<u8> = (0..50_000).map(|_| rng.random()).collect();
         check_encode(&input);
     }
 
@@ -793,7 +793,7 @@ mod tests {
         for len in [0, 1, 7, 8, 100, 1000, 20_000, 100_000] {
             check_decode(&random_input(&mut rng, MORSE_TOKENS, len));
         }
-        let input: Vec<u8> = (0..100_000).map(|_| rng.r#gen()).collect();
+        let input: Vec<u8> = (0..100_000).map(|_| rng.random()).collect();
         check_decode(&input);
     }
 

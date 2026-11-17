@@ -218,25 +218,25 @@ pub(crate) fn encode_buffer_utf8_with(
 #[test]
 #[cfg_attr(miri, ignore)]
 fn test_unicode_encode_simd_matches_scalar() {
-    use rand::{Rng, SeedableRng};
+    use rand::{RngExt, SeedableRng};
     let mut rng = rand::rngs::StdRng::seed_from_u64(43);
     let iterations = if cfg!(debug_assertions) { 1000 } else { 20000 };
     for iteration in 0..iterations {
         let len = if iteration % 10 == 0 {
-            rng.gen_range(0..20000)
+            rng.random_range(0..20000)
         } else {
-            rng.gen_range(0..300)
+            rng.random_range(0..300)
         };
         // mix ASCII runs with non-ASCII characters of every UTF-8 length
         let mut data = Vec::new();
         while data.len() < len {
-            if rng.gen_bool(0.7) {
-                let run = rng.gen_range(0..100);
+            if rng.random_bool(0.7) {
+                let run = rng.random_range(0..100);
                 data.extend(crate::encode_ascii::tricky_input(&mut rng, run));
             } else {
-                for _ in 0..rng.gen_range(1..20) {
+                for _ in 0..rng.random_range(1..20) {
                     let c = ["é", "Ж", "щ", "Љ", "ת", "ي", "が", "東", "‰", "ー", "😀"]
-                        [rng.gen_range(0..11)];
+                        [rng.random_range(0..11)];
                     data.extend_from_slice(c.as_bytes());
                 }
             }

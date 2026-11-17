@@ -168,15 +168,15 @@ pub(crate) fn encode_buffer_ascii_with(
 
 /// Random input biased towards the characters that need special care in the vector code.
 #[cfg(test)]
-pub(crate) fn tricky_input(rng: &mut impl rand::Rng, len: usize) -> Vec<u8> {
+pub(crate) fn tricky_input(rng: &mut impl rand::RngExt, len: usize) -> Vec<u8> {
     const ALPHABET: &[u8] = b"\t\n\r %&#^*~\0EeTt0Q$@!/.\xc3\xa9\x80\x89\xff";
-    let p_special: f64 = rng.gen_range(0.0..1.0);
+    let p_special: f64 = rng.random_range(0.0..1.0);
     (0..len)
         .map(|_| {
-            if rng.gen_bool(p_special) {
-                ALPHABET[rng.gen_range(0..ALPHABET.len())]
+            if rng.random_bool(p_special) {
+                ALPHABET[rng.random_range(0..ALPHABET.len())]
             } else {
-                rng.gen_range(b'a'..=b'z')
+                rng.random_range(b'a'..=b'z')
             }
         })
         .collect()
@@ -197,14 +197,14 @@ pub(crate) const TEST_PREFIXES: [(&[u8], &[u8]); 5] = [
 #[test]
 #[cfg_attr(miri, ignore)]
 fn test_ascii_encode_simd_matches_scalar() {
-    use rand::{Rng, SeedableRng};
+    use rand::{RngExt, SeedableRng};
     let mut rng = rand::rngs::StdRng::seed_from_u64(42);
     let iterations = if cfg!(debug_assertions) { 1000 } else { 20000 };
     for iteration in 0..iterations {
         let len = if iteration % 10 == 0 {
-            rng.gen_range(0..20000)
+            rng.random_range(0..20000)
         } else {
-            rng.gen_range(0..300)
+            rng.random_range(0..300)
         };
         let data = tricky_input(&mut rng, len);
         for (before_floor, after_floor) in TEST_PREFIXES {

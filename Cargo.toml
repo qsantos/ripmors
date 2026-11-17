@@ -19,9 +19,9 @@ include = [
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dev-dependencies]
-criterion = { version = "0.5.1", features = ["html_reports"] }
-rand = "0.8.5"
-tango-bench = "0.6.0"
+criterion = { version = "0.8.2", features = ["html_reports"] }
+rand = "0.10.4"
+tango-bench = "0.9.0"
 
 [[bench]]
 name = "criterion"
@@ -36,9 +36,9 @@ inherits = "release"
 debug = true
 
 [dependencies]
-clap = { version = "4.5.30", features = ["derive"], optional = true }
+clap = { version = "4.6.8", features = ["derive"], optional = true }
 simdutf8 = "0.1.5"
-libc = { version = "0.2.170", optional = true }
+libc = { version = "0.2.191", optional = true }
 
 [features]
 default = ["clap", "fast-io"]

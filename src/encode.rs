@@ -352,17 +352,17 @@ pub(crate) fn reference(input: &[u8], charset: Charset) -> String {
 mod tests {
     use super::*;
 
-    fn random_text(rng: &mut impl rand::Rng, len: usize) -> Vec<u8> {
+    fn random_text(rng: &mut impl rand::RngExt, len: usize) -> Vec<u8> {
         const CHARS: &[char] = &[
             'a', 'B', 'z', '0', '%', ' ', ' ', '\n', '\t', '\r', '?', '#', 'é', 'ß', 'Я', 'Ω',
             'モ', 'ㄱ', 'א', 'ب', '☺', '\0',
         ];
         let mut bytes = Vec::new();
         while bytes.len() < len {
-            if rng.gen_bool(0.02) {
-                bytes.push(rng.r#gen());
+            if rng.random_bool(0.02) {
+                bytes.push(rng.random());
             } else {
-                let c = CHARS[rng.gen_range(0..CHARS.len())];
+                let c = CHARS[rng.random_range(0..CHARS.len())];
                 bytes.extend_from_slice(c.encode_utf8(&mut [0; 4]).as_bytes());
             }
         }
@@ -412,7 +412,7 @@ mod tests {
     #[test]
     #[cfg_attr(miri, ignore)]
     fn test_encode_matches_reference() {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         for charset in [Charset::Utf8, Charset::Ascii] {
             let encoder = Encoder::new(charset);
             for len in (0..300).chain([5000, 70_000]) {
@@ -430,8 +430,8 @@ mod tests {
     #[test]
     #[cfg_attr(miri, ignore)]
     fn test_stream_matches_reference() {
-        use rand::Rng;
-        let mut rng = rand::thread_rng();
+        use rand::RngExt;
+        let mut rng = rand::rng();
         for charset in [Charset::Utf8, Charset::Ascii] {
             let encoder = Encoder::new(charset);
             let input = random_text(&mut rng, 20_000);
@@ -441,7 +441,7 @@ mod tests {
                 let mut output = String::new();
                 let mut rest = &input[..];
                 while !rest.is_empty() {
-                    let n = rng.gen_range(0..=max_piece.min(rest.len()));
+                    let n = rng.random_range(0..=max_piece.min(rest.len()));
                     stream.feed(&rest[..n], &mut output);
                     rest = &rest[n..];
                 }
@@ -486,9 +486,9 @@ mod tests {
     #[test]
     #[cfg_attr(miri, ignore)]
     fn test_ascii_encode_random_large() {
-        use rand::{Rng, distributions::Standard};
-        let data: Vec<u8> = rand::thread_rng()
-            .sample_iter::<u8, _>(Standard)
+        use rand::{RngExt, distr::StandardUniform};
+        let data: Vec<u8> = rand::rng()
+            .sample_iter::<u8, _>(StandardUniform)
             .take(1048576)
             .collect();
         Encoder::new(Charset::Ascii).encode(&data);

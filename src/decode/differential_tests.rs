@@ -3,7 +3,7 @@
 //! sequences straddling the boundaries of blocks and of input pieces.
 
 use super::*;
-use rand::{Rng, SeedableRng, rngs::StdRng};
+use rand::{RngExt, SeedableRng, rngs::StdRng};
 
 const ALPHABETS: [Alphabet; 7] = [
     Alphabet::Standard,
@@ -122,7 +122,7 @@ fn check(input: &[u8], name: &str, table: &DecodeTable) {
 }
 
 fn element(rng: &mut StdRng) -> u8 {
-    if rng.gen_bool(0.5) { b'.' } else { b'-' }
+    if rng.random_bool(0.5) { b'.' } else { b'-' }
 }
 
 /// Generate Morse code: sequences of up to 7 elements (starting with `prefix` when given), with
@@ -133,11 +133,11 @@ fn generate(rng: &mut StdRng, len: usize, profile: u32, prefix: Option<&[u8]>) -
     while input.len() < len {
         let elements = match profile {
             // mostly regular text
-            0 => rng.gen_range(1..=5),
+            0 => rng.random_range(1..=5),
             // short sequences, many separators
-            1 => rng.gen_range(0..=2),
+            1 => rng.random_range(0..=2),
             // sequences near the limit of 7 elements
-            _ => rng.gen_range(5..=9),
+            _ => rng.random_range(5..=9),
         };
         let start = input.len();
         for _ in 0..elements {
@@ -147,29 +147,29 @@ fn generate(rng: &mut StdRng, len: usize, profile: u32, prefix: Option<&[u8]>) -
             let n = prefix.len().min(elements);
             input[start..start + n].copy_from_slice(&prefix[..n]);
         }
-        if rng.gen_ratio(1, 200) {
+        if rng.random_ratio(1, 200) {
             // long sequence
-            for _ in 0..rng.gen_range(8..20) {
+            for _ in 0..rng.random_range(8..20) {
                 input.push(element(rng));
             }
         }
-        if rng.gen_ratio(1, 200) {
+        if rng.random_ratio(1, 200) {
             // invalid byte inside a sequence
             // NOTE: some of them are equal to elements or separators modulo 64 or 128
             const INVALID: &[u8] = b"x\0\x01\x0b\x7f\x80\xff\xae\xad\xa0\x6e\x6d\x60\x6f\x49";
-            input.push(INVALID[rng.gen_range(0..INVALID.len())]);
+            input.push(INVALID[rng.random_range(0..INVALID.len())]);
         }
-        let separator = match rng.gen_range(0..100) {
+        let separator = match rng.random_range(0..100) {
             0..70 => b' ',
             70..85 => b'/',
             85..92 => b'\n',
             92..95 => b'\t',
             95..98 => b'\r',
             98 => b'\0',
-            _ => rng.gen_range(1..b' '),
+            _ => rng.random_range(1..b' '),
         };
         input.push(separator);
-        if profile == 1 && rng.gen_bool(0.3) {
+        if profile == 1 && rng.random_bool(0.3) {
             input.push(b' ');
         }
     }
@@ -188,7 +188,7 @@ fn structured() {
                 check(&generate(&mut rng, len, profile, None), &name, &table);
             }
             for _ in 0..10 {
-                let len = rng.gen_range(1100..40_000);
+                let len = rng.random_range(1100..40_000);
                 check(&generate(&mut rng, len, profile, None), &name, &table);
             }
         }
@@ -220,10 +220,10 @@ fn changing_density() {
     let prefixes: [Option<&[u8]>; 4] = [Some(b"."), Some(b"-."), Some(b"--"), None];
     for _ in 0..20 {
         let mut input = Vec::new();
-        for _ in 0..rng.gen_range(1..12) {
-            let len = rng.gen_range(0..60_000);
-            let prefix = prefixes[rng.gen_range(0..prefixes.len())];
-            let profile = rng.gen_range(0..3);
+        for _ in 0..rng.random_range(1..12) {
+            let len = rng.random_range(0..60_000);
+            let prefix = prefixes[rng.random_range(0..prefixes.len())];
+            let profile = rng.random_range(0..3);
             input.extend(generate(&mut rng, len, profile, prefix));
         }
         check(&input, "split", &table);
@@ -245,9 +245,9 @@ fn random_bytes() {
     for (name, table) in tables() {
         for alphabet in alphabets {
             for _ in 0..30 {
-                let len = rng.gen_range(0..5_000);
+                let len = rng.random_range(0..5_000);
                 let input: Vec<u8> = (0..len)
-                    .map(|_| alphabet[rng.gen_range(0..alphabet.len())])
+                    .map(|_| alphabet[rng.random_range(0..alphabet.len())])
                     .collect();
                 check(&input, &name, &table);
             }
@@ -266,15 +266,15 @@ fn stream() {
         .chain([to_mixed, to_controls, to_split].map(Decoder::from_fn));
     for decoder in decoders {
         for max_piece in [1, 7, 100, 1000, 100_000] {
-            let len = rng.gen_range(0..200_000);
-            let profile = rng.gen_range(0..3);
+            let len = rng.random_range(0..200_000);
+            let profile = rng.random_range(0..3);
             let input = generate(&mut rng, len, profile, None);
             let expected = reference(&input, &decoder.table);
             let mut stream = decoder.stream();
             let mut output = String::new();
             let mut rest = &input[..];
             while !rest.is_empty() {
-                let n = rng.gen_range(0..=max_piece.min(rest.len()));
+                let n = rng.random_range(0..=max_piece.min(rest.len()));
                 stream.feed(&rest[..n], &mut output);
                 rest = &rest[n..];
             }

@@ -777,14 +777,14 @@ mod tests {
     ];
 
     /// Random Morse code with occasional invalid bytes and long sequences.
-    fn random_morse(rng: &mut impl rand::Rng, len: usize, noise: f64) -> Vec<u8> {
+    fn random_morse(rng: &mut impl rand::RngExt, len: usize, noise: f64) -> Vec<u8> {
         const BYTES: &[u8] = b"..........----------      //\n\t\r";
         (0..len)
             .map(|_| {
-                if rng.gen_bool(noise) {
-                    rng.r#gen()
+                if rng.random_bool(noise) {
+                    rng.random()
                 } else {
-                    BYTES[rng.gen_range(0..BYTES.len())]
+                    BYTES[rng.random_range(0..BYTES.len())]
                 }
             })
             .collect()
@@ -809,7 +809,7 @@ mod tests {
     #[test]
     #[cfg_attr(miri, ignore)]
     fn test_decode_matches_reference() {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         for &alphabet in &ALPHABETS {
             let decoder = Decoder::new(alphabet);
             for &noise in &[0.0, 0.001, 0.05, 0.5] {
@@ -829,8 +829,8 @@ mod tests {
     #[test]
     #[cfg_attr(miri, ignore)]
     fn test_stream_matches_reference() {
-        use rand::Rng;
-        let mut rng = rand::thread_rng();
+        use rand::RngExt;
+        let mut rng = rand::rng();
         for &alphabet in &ALPHABETS {
             let decoder = Decoder::new(alphabet);
             for &noise in &[0.0, 0.01] {
@@ -841,7 +841,7 @@ mod tests {
                     let mut output = String::new();
                     let mut rest = &input[..];
                     while !rest.is_empty() {
-                        let n = rng.gen_range(0..=max_piece.min(rest.len()));
+                        let n = rng.random_range(0..=max_piece.min(rest.len()));
                         stream.feed(&rest[..n], &mut output);
                         rest = &rest[n..];
                     }

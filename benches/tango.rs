@@ -1,7 +1,7 @@
 use std::io::Seek;
 
 use std::hint::black_box;
-use tango_bench::{IntoBenchmarks, benchmark_fn, tango_benchmarks, tango_main};
+use tango_bench::{IntoBenchmarks, benchmark_fn, tango_benchmarks};
 
 use ripmors::*;
 
@@ -67,4 +67,3 @@ tango_benchmarks!(
     unicode_benchmarks(),
     decode_benchmarks()
 );
-tango_main!();
