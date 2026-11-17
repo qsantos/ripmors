@@ -1,65 +1,61 @@
 use std::io::{Read, Write};
 
-use crate::encode_ascii_mapping::ASCII_TO_QWORD;
+use crate::encode_ascii::{ENCODE_CHUNK, MAX_OUTPUT_PER_INPUT_BYTE, encode_ascii_byte};
 use crate::encode_unicode_mapping::from_unicode;
 
-fn encode_buffer(input: &str, output_buf: &mut Vec<u8>) {
-    // SAFETY: `output_buf[cur]`
-    // Accessing the element `cur` of `output_buf` is safe because
-    // - `cur <= 18 * input_buf.len() + 1` because we increment `cur` by at most 18 for each byte read
-    // - `18 * input_buf.len() + 1 <= output_buf` as check by the `assert!` below
-    let mut cur = output_buf.len();
-    output_buf.reserve(input.len() * 18 + cur);
-    for c in input.chars() {
-        if c.is_ascii() {
-            let (bytes, len) = ASCII_TO_QWORD[c as usize];
-            if len == 0 {
-            } else if len <= 8 {
-                if (c == '\t' || c == '\n' || c == '\r')
-                    && cur > 0
-                    // SAFETY: see `output_buf[cur]` above
-                    && unsafe { *output_buf.as_ptr().add(cur - 1) } == b' '
-                {
-                    cur -= 1;
-                }
-                // SAFETY: we flush the buffer after each byte when we are below 18 free bytes
-                // next chunk; thus, there is at least 8 available bytes for writing after
-                // `output_buf + cur`.
-                unsafe {
-                    let dst = output_buf.as_mut_ptr().add(cur) as *mut u64;
-                    dst.write_unaligned(bytes);
-                }
-            } else {
-                // handle only ASCII character encoded as more than 7 elements + space
-                assert_eq!(c, '%');
-                // SAFETY: `output_buf[cur]` above
-                unsafe { std::slice::from_raw_parts_mut(output_buf.as_mut_ptr().add(cur), 18) }
-                    .copy_from_slice(b"----- -..-. ----- ");
-            }
-            cur += len;
+/// Encode a non-ASCII character at `out + cur`, and return the new value of `cur`.
+///
+/// # Safety
+///
+/// `out` must be valid for writes of `cur + MAX_OUTPUT_PER_INPUT_BYTE` bytes.
+#[inline(never)]
+unsafe fn encode_non_ascii_char(c: char, out: *mut u8, cur: usize) -> usize {
+    let (bytes, len) = from_unicode(c);
+    // SAFETY: `len <= bytes.len()` and the caller guarantees there is room for 18 bytes at
+    // `out + cur`; `bytes` is padded to at least 8 bytes, so copying 8 bytes is valid when
+    // `len <= 8`
+    unsafe {
+        if len <= 8 {
+            std::ptr::copy_nonoverlapping(bytes.as_ptr(), out.add(cur), 8);
         } else {
-            let (bytes, len) = from_unicode(c);
-            if len == 0 {
-            } else if len <= 8 {
-                // SAFETY: we flush the buffer after each byte when we are below 18 free bytes
-                // next chunk; thus, there is at least 8 available bytes for writing after
-                // `output_buf + cur`.
-                let buf8 =
-                    unsafe { std::slice::from_raw_parts_mut(output_buf.as_mut_ptr().add(cur), 8) };
-                // SAFETY: the slice is exactly 8 bytes long per construction
-                let bytes8 = unsafe { &*(bytes.as_ptr() as *const [u8; 8]) };
-                buf8.copy_from_slice(bytes8);
-            } else {
-                // SAFETY: `output_buf[cur]` above
-                unsafe { std::slice::from_raw_parts_mut(output_buf.as_mut_ptr().add(cur), len) }
-                    .copy_from_slice(bytes);
-            }
-            cur += len;
+            std::ptr::copy_nonoverlapping(bytes.as_ptr(), out.add(cur), len);
         }
     }
-    // SAFETY: the first `cur` bytes of `output_buf` are initialized because we only increase cur
-    // after writing to `output_buf`
-    unsafe { output_buf.set_len(cur) };
+    cur + len
+}
+
+fn encode_buffer(input: &str, output_buf: &mut Vec<u8>) {
+    let bytes = input.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        // a multi-byte character starting before `end` may overrun it by at most 3 bytes; we
+        // reserve room for them as well
+        let end = bytes.len().min(i + ENCODE_CHUNK);
+        output_buf.reserve((end - i + 3) * MAX_OUTPUT_PER_INPUT_BYTE);
+        let out = output_buf.as_mut_ptr();
+        let mut cur = output_buf.len();
+        while i < end {
+            let c = bytes[i];
+            if c < 0x80 {
+                // SAFETY: we reserved `MAX_OUTPUT_PER_INPUT_BYTE` bytes for each byte of the
+                // chunk, and the first `cur` bytes are initialized since we only increase `cur`
+                // after writing
+                cur = unsafe { encode_ascii_byte(c, out, cur) };
+                i += 1;
+            } else {
+                // SAFETY: `i` is always on a character boundary since we advance by whole
+                // characters, and `i < input.len()` so there is at least one character left
+                let c = unsafe { input.get_unchecked(i..).chars().next().unwrap_unchecked() };
+                // SAFETY: see above; non-ASCII characters are at least 2 bytes long and encoded
+                // as at most 8 bytes
+                cur = unsafe { encode_non_ascii_char(c, out, cur) };
+                i += c.len_utf8();
+            }
+        }
+        // SAFETY: the first `cur` bytes of `output_buf` are initialized because we only increase
+        // `cur` after writing to `output_buf`
+        unsafe { output_buf.set_len(cur) };
+    }
 }
 
 /// Encode characters from a [string slice][&str] into a [String].
