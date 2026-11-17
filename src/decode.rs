@@ -129,7 +129,7 @@ fn test_sequence_index() {
 
 /// Bytes ending a Morse sequence.
 #[inline(always)]
-fn is_separator(c: u8) -> bool {
+pub(crate) fn is_separator(c: u8) -> bool {
     matches!(c, b' ' | b'/' | b'\t' | b'\n' | b'\r')
 }
 

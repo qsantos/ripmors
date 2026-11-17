@@ -43,7 +43,7 @@ pub enum Charset {
 /// ```
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct Encoder {
-    charset: Charset,
+    pub(crate) charset: Charset,
 }
 
 impl Encoder {
@@ -197,6 +197,12 @@ pub struct EncodeStream {
 }
 
 impl EncodeStream {
+    /// Whether the output so far ends with a letter space that was held back (see
+    /// [`EncodeStream::feed`]).
+    pub(crate) fn pending_space(&self) -> bool {
+        self.pending_space
+    }
+
     /// Encode the next part of the input, appending the result to `output`.
     pub fn feed(&mut self, mut input: &[u8], output: &mut String) {
         // SAFETY: the encoders only append ASCII to `output`
