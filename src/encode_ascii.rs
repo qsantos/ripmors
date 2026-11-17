@@ -99,9 +99,18 @@ fn encode_buffer_ascii(input: &[u8], output_buf: &mut Vec<u8>) {
         output_buf.reserve(chunk.len() * MAX_OUTPUT_PER_INPUT_BYTE);
         let out = output_buf.as_mut_ptr();
         let mut cur = output_buf.len();
-        for &c in chunk {
-            // SAFETY: we reserved `MAX_OUTPUT_PER_INPUT_BYTE` bytes for each byte of the chunk,
-            // and the first `cur` bytes are initialized since we only increase `cur` after writing
+        // NOTE: manually unrolled, since the compiler does not unroll it by itself
+        let (quads, rest) = chunk.as_chunks::<4>();
+        for quad in quads {
+            for &c in quad {
+                // SAFETY: we reserved `MAX_OUTPUT_PER_INPUT_BYTE` bytes for each byte of the
+                // chunk, and the first `cur` bytes are initialized since we only increase `cur`
+                // after writing
+                cur = unsafe { encode_ascii_byte(c, out, cur) };
+            }
+        }
+        for &c in rest {
+            // SAFETY: see above
             cur = unsafe { encode_ascii_byte(c, out, cur) };
         }
         // SAFETY: the first `cur` bytes of `output_buf` are initialized because we only increase

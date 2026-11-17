@@ -28,13 +28,26 @@ fn encode_buffer(input: &str, output_buf: &mut Vec<u8>) {
     let bytes = input.as_bytes();
     let mut i = 0;
     while i < bytes.len() {
-        // a multi-byte character starting before `end` may overrun it by at most 3 bytes; we
-        // reserve room for them as well
+        // a multi-byte character or a group of four ASCII bytes starting before `end` may overrun
+        // it by at most 3 bytes; we reserve room for them as well
         let end = bytes.len().min(i + ENCODE_CHUNK);
         output_buf.reserve((end - i + 3) * MAX_OUTPUT_PER_INPUT_BYTE);
         let out = output_buf.as_mut_ptr();
         let mut cur = output_buf.len();
         while i < end {
+            // fast path for runs of ASCII bytes, unrolled by four
+            if let Some(quad) = bytes.get(i..i + 4)
+                && u32::from_ne_bytes(quad.try_into().unwrap()) & 0x80808080 == 0
+            {
+                for &c in quad {
+                    // SAFETY: we reserved `MAX_OUTPUT_PER_INPUT_BYTE` bytes for each byte of the
+                    // chunk plus 3, and the first `cur` bytes are initialized since we only
+                    // increase `cur` after writing
+                    cur = unsafe { encode_ascii_byte(c, out, cur) };
+                }
+                i += 4;
+                continue;
+            }
             let c = bytes[i];
             if c < 0x80 {
                 // SAFETY: we reserved `MAX_OUTPUT_PER_INPUT_BYTE` bytes for each byte of the
