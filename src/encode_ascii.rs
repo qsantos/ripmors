@@ -11,7 +11,7 @@ pub(crate) const ENCODE_CHUNK: usize = 1 << 12;
 const SPECIAL: u8 = 0xff;
 
 /// Qwords of [`ASCII_TO_QWORD`], as a separate table so that indexing needs no extra arithmetic.
-static ENCODE_QWORD: [u64; 256] = {
+pub(crate) static ENCODE_QWORD: [u64; 256] = {
     let mut table = [0; 256];
     let mut c = 0;
     while c < 256 {
@@ -95,13 +95,52 @@ unsafe fn encode_ascii_special(c: u8, out: *mut u8, mut cur: usize, floor: usize
     }
 }
 
+#[cfg(target_arch = "x86_64")]
+pub(crate) mod avx512;
+
+/// Whether to use the AVX-512 code, if the CPU supports it.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Simd {
+    Auto,
+    #[cfg(test)]
+    Never,
+}
+
+#[cfg(target_arch = "x86_64")]
+impl Simd {
+    pub(crate) fn avx512(self) -> bool {
+        #[cfg(test)]
+        if self == Simd::Never {
+            return false;
+        }
+        avx512::is_available()
+    }
+}
+
 /// Encode `input` as ASCII and append the result to `output_buf`; see [`encode_ascii_byte`] for
 /// `floor`.
 pub(crate) fn encode_buffer_ascii(input: &[u8], output_buf: &mut Vec<u8>, floor: usize) {
+    encode_buffer_ascii_with(input, output_buf, floor, Simd::Auto);
+}
+
+#[cfg_attr(not(target_arch = "x86_64"), allow(unused_variables))]
+fn encode_buffer_ascii_with(input: &[u8], output_buf: &mut Vec<u8>, floor: usize, simd: Simd) {
+    #[cfg(target_arch = "x86_64")]
+    let avx512 = simd.avx512();
     for chunk in input.chunks(ENCODE_CHUNK) {
         output_buf.reserve(chunk.len() * MAX_OUTPUT_PER_INPUT_BYTE);
         let out = output_buf.as_mut_ptr();
         let mut cur = output_buf.len();
+        #[cfg(target_arch = "x86_64")]
+        let chunk = if avx512 {
+            // SAFETY: we checked that the CPU supports the required features, we reserved
+            // `MAX_OUTPUT_PER_INPUT_BYTE` bytes for each byte of the chunk, and the first `cur`
+            // bytes are initialized
+            cur = unsafe { avx512::encode_blocks(chunk, out, cur, floor) };
+            &chunk[chunk.len() / 64 * 64..]
+        } else {
+            chunk
+        };
         // NOTE: manually unrolled, since the compiler does not unroll it by itself
         let (quads, rest) = chunk.as_chunks::<4>();
         for quad in quads {
@@ -119,5 +158,59 @@ pub(crate) fn encode_buffer_ascii(input: &[u8], output_buf: &mut Vec<u8>, floor:
         // SAFETY: the first `cur` bytes of `output_buf` are initialized because we only increase
         // `cur` after writing to `output_buf`
         unsafe { output_buf.set_len(cur) };
+    }
+}
+
+/// Random input biased towards the characters that need special care in the vector code.
+#[cfg(test)]
+pub(crate) fn tricky_input(rng: &mut impl rand::Rng, len: usize) -> Vec<u8> {
+    const ALPHABET: &[u8] = b"\t\n\r %&#^*~\0EeTt0Q$@!/.\xc3\xa9\x80\x89\xff";
+    let p_special: f64 = rng.gen_range(0.0..1.0);
+    (0..len)
+        .map(|_| {
+            if rng.gen_bool(p_special) {
+                ALPHABET[rng.gen_range(0..ALPHABET.len())]
+            } else {
+                rng.gen_range(b'a'..=b'z')
+            }
+        })
+        .collect()
+}
+
+/// Output prefixes for differential tests, as the part before `floor` (which whitespace must not
+/// modify) and the part after (like the letter space held back by `EncodeStream`, which whitespace
+/// may remove).
+#[cfg(test)]
+pub(crate) const TEST_PREFIXES: [(&[u8], &[u8]); 5] = [
+    (b"", b""),
+    (b"x", b""),
+    (b" ", b""),
+    (b"", b" "),
+    (b"x ", b" "),
+];
+
+#[test]
+#[cfg_attr(miri, ignore)]
+fn test_ascii_encode_simd_matches_scalar() {
+    use rand::{Rng, SeedableRng};
+    let mut rng = rand::rngs::StdRng::seed_from_u64(42);
+    let iterations = if cfg!(debug_assertions) { 1000 } else { 20000 };
+    for iteration in 0..iterations {
+        let len = if iteration % 10 == 0 {
+            rng.gen_range(0..20000)
+        } else {
+            rng.gen_range(0..300)
+        };
+        let data = tricky_input(&mut rng, len);
+        for (before_floor, after_floor) in TEST_PREFIXES {
+            let run = |simd| {
+                let mut output = before_floor.to_vec();
+                let floor = output.len();
+                output.extend_from_slice(after_floor);
+                encode_buffer_ascii_with(&data, &mut output, floor, simd);
+                output
+            };
+            assert_eq!(run(Simd::Auto), run(Simd::Never), "{data:?}");
+        }
     }
 }
