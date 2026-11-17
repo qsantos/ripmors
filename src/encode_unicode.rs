@@ -186,7 +186,7 @@ pub(crate) fn encode_buffer_utf8(input: &[u8], output_buf: &mut Vec<u8>, floor: 
     encode_buffer_utf8_with(input, output_buf, floor, Simd::Auto)
 }
 
-fn encode_buffer_utf8_with(
+pub(crate) fn encode_buffer_utf8_with(
     input: &[u8],
     output_buf: &mut Vec<u8>,
     floor: usize,

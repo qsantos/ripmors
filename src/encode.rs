@@ -32,7 +32,7 @@ pub enum Charset {
 
 /// Encodes text to Morse code.
 ///
-/// See the [module documentation](self) for the format of the output.
+/// See the [crate documentation](crate) for the format of the output.
 ///
 /// ```
 /// use ripmors::{Charset, Encoder};
@@ -314,42 +314,43 @@ impl std::fmt::Display for EncodeError {
 
 impl std::error::Error for EncodeError {}
 
+#[cfg(any(test, fuzzing))]
+/// Straightforward implementation of the encoding rules.
+pub(crate) fn reference(input: &[u8], charset: Charset) -> String {
+    let text: Vec<char> = match charset {
+        Charset::Ascii => input
+            .iter()
+            .filter(|c| c.is_ascii())
+            .map(|&c| c as char)
+            .collect(),
+        Charset::Utf8 => String::from_utf8_lossy(input)
+            .chars()
+            .filter(|&c| c != char::REPLACEMENT_CHARACTER)
+            .collect(),
+    };
+    let mut output = String::new();
+    for c in text {
+        if matches!(c, '\t' | '\n' | '\r') {
+            if output.ends_with(' ') {
+                output.pop();
+            }
+            output.push(c);
+        } else if c == '%' {
+            output.push_str("----- -..-. ----- ");
+        } else {
+            let (bytes, len) = from_unicode(c);
+            output.push_str(std::str::from_utf8(&bytes[..len]).unwrap());
+        }
+    }
+    if output.ends_with(' ') {
+        output.pop();
+    }
+    output
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    /// Straightforward implementation of the encoding rules.
-    fn reference(input: &[u8], charset: Charset) -> String {
-        let text: Vec<char> = match charset {
-            Charset::Ascii => input
-                .iter()
-                .filter(|c| c.is_ascii())
-                .map(|&c| c as char)
-                .collect(),
-            Charset::Utf8 => String::from_utf8_lossy(input)
-                .chars()
-                .filter(|&c| c != char::REPLACEMENT_CHARACTER)
-                .collect(),
-        };
-        let mut output = String::new();
-        for c in text {
-            if matches!(c, '\t' | '\n' | '\r') {
-                if output.ends_with(' ') {
-                    output.pop();
-                }
-                output.push(c);
-            } else if c == '%' {
-                output.push_str("----- -..-. ----- ");
-            } else {
-                let (bytes, len) = from_unicode(c);
-                output.push_str(std::str::from_utf8(&bytes[..len]).unwrap());
-            }
-        }
-        if output.ends_with(' ') {
-            output.pop();
-        }
-        output
-    }
 
     fn random_text(rng: &mut impl rand::Rng, len: usize) -> Vec<u8> {
         const CHARS: &[char] = &[

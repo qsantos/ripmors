@@ -102,14 +102,14 @@ pub(crate) mod avx512;
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Simd {
     Auto,
-    #[cfg(test)]
+    #[cfg(any(test, fuzzing))]
     Never,
 }
 
 #[cfg(target_arch = "x86_64")]
 impl Simd {
     pub(crate) fn avx512(self) -> bool {
-        #[cfg(test)]
+        #[cfg(any(test, fuzzing))]
         if self == Simd::Never {
             return false;
         }
@@ -124,7 +124,12 @@ pub(crate) fn encode_buffer_ascii(input: &[u8], output_buf: &mut Vec<u8>, floor:
 }
 
 #[cfg_attr(not(target_arch = "x86_64"), allow(unused_variables))]
-fn encode_buffer_ascii_with(input: &[u8], output_buf: &mut Vec<u8>, floor: usize, simd: Simd) {
+pub(crate) fn encode_buffer_ascii_with(
+    input: &[u8],
+    output_buf: &mut Vec<u8>,
+    floor: usize,
+    simd: Simd,
+) {
     #[cfg(target_arch = "x86_64")]
     let avx512 = simd.avx512();
     for chunk in input.chunks(ENCODE_CHUNK) {

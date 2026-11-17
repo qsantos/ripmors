@@ -1,0 +1,29 @@
+[package]
+name = "ripmors-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.ripmors]
+path = ".."
+default-features = false
+
+[[bin]]
+name = "decode"
+path = "fuzz_targets/decode.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "encode"
+path = "fuzz_targets/encode.rs"
+test = false
+doc = false
+bench = false

@@ -630,6 +630,7 @@ pub unsafe fn lookup_utf8_3(b0: u8, b1: u8, b2: u8) -> &'static Entry3 {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // checks every code point: too slow, and has no unsafe code
 fn test_lookup_tables_match_from_unicode() {
     for c in (0x80..=0x10ffff).filter_map(char::from_u32) {
         let (bytes, len) = from_unicode(c);

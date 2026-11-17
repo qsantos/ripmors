@@ -39,3 +39,7 @@ fast-io = ["dep:libc"]
 [[bin]]
 name = "ripmors"
 required-features = ["clap"]
+
+[lints.rust]
+# set by cargo-fuzz; enables the hooks in `ripmors::fuzzing`
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(fuzzing)"] }

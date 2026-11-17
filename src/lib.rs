@@ -55,6 +55,53 @@ pub use decode_mapping::{
 };
 pub use encode::{Charset, EncodeError, EncodeErrorKind, EncodeStream, Encoder};
 
+/// Internal hooks for the fuzz targets in `fuzz/`; not part of the public API.
+#[cfg(fuzzing)]
+#[doc(hidden)]
+pub mod fuzzing {
+    use crate::encode_ascii::Simd;
+    use crate::{Alphabet, Charset};
+
+    /// Straightforward implementation of the decoding rules.
+    pub fn decode_reference(input: &[u8], alphabet: Alphabet) -> String {
+        crate::decode::reference(input, alphabet)
+    }
+
+    /// Straightforward implementation of the encoding rules.
+    pub fn encode_reference(input: &[u8], charset: Charset) -> String {
+        crate::encode::reference(input, charset)
+    }
+
+    /// Run the decoding kernel with and without AVX-512; return the output and the start of the
+    /// undecoded tail of each.
+    pub fn decode_kernels(input: &[u8], alphabet: Alphabet) -> [(Vec<u8>, usize); 2] {
+        crate::decode::kernels(input, alphabet)
+    }
+
+    /// Run the encoding kernel with and without AVX-512, appending to `prefix` with the given
+    /// `floor`; return the output and the number of bytes processed by each.
+    pub fn encode_kernels(
+        input: &[u8],
+        charset: Charset,
+        prefix: &[u8],
+        floor: usize,
+    ) -> [(Vec<u8>, usize); 2] {
+        [Simd::Auto, Simd::Never].map(|simd| {
+            let mut output = prefix.to_vec();
+            let processed = match charset {
+                Charset::Ascii => {
+                    crate::encode_ascii::encode_buffer_ascii_with(input, &mut output, floor, simd);
+                    input.len()
+                }
+                Charset::Utf8 => {
+                    crate::encode_unicode::encode_buffer_utf8_with(input, &mut output, floor, simd)
+                }
+            };
+            (output, processed)
+        })
+    }
+}
+
 #[test]
 fn test_unicode_round_trip() {
     let f = |s: &str| Decoder::default().decode(Encoder::default().encode(s.as_bytes()).as_bytes());

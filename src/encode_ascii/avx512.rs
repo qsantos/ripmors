@@ -24,7 +24,9 @@ use std::arch::x86_64::*;
 use super::{ENCODE_QWORD, encode_ascii_byte};
 
 pub(crate) fn is_available() -> bool {
-    is_x86_feature_detected!("avx512f")
+    // Miri does not support most AVX-512 instructions
+    !cfg!(miri)
+        && is_x86_feature_detected!("avx512f")
         && is_x86_feature_detected!("avx512bw")
         && is_x86_feature_detected!("avx512vbmi")
         && is_x86_feature_detected!("avx512vbmi2")

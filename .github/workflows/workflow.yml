@@ -46,3 +46,17 @@ jobs:
           cargo miri setup
       - name: Miri
         run: cargo miri test
+
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Rust nightly
+        run: rustup toolchain install nightly
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz --locked
+      # GitHub runners usually lack AVX-512 VBMI2/GFNI, so this only exercises the portable code
+      - name: Fuzz decoding
+        run: cargo +nightly fuzz run decode -O -- -max_total_time=120 -max_len=8192
+      - name: Fuzz encoding
+        run: cargo +nightly fuzz run encode -O -- -max_total_time=120 -max_len=8192

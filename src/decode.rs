@@ -373,6 +373,7 @@ fn decode_buffer(input: &[u8], table: &DecodeTable, output_buf: &mut Vec<u8>) ->
 /// See [`decode_buffer`]; the AVX-512 kernel is only used when `allow_avx512` is true (for
 /// tests).
 #[inline(always)]
+#[cfg_attr(not(target_arch = "x86_64"), allow(unused_variables))]
 fn decode_buffer_with(
     input: &[u8],
     table: &DecodeTable,
@@ -424,7 +425,7 @@ fn decode_buffer_with(
 
 /// Decodes Morse code in a given [`Alphabet`].
 ///
-/// See the [module documentation](self) for the format of Morse code.
+/// See the [crate documentation](crate) for the format of Morse code.
 ///
 /// ```
 /// use ripmors::{Alphabet, Decoder};
@@ -725,32 +726,45 @@ impl std::fmt::Display for DecodeError {
 
 impl std::error::Error for DecodeError {}
 
+/// Run the decoding kernel with and without AVX-512; return the output and the start of the
+/// undecoded tail of each.
+#[cfg(fuzzing)]
+pub(crate) fn kernels(input: &[u8], alphabet: Alphabet) -> [(Vec<u8>, usize); 2] {
+    let decoder = Decoder::new(alphabet);
+    [true, false].map(|allow_avx512| {
+        let mut output = Vec::new();
+        let chunk_start = decode_buffer_with(input, &decoder.table, &mut output, allow_avx512);
+        (output, chunk_start)
+    })
+}
+
+#[cfg(any(test, fuzzing))]
+/// Straightforward implementation of the decoding rules.
+pub(crate) fn reference(input: &[u8], alphabet: Alphabet) -> String {
+    let table = Decoder::new(alphabet).table;
+    let mut output = Vec::new();
+    let mut start = 0;
+    for i in 0..=input.len() {
+        if i < input.len() && !is_separator(input[i]) {
+            continue;
+        }
+        table.push(sequence_index(&input[start..i]), &mut output);
+        match input.get(i) {
+            Some(b'/') => output.push(b' '),
+            Some(b' ') | None => (),
+            Some(&c) => output.push(c),
+        }
+        start = i + 1;
+    }
+    String::from_utf8(output).unwrap()
+}
+
 #[cfg(test)]
 mod differential_tests;
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    /// Straightforward implementation of the decoding rules.
-    fn reference(input: &[u8], alphabet: Alphabet) -> String {
-        let table = Decoder::new(alphabet).table;
-        let mut output = Vec::new();
-        let mut start = 0;
-        for i in 0..=input.len() {
-            if i < input.len() && !is_separator(input[i]) {
-                continue;
-            }
-            table.push(sequence_index(&input[start..i]), &mut output);
-            match input.get(i) {
-                Some(b'/') => output.push(b' '),
-                Some(b' ') | None => (),
-                Some(&c) => output.push(c),
-            }
-            start = i + 1;
-        }
-        String::from_utf8(output).unwrap()
-    }
 
     const ALPHABETS: [Alphabet; 7] = [
         Alphabet::Standard,
