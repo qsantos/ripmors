@@ -22,7 +22,7 @@ macro_rules! from_unicode {
     };
 }
 
-pub fn from_unicode(c: char) -> (&'static [u8], usize) {
+pub const fn from_unicode(c: char) -> (&'static [u8], usize) {
     if c.is_ascii() {
         return ASCII_TO_BYTES[c as usize];
     }
@@ -458,4 +458,201 @@ pub fn from_unicode(c: char) -> (&'static [u8], usize) {
         // other characters without a reference
         'ء' => ".", // hamzah
     }
+}
+
+/// Encoding of a non-ASCII character, as stored in the lookup tables below.
+///
+/// The first `N - 1` bytes hold the Morse code (followed by the letter space), padded with zeroes;
+/// the last byte holds its length. This lets the encoder copy the whole entry with a single store
+/// of `N` bytes and advance by the length; the extra bytes written past the length are overwritten
+/// by the next character or truncated.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[repr(transparent)]
+pub struct Entry<const N: usize>(pub [u8; N]);
+
+impl<const N: usize> Entry<N> {
+    const EMPTY: Self = Self([0; N]);
+
+    const fn for_code_point(cp: u32) -> Self {
+        let Some(c) = char::from_u32(cp) else {
+            return Self::EMPTY;
+        };
+        let (elements, len) = from_unicode(c);
+        assert!(len < N, "encoding does not fit in a table entry");
+        let mut entry = [0; N];
+        let mut i = 0;
+        while i < len {
+            entry[i] = elements[i];
+            i += 1;
+        }
+        entry[N - 1] = len as u8;
+        Self(entry)
+    }
+
+    #[inline(always)]
+    pub const fn len(&self) -> usize {
+        self.0[N - 1] as usize
+    }
+}
+
+/// Table entry for characters encoded with two bytes in UTF-8, whose Morse code is at most 10 bytes
+/// long (e.g. `Љ`).
+pub type Entry2 = Entry<16>;
+/// Table entry for characters encoded with three bytes in UTF-8, whose Morse code is at most 24
+/// bytes long (`‰`).
+pub type Entry3 = Entry<32>;
+
+/// Aligns tables to cache lines, so that entries are naturally aligned.
+#[repr(C, align(64))]
+pub struct Aligned<T>(pub T);
+
+/// Encodings of the characters encoded with two bytes in UTF-8 (U+0080 to U+07FF), indexed directly
+/// by code point. Most non-ASCII scripts with a Morse code (Latin extensions, Greek, Cyrillic,
+/// Hebrew, Arabic) live in this range. Entries below U+0080 are unused (and empty).
+static UTF8_2_TABLE: Aligned<[Entry2; 0x800]> = {
+    let mut table = [Entry2::EMPTY; 0x800];
+    let mut cp = 0x80;
+    while cp < 0x800 {
+        table[cp] = Entry2::for_code_point(cp as u32);
+        cp += 1;
+    }
+    Aligned(table)
+};
+
+/// Number of code points per page of [`UTF8_3_PAGES`]; it matches the payload of a UTF-8
+/// continuation byte, so the offset in the page is just the low 6 bits of the last byte.
+const PAGE_SIZE: usize = 64;
+/// Number of pages for U+0000 to U+FFFF (only the pages from U+0800, encoded with three bytes in
+/// UTF-8, are used).
+const PAGE_COUNT: usize = 0x10000 / PAGE_SIZE;
+
+/// For each page, whether it contains at least one encodable character (only pages from U+0800
+/// are considered).
+const NON_EMPTY_PAGES: [bool; PAGE_COUNT] = {
+    let mut pages = [false; PAGE_COUNT];
+    let mut cp = 0x800;
+    while cp < 0x10000 {
+        if Entry3::for_code_point(cp as u32).len() != 0 {
+            pages[cp / PAGE_SIZE] = true;
+        }
+        cp += 1;
+    }
+    pages
+};
+
+/// Number of distinct pages in [`UTF8_3_PAGES`] (the first one is the shared empty page).
+const DISTINCT_PAGES: usize = {
+    let mut count = 1;
+    let mut page = 0;
+    while page < PAGE_COUNT {
+        if NON_EMPTY_PAGES[page] {
+            count += 1;
+        }
+        page += 1;
+    }
+    count
+};
+
+/// First level of the lookup table for characters encoded with three bytes in UTF-8: index in
+/// [`UTF8_3_PAGES`] of the page containing a code point, indexed by `code_point / 64`.
+static UTF8_3_PAGE_INDEX: [u8; PAGE_COUNT] = {
+    assert!(DISTINCT_PAGES <= 256);
+    let mut index = [0; PAGE_COUNT];
+    let mut next = 1;
+    let mut page = 0;
+    while page < PAGE_COUNT {
+        if NON_EMPTY_PAGES[page] {
+            index[page] = next as u8;
+            next += 1;
+        }
+        page += 1;
+    }
+    index
+};
+
+/// Second level of the lookup table for characters encoded with three bytes in UTF-8: pages of
+/// [`PAGE_SIZE`] entries, indexed by `code_point % 64`. The first page is empty.
+static UTF8_3_PAGES: Aligned<[[Entry3; PAGE_SIZE]; DISTINCT_PAGES]> = {
+    let mut pages = [[Entry3::EMPTY; PAGE_SIZE]; DISTINCT_PAGES];
+    let mut next = 1;
+    let mut page = 0;
+    while page < PAGE_COUNT {
+        if NON_EMPTY_PAGES[page] {
+            let mut offset = 0;
+            while offset < PAGE_SIZE {
+                pages[next][offset] = Entry3::for_code_point((page * PAGE_SIZE + offset) as u32);
+                offset += 1;
+            }
+            next += 1;
+        }
+        page += 1;
+    }
+    Aligned(pages)
+};
+
+// NOTE: we avoid masking the marker bits of the UTF-8 bytes in the functions below; instead, we
+// subtract them as a constant, which the compiler folds into the address computation.
+
+/// Look up the encoding of a character from its two-byte UTF-8 sequence `b0 b1`, without decoding
+/// it.
+///
+/// # Safety
+///
+/// `b0 b1` must be a valid two-byte UTF-8 sequence.
+#[inline(always)]
+pub unsafe fn lookup_utf8_2(b0: u8, b1: u8) -> &'static Entry2 {
+    // `(b0 << 6) + b1 == 0x3080 + code_point`, with `0x80 <= code_point < 0x800`
+    let cp = ((b0 as usize) << 6) + b1 as usize - 0x3080;
+    // SAFETY: the caller guarantees that this is a valid two-byte sequence, so `cp < 0x800`
+    unsafe { UTF8_2_TABLE.0.get_unchecked(cp) }
+}
+
+/// Look up the encoding of a character from its three-byte UTF-8 sequence `b0 b1 b2`, without
+/// decoding it.
+///
+/// # Safety
+///
+/// `b0 b1 b2` must be a valid three-byte UTF-8 sequence.
+#[inline(always)]
+pub unsafe fn lookup_utf8_3(b0: u8, b1: u8, b2: u8) -> &'static Entry3 {
+    // `(b0 << 6) + b1 == 0x3880 + code_point / 64`, with `code_point < 0x10000`
+    let page = ((b0 as usize) << 6) + b1 as usize - 0x3880;
+    // SAFETY: the caller guarantees that this is a valid three-byte sequence, so `page < 1024`,
+    // and `UTF8_3_PAGE_INDEX` only contains valid indices in `UTF8_3_PAGES`; `b2` is a
+    // continuation byte, so `0 <= b2 - 0x80 < 64`
+    unsafe {
+        let page = *UTF8_3_PAGE_INDEX.get_unchecked(page) as usize;
+        UTF8_3_PAGES
+            .0
+            .get_unchecked(page)
+            .get_unchecked(b2 as usize - 0x80)
+    }
+}
+
+#[test]
+fn test_lookup_tables_match_from_unicode() {
+    for c in (0x80..=0x10ffff).filter_map(char::from_u32) {
+        let (bytes, len) = from_unicode(c);
+        let expected = &bytes[..len];
+        let mut buf = [0; 4];
+        let s = c.encode_utf8(&mut buf).as_bytes();
+        let actual = match *s {
+            [b0, b1] => {
+                // SAFETY: `s` is a valid two-byte UTF-8 sequence
+                let entry = unsafe { lookup_utf8_2(b0, b1) };
+                assert!(entry.0[entry.len()..15].iter().all(|&b| b == 0));
+                &entry.0[..entry.len()]
+            }
+            [b0, b1, b2] => {
+                // SAFETY: `s` is a valid three-byte UTF-8 sequence
+                let entry = unsafe { lookup_utf8_3(b0, b1, b2) };
+                assert!(entry.0[entry.len()..31].iter().all(|&b| b == 0));
+                &entry.0[..entry.len()]
+            }
+            // characters outside the BMP have no Morse code
+            _ => &[],
+        };
+        assert_eq!(actual, expected, "{c:?} (U+{:04X})", c as u32);
+    }
+    assert!(UTF8_3_PAGES.0[0].iter().all(|e| *e == Entry3::EMPTY));
 }
