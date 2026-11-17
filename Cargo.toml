@@ -1,11 +1,20 @@
 [package]
 name = "ripmors"
-version = "0.1.0"
+version = "0.3.0"
 authors = ["Quentin Santos <qsantos@qsantos.fr>"]
 description = "ripmors is a library for encoding and decoding international Morse code and several variants"
 repository = "https://github.com/qsantos/ripmors/"
 license = "Apache-2.0 AND MIT"
 edition = "2024"
+include = [
+    "/src/**",
+    "/tests/**",
+    "/benches/**",
+    "/build.rs",
+    "/README.md",
+    "/CHANGELOG.md",
+    "/LICENSE-*",
+]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
