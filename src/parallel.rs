@@ -36,6 +36,9 @@ const MIN_JOB_SIZE: usize = if cfg!(test) { 1 << 10 } else { 1 << 16 };
 /// Maximum number of bytes per read when reading with several threads.
 const READ_SIZE: usize = if cfg!(test) { 1 << 13 } else { 1 << 19 };
 
+/// Alignment of the destination of reads.
+const READ_ALIGN: usize = 64;
+
 /// Maximum number of bytes per read when reading with a single thread; this keeps the input in
 /// the L2 cache between reading and processing it.
 const SINGLE_THREAD_READ_SIZE: usize = if cfg!(test) { 1 << 11 } else { 1 << 18 };
@@ -52,8 +55,11 @@ trait Codec: Sync {
     /// The last position in `view` (`view.len()` included) where a job can start, or 0.
     fn last_cut(&self, view: &[u8]) -> usize;
 
-    /// Shorten the beginning of a job without any cut point, when this does not change the output.
-    fn compact(&self, _job: &mut Vec<u8>, _len: &mut usize) {}
+    /// Shorten the beginning of a job without any cut point, when this does not change the
+    /// output; return its new length.
+    fn compact(&self, job: &mut [u8]) -> usize {
+        job.len()
+    }
 
     /// Process a job, appending the result to `out`.
     fn work(&self, data: &[u8], out: &mut String) -> Self::Info;
@@ -62,7 +68,7 @@ trait Codec: Sync {
 /// Input of a job.
 enum Data<'a> {
     Borrowed(&'a [u8]),
-    Owned(Vec<u8>, usize),
+    Owned(Vec<u8>, std::ops::Range<usize>),
 }
 
 impl std::ops::Deref for Data<'_> {
@@ -70,7 +76,7 @@ impl std::ops::Deref for Data<'_> {
     fn deref(&self) -> &[u8] {
         match self {
             Data::Borrowed(data) => data,
-            Data::Owned(buf, len) => &buf[..*len],
+            Data::Owned(buf, range) => &buf[range.clone()],
         }
     }
 }
@@ -154,9 +160,10 @@ struct Producer<'a, 'c, R, C> {
     size: usize,
     /// Slice: offset of the next job.
     offset: usize,
-    /// Reader: the input not yet dispatched, in the first `filled` bytes of `buf`; the buffer is
-    /// kept fully initialized to avoid initializing it before each read.
+    /// Reader: the input not yet dispatched, in the `filled` bytes of `buf` from `start`; the
+    /// buffer is kept fully initialized to avoid initializing it before each read.
     buf: Vec<u8>,
+    start: usize,
     filled: usize,
     eof: bool,
 }
@@ -182,37 +189,46 @@ impl<'a, 'c, R: Read, C: Codec> Producer<'a, 'c, R, C> {
             Input::Reader(reader) => reader,
         };
         loop {
+            let (start, filled) = (self.start, self.filled);
             if self.eof {
                 // the rest of the input, which has no cut point
-                if self.filled == 0 {
+                if filled == 0 {
                     return Ok(None);
                 }
+                self.filled = 0;
                 let buf = std::mem::take(&mut self.buf);
-                return Ok(Some(Data::Owned(buf, std::mem::take(&mut self.filled))));
+                return Ok(Some(Data::Owned(buf, start..start + filled)));
             }
-            if self.buf.len() < self.filled + self.size {
-                self.buf.resize(self.filled + self.size, 0);
+            if self.buf.len() < start + filled + self.size {
+                self.buf.resize(start + filled + self.size, 0);
             }
-            match reader.read(&mut self.buf[self.filled..self.filled + self.size]) {
+            let end = start + filled;
+            match reader.read(&mut self.buf[end..end + self.size]) {
                 Ok(0) => self.eof = true,
                 Ok(n) => {
                     self.filled += n;
                     // dispatch what was read right away
-                    let cut = self.codec.last_cut(&self.buf[..self.filled]);
+                    let view = &mut self.buf[start..start + self.filled];
+                    let cut = self.codec.last_cut(view);
                     if cut == 0 {
-                        self.codec.compact(&mut self.buf, &mut self.filled);
+                        self.filled = self.codec.compact(view);
                         continue;
                     }
-                    // move the rest of the input to a new buffer
+                    // move the rest of the input to a new buffer, such that the next read is
+                    // aligned (which makes the copy from the kernel faster)
                     let mut next = pool.get();
                     let rest = self.filled - cut;
-                    if next.len() < rest + self.size {
-                        next.resize(rest + self.size, 0);
+                    if next.len() < rest + self.size + READ_ALIGN {
+                        next.resize(rest + self.size + READ_ALIGN, 0);
                     }
-                    next[..rest].copy_from_slice(&self.buf[cut..self.filled]);
+                    let next_start =
+                        (READ_ALIGN - (next.as_ptr() as usize + rest) % READ_ALIGN) % READ_ALIGN;
+                    next[next_start..next_start + rest]
+                        .copy_from_slice(&self.buf[start + cut..start + self.filled]);
                     let buf = std::mem::replace(&mut self.buf, next);
+                    self.start = next_start;
                     self.filled = rest;
-                    return Ok(Some(Data::Owned(buf, cut)));
+                    return Ok(Some(Data::Owned(buf, start..start + cut)));
                 }
                 Err(e) if e.kind() == io::ErrorKind::Interrupted => {}
                 Err(e) => return Err(e),
@@ -250,6 +266,7 @@ where
         size,
         offset: 0,
         buf: Vec::new(),
+        start: 0,
         filled: 0,
         eof: false,
     };
@@ -411,12 +428,13 @@ impl Codec for Decoder {
             .map_or(0, |i| i + 1)
     }
 
-    fn compact(&self, job: &mut Vec<u8>, len: &mut usize) {
+    fn compact(&self, job: &mut [u8]) -> usize {
         // a sequence of more than 7 elements is dropped, whatever its content and length
-        if *len > 8 {
+        if job.len() > 8 {
             job[..8].copy_from_slice(b"xxxxxxxx");
-            *len = 8;
+            return 8;
         }
+        job.len()
     }
 
     fn work(&self, data: &[u8], out: &mut String) {
