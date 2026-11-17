@@ -104,18 +104,29 @@ const DISCARD: usize = 256;
 struct DecodeTable {
     utf8: [[u8; 4]; 512],
     len: [u8; 512],
+    /// The decoded character when it is ASCII, 0 when there is none, and [`NON_ASCII`] otherwise.
+    ascii: [u8; 256],
 }
+
+/// Value of [`DecodeTable::ascii`] for characters that are not ASCII.
+const NON_ASCII: u8 = 0x80;
 
 impl DecodeTable {
     fn new(char_decode: fn(u8) -> char) -> Self {
         let mut table = DecodeTable {
             utf8: [[0; 4]; 512],
             len: [0; 512],
+            ascii: [0; 256],
         };
         for binary in 0..256 {
             let decoded = char_decode(binary as u8);
             if decoded != '\0' {
                 table.len[binary] = decoded.encode_utf8(&mut table.utf8[binary]).len() as u8;
+                table.ascii[binary] = if decoded.is_ascii() {
+                    decoded as u8
+                } else {
+                    NON_ASCII
+                };
             }
         }
         table
@@ -200,9 +211,74 @@ unsafe fn decode_separator(
     cur + (c != b' ') as usize
 }
 
+/// Decode the separators at `base + j` for each bit `j` set in `mask`, writing to `out + cur`;
+/// return the new values of `cur` and `chunk_start`.
+///
+/// # Safety
+///
+/// - each `base + j` must be a separator, and `chunk_start <= base + j`;
+/// - `base + 64 + 7 <= input.len()`;
+/// - `out` must be valid for writes of `cur + 64 * MAX_OUTPUT_PER_INPUT_BYTE` bytes.
+#[inline(always)]
+unsafe fn decode_separators(
+    input: &[u8],
+    base: usize,
+    mut mask: u64,
+    mut chunk_start: usize,
+    table: &DecodeTable,
+    out: *mut u8,
+    mut cur: usize,
+) -> (usize, usize) {
+    while mask != 0 {
+        let j = base + mask.trailing_zeros() as usize;
+        mask &= mask - 1;
+        // SAFETY: forwarded from the caller; `chunk_start <= j` since `chunk_start` is either
+        // unchanged or right after a previous separator, and `j + 8 <= base + 64 + 7`
+        cur = unsafe { decode_separator(input, chunk_start, j, table, out, cur) };
+        chunk_start = j + 1;
+    }
+    (cur, chunk_start)
+}
+
+/// Decode the separator `input[i]` (if it is one), with bounds checks.
+fn decode_byte_checked(
+    input: &[u8],
+    i: usize,
+    chunk_start: &mut usize,
+    table: &DecodeTable,
+    output_buf: &mut Vec<u8>,
+) {
+    let c = input[i];
+    if is_separator(c) {
+        if c == b'/' {
+            output_buf.push(b' ');
+        } else {
+            let binary = morse_to_binary(&input[*chunk_start..], i - *chunk_start);
+            let len = table.len[binary as usize] as usize;
+            output_buf.extend_from_slice(&table.utf8[binary as usize][..len]);
+            if c != b' ' {
+                output_buf.push(c);
+            }
+        }
+        *chunk_start = i + 1;
+    }
+}
+
 fn decode_buffer(input: &[u8], table: &DecodeTable, output_buf: &mut Vec<u8>) -> usize {
     let mut chunk_start = 0;
     let mut i = 0;
+    #[cfg(target_arch = "x86_64")]
+    if input.len() >= avx512::MIN_INPUT_LEN && avx512::is_available() {
+        // the AVX-512 path looks back 8 bytes
+        while i < 8 {
+            decode_byte_checked(input, i, &mut chunk_start, table, output_buf);
+            i += 1;
+        }
+        // SAFETY: we just checked that the CPU supports the required features, and the other
+        // requirements hold since we processed exactly the first 8 bytes
+        (i, chunk_start) =
+            unsafe { avx512::decode_blocks(input, i, chunk_start, table, output_buf) };
+    }
     // process 64-byte blocks, as long as there are 7 bytes after the block for
     // `morse_to_binary_fast`
     while i + 64 + 7 <= input.len() {
@@ -213,17 +289,12 @@ fn decode_buffer(input: &[u8], table: &DecodeTable, output_buf: &mut Vec<u8>) ->
         let mut cur = output_buf.len();
         for _ in 0..blocks {
             let block: &[u8; 64] = input[i..i + 64].try_into().unwrap();
-            let mut mask = separator_mask(block);
-            while mask != 0 {
-                let j = i + mask.trailing_zeros() as usize;
-                mask &= mask - 1;
-                // SAFETY: `input[j]` is a separator per `mask`, `chunk_start <= j` since
-                // `chunk_start` is either 0 or right after a previous separator, and
-                // `j + 8 <= i + 64 + 7 <= input.len()`; we reserved `MAX_OUTPUT_PER_INPUT_BYTE`
-                // bytes per input byte of the blocks
-                cur = unsafe { decode_separator(input, chunk_start, j, table, out, cur) };
-                chunk_start = j + 1;
-            }
+            let mask = separator_mask(block);
+            // SAFETY: the bits of `mask` are separators, `chunk_start <= i` and we checked
+            // `i + 64 + 7 <= input.len()`; we reserved `MAX_OUTPUT_PER_INPUT_BYTE` bytes per
+            // input byte of the blocks
+            (cur, chunk_start) =
+                unsafe { decode_separators(input, i, mask, chunk_start, table, out, cur) };
             i += 64;
         }
         // SAFETY: the first `cur` bytes of `output_buf` are initialized because we only increase
@@ -232,23 +303,13 @@ fn decode_buffer(input: &[u8], table: &DecodeTable, output_buf: &mut Vec<u8>) ->
     }
     // remaining bytes
     for i in i..input.len() {
-        let c = input[i];
-        if is_separator(c) {
-            if c == b'/' {
-                output_buf.push(b' ');
-            } else {
-                let binary = morse_to_binary(&input[chunk_start..], i - chunk_start);
-                let len = table.len[binary as usize] as usize;
-                output_buf.extend_from_slice(&table.utf8[binary as usize][..len]);
-                if c != b' ' {
-                    output_buf.push(c);
-                }
-            }
-            chunk_start = i + 1;
-        }
+        decode_byte_checked(input, i, &mut chunk_start, table, output_buf);
     }
     chunk_start
 }
+
+#[cfg(target_arch = "x86_64")]
+mod avx512;
 
 fn decode_buffer_end(input: &[u8], table: &DecodeTable, output_buf: &mut Vec<u8>) {
     let chunk_start = decode_buffer(input, table, output_buf);
