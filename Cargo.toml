@@ -29,9 +29,12 @@ debug = true
 [dependencies]
 clap = { version = "4.5.30", features = ["derive"], optional = true }
 simdutf8 = "0.1.5"
+libc = { version = "0.2.170", optional = true }
 
 [features]
-default = ["clap"]
+default = ["clap", "fast-io"]
+# Binary only: memory-map the input when it is a regular file, and enlarge pipes
+fast-io = ["dep:libc"]
 
 [[bin]]
 name = "ripmors"

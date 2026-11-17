@@ -19,12 +19,17 @@
 //!   [`Decoder::decode`]), possibly into an existing buffer ([`Encoder::encode_into`],
 //!   [`Decoder::decode_into`]), or from a [`Read`][std::io::Read] object to a
 //!   [`Write`][std::io::Write] object ([`Encoder::encode_stream`], [`Decoder::decode_stream`]);
+//! - [`Encoder::encode_parallel`], [`Encoder::encode_parallel_write`],
+//!   [`Encoder::encode_stream_parallel`] and their [`Decoder`] counterparts do the same with
+//!   several threads;
 //! - [`EncodeStream`] and [`DecodeStream`] encode and decode input given in pieces, which lets
 //!   you bring your own I/O.
 //!
 //! # Feature Flags
-//! There is a single feature flag, `clap`. It is only used for the binary. It only exists to
-//! reduce the dependencies of the libraries without splitting the crate.
+//! There are two feature flags, `clap` and `fast-io`, enabled by default. They are only used for
+//! the binary (`fast-io` memory-maps the input when it is a regular file, and enlarges pipes, with
+//! `libc`). They only exist to reduce the dependencies of the libraries without splitting the
+//! crate.
 
 // Do not consider the body of unsafe functions to be an unsafe block by default. This forces one
 // to explicitly mark what parts of an unsafe functions are actually unsafe.
@@ -41,6 +46,7 @@ mod encode_ascii;
 mod encode_ascii_mapping;
 mod encode_unicode;
 mod encode_unicode_mapping;
+mod parallel;
 
 // Public API
 pub use decode::{Alphabet, DecodeError, DecodeErrorKind, DecodeStream, Decoder};
