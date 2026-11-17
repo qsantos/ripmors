@@ -40,8 +40,9 @@ macro_rules! to_script {
         };
         $(#[$outer])*
         ///
-        /// This function should not be called directly, but passed as an argument to either
-        /// [decode_stream][crate::decode_stream] or [decode_string][crate::decode_string].
+        /// To decode with this mapping, use [`Decoder::new`][crate::Decoder::new] with the
+        /// corresponding [`Alphabet`][crate::Alphabet]; it is mostly useful to build a custom
+        /// alphabet on top of it with [`Decoder::from_fn`][crate::Decoder::from_fn].
         ///
         /// The `elements` parameter represents up to 7 Morse code elements. There is one bit per
         /// element (0 for dot, 1 for dash), and a leading bit do detect the number of elements.
