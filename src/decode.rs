@@ -170,8 +170,11 @@ pub enum Alphabet {
 struct DecodeTable {
     utf8: [[u8; 4]; 512],
     len: [u8; 512],
-    /// The decoded character when it is ASCII, 0 when there is none, and [`NON_ASCII`] otherwise.
-    ascii: [u8; 256],
+    /// The first three bytes of the UTF-8 encodings (zero when there is none) by window index,
+    /// for the AVX-512 kernel: the elements of the sequence in reverse order (the last one is the
+    /// least significant bit), with 1 for `.` and 0 for `-`, plus a leading one; the first byte
+    /// for index 0, which is not a sequence, is 0xff.
+    window: [[u8; 128]; 3],
 }
 
 impl std::fmt::Debug for DecodeTable {
@@ -180,15 +183,12 @@ impl std::fmt::Debug for DecodeTable {
     }
 }
 
-/// Value of [`DecodeTable::ascii`] for characters that are not ASCII.
-const NON_ASCII: u8 = 0x80;
-
 impl DecodeTable {
     const fn from_chars(chars: &[char; 256]) -> Self {
         let mut table = DecodeTable {
             utf8: [[0; 4]; 512],
             len: [0; 512],
-            ascii: [0; 256],
+            window: [[0; 128]; 3],
         };
         // binary values 0 and 1 do not correspond to sequences with at least one element
         let mut binary = 2;
@@ -196,9 +196,26 @@ impl DecodeTable {
             let c = chars[binary];
             if c != '\0' {
                 table.len[binary] = c.encode_utf8(&mut table.utf8[binary]).len() as u8;
-                table.ascii[binary] = if c.is_ascii() { c as u8 } else { NON_ASCII };
             }
             binary += 1;
+        }
+        table.window[0][0] = 0xff;
+        let mut index = 1;
+        while index < 128 {
+            let len = 7 - (index as u8).leading_zeros() as usize;
+            let mut binary = 1 << len;
+            let mut t = 0;
+            while t < len {
+                // element `t` (from 0) is a dash when bit `len - 1 - t` is 0
+                binary |= (1 - ((index >> (len - 1 - t)) & 1)) << t;
+                t += 1;
+            }
+            let mut n = 0;
+            while n < 3 {
+                table.window[n][index] = table.utf8[binary][n];
+                n += 1;
+            }
+            index += 1;
         }
         table
     }
@@ -350,10 +367,22 @@ fn decode_byte_checked(
 /// `output_buf`; return the start of the last Morse sequence, which is not decoded since it may
 /// continue after `input`.
 fn decode_buffer(input: &[u8], table: &DecodeTable, output_buf: &mut Vec<u8>) -> usize {
+    decode_buffer_with(input, table, output_buf, true)
+}
+
+/// See [`decode_buffer`]; the AVX-512 kernel is only used when `allow_avx512` is true (for
+/// tests).
+#[inline(always)]
+fn decode_buffer_with(
+    input: &[u8],
+    table: &DecodeTable,
+    output_buf: &mut Vec<u8>,
+    allow_avx512: bool,
+) -> usize {
     let mut chunk_start = 0;
     let mut i = 0;
     #[cfg(target_arch = "x86_64")]
-    if input.len() >= avx512::MIN_INPUT_LEN && avx512::is_available() {
+    if allow_avx512 && input.len() >= avx512::MIN_INPUT_LEN && avx512::is_available() {
         // the AVX-512 path looks back 8 bytes
         while i < 8 {
             decode_byte_checked(input, i, &mut chunk_start, table, output_buf);
@@ -695,6 +724,9 @@ impl std::fmt::Display for DecodeError {
 }
 
 impl std::error::Error for DecodeError {}
+
+#[cfg(test)]
+mod differential_tests;
 
 #[cfg(test)]
 mod tests {

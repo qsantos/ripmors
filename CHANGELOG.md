@@ -22,6 +22,7 @@
 - Fix `encode_stream` dropping the end of the output when it did not end with a letter space
   (e.g. when the input ended with a newline).
 - Optimize encoding (1.4x to 1.8x) and decoding (10x with AVX-512, 2.5x without).
+- Decode all the alphabets with AVX-512, including those with non-ASCII characters.
 - The command-line tool exits quietly when its output is closed (e.g. `ripmors | head`).
 
 ## v0.2.0
