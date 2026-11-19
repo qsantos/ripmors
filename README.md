@@ -4,15 +4,14 @@ ripmors is a Rust library for encoding and decoding [International Morse code](h
 
 It is _fast_:
 
-- Encoding ASCII text to Morse code: 15 GiB/s
-- Encoding Unicode text to Morse code: 8.3 GiB/s
-- Decoding Morse code: 15 GiB/s
+| Task                           | Pre-LLM        | Post-LLM, single core | Post-LLM, all cores |
+|--------------------------------|---------------:|----------------------:|--------------------:|
+| Encoding ASCII text to Morse   |      1.5 GiB/s |             2.5 GiB/s |            15 GiB/s |
+| Encoding Unicode text to Morse |      730 MiB/s |             1.2 GiB/s |           8.3 GiB/s |
+| Decoding Morse code            |      570 MiB/s |             6.1 GiB/s |            15 GiB/s |
 
-Even with a single core:
-
-- Encoding ASCII text to Morse code: 2.5 GiB/s
-- Encoding Unicode text to Morse code: 1.2 GiB/s
-- Decoding Morse code: 6.1 GiB/s
+The pre-LLM version (`dd6c191`) was written by hand. Claude Opus 5.5 greatly
+improved the performance of decoding, and added parallelism.
 
 Measured on AMD Ryzen 9 7950X3D.
 
